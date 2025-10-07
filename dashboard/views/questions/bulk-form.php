@@ -2,7 +2,7 @@
 <div class="facebox-panel">
   <div class="facebox-panel__head"><h4>Bulk Upload Questions (CSV)</h4></div>
   <div class="facebox-panel__body">
-    <form class="form" id="bulkUploadFrm" onsubmit="return submitBulkUpload(this);">
+    <form class="form" id="bulkUploadFrm" ;>
       <div class="row">
         <div class="col-md-8">
           <div class="field-set">
