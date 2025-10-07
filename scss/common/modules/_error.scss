@@ -1,0 +1,37 @@
+$error: "error";
+
+.#{$error} {
+
+    &__media{
+        
+        @media(min-width: theme('breakpoints.lg','value')){
+            text-align: center;
+        }
+
+        img{
+            margin: 0 auto;
+            @media(max-width: theme('breakpoints.md','value')){
+                margin-bottom: theme('margin.8');
+                max-width: 150px;
+            }
+        }
+    }
+
+    &__content{
+        h3{
+            color: theme('color.dark');
+            font-weight: theme('font.weight.bold');
+            font-size: theme('font.size.xxxl');
+            margin-bottom: theme('margin.4');
+        }
+        p{
+            font-size: theme('font.size.h5');
+            color: theme('color.dark');
+            margin-bottom: theme('margin.14');
+        }
+
+        .list-group{
+            margin-bottom: theme('margin.14');
+        }
+    }
+}

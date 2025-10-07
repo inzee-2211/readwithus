@@ -1,0 +1,66 @@
+
+$tagit: 'tagit';
+
+.#{$tagit} {
+   &{box-shadow: none!important; border: 1px solid theme('color.gray.300')!important;padding: 1px 5px;
+    overflow: auto;
+    margin-left: inherit;
+    margin-right: inherit;
+    &.ui-widget-content{border: 1px solid theme('color.gray.300')!important;}
+        .tagit-choice{box-shadow: none!important;}
+        & .tagit-close{width: 36px; height: 36px; position: absolute; #{theme('direction.right','value')}: 0;top: 0; text-align: center; color: theme('color.black'); cursor: pointer;
+            &:after{content: "+";
+                font-size: 1.6rem;
+                -webkit-transform: rotate(45deg);
+                transform: rotate(45deg);
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                margin: auto;
+                line-height: 36px}
+        }
+    }
+}
+
+
+input.tagit-hidden-field {
+    display: none;
+}
+
+
+ul.tagit li.tagit-choice-editable {
+    padding: theme('padding.3'); padding-#{theme('direction.right','value')}: theme('padding.14'); background-color: theme('color.gray.200');
+}
+
+ul.tagit li.tagit-choice {
+    position: relative;
+    line-height: inherit;
+}
+
+ul.tagit li {
+    display: block;
+    float: #{theme('direction.left','value')};
+    margin: 2px 5px 2px 0;
+}
+
+ul.tagit input[type="text"] {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+    width: inherit;
+    background-color: inherit;
+    outline: none;
+}
+
+
+ul.tagit li.tagit-choice .tagit-close .text-icon {
+    display: none;
+}

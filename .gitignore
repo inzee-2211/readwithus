@@ -1,0 +1,77 @@
+# ---- OS / Editors
+.DS_Store
+.idea/
+.vscode/
+*.code-workspace
+
+# ---- Environment / Secrets
+.env
+.env.*
+!.env.example            # keep a template in repo
+
+# ---- PHP / Composer
+/vendor/                 # install via composer install
+composer.lock            # ✅ For libraries ignore; for apps prefer committing (see note below)
+
+# ---- Node / Build
+/node_modules/
+/coverage/
+/build/
+/dist/
+/.parcel-cache/
+/.next/
+/.nuxt/
+/vite.config.ts.timestamp-*
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json        # ✅ For libraries ignore; for apps prefer committing (see note below)
+
+# ---- App runtime (cache, logs, sessions, temp)
+storage/
+runtime/
+tmp/
+temp/
+logs/
+log/
+*.log
+cache/
+application/cache/
+library/cache/
+public/cache/
+
+# ---- Uploads & generated media
+uploads/
+user-uploads/
+public/uploads/
+public/user-uploads/
+public/media/
+public/sitemaps/
+
+# ---- DB dumps / local data
+*.sql
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.dump
+
+# ---- Gulp/SASS intermediates (adjust if your build outputs to public/)
+.scss-cache/
+.sass-cache/
+*.map
+
+# ---- Misc
+phpunit.xml
+phpunit.xml.dist
+phpstan.neon
+phpstan-baseline.neon
+.php_cs.cache
+
+# ---- Licenses/keys that are machine-bound
+license*.txt
+
+# ---- Apache / Nginx
+# NOTE: In most PHP apps, you SHOULD commit .htaccess.
+# If your project needs it, remove the next line.
+#.htaccess

@@ -1,0 +1,78 @@
+.footer-nav{
+    @media(max-width: theme('breakpoints.sm','value')){
+        margin-bottom: theme('margin.2');
+    }
+    ul{
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+
+        @media(max-width: theme('breakpoints.sm','value')){
+            &{justify-content: center;}
+        }
+
+        li{
+            margin-#{theme('direction.right','value')}: theme('margin.3');
+            padding-#{theme('direction.right','value')}: theme('padding.3');
+            &:last-child{
+                margin-#{theme('direction.right','value')}: theme('margin.0');
+                padding-#{theme('direction.right','value')}: theme('padding.0');
+            }
+            @media(max-width: theme('breakpoints.sm','value')){
+                margin-#{theme('direction.right','value')}: theme('margin.2');
+                padding-#{theme('direction.right','value')}: theme('padding.2');
+            }
+            position: relative;
+            &:after{
+                content: "";
+                position: absolute;
+                height: 12px;
+                width: 1px;
+                background: theme('color.gray.400');
+                #{theme('direction.right','value')}: 0;
+                top: 3px;
+            }
+            &:last-child{
+                &::after{
+                    content: none;
+                }
+            }
+            a{
+                font-size: 0.9rem;
+                color: #666;
+            }
+        }
+    }
+}
+
+.page__footer{
+    display: flex;
+    align-items: center;
+    @media(max-width: theme('breakpoints.sm','value')){
+        flex-direction: column;
+    }
+    p{
+        margin-bottom: 0;
+        margin-#{theme('direction.left','value')}: auto;
+        font-size: 0.9rem;
+        color: #666;
+        a{
+            color: #666; text-decoration: underline;
+        }
+
+        @media(max-width: theme('breakpoints.sm','value')){
+            margin-#{theme('direction.left','value')}: unset; text-align: center!important;
+        }
+    }
+}
+
+.lessons.view{
+        
+    $page: "page";
+
+    .#{$page}{
+        &__footer{padding-left:theme('padding.10');padding-right:theme('padding.10');}
+    }
+
+}

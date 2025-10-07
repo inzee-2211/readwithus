@@ -1,0 +1,48 @@
+
+
+align-right
+#{theme('direction.right','value')}
+
+align-right
+#{theme('direction.left','value')}
+
+for media queries
+theme('breakpoints.xxxl','value')) - 1399.98px
+theme('breakpoints.xxl','value')) - 1299.98px
+theme('breakpoints.xl','value')) - 1199.98px
+theme('breakpoints.lg','value')) - 991.98px
+theme('breakpoints.md','value')) - 767.98px
+theme('breakpoints.sm','value')) - 575.98px
+
+for colors
+theme('color.secondary');
+theme('color.secondary-inverse');
+
+theme('color.gray.500');
+
+for padding/margin
+theme('padding.3')
+theme('margin.3')
+
+for padding/margin direction
+margin-#{theme('direction.left','value')}: theme('margin.2');
+padding-#{theme('direction.left','value')}: theme('padding.2');
+
+for font size
+theme('font.size.md')
+
+for box shadow
+theme('boxShadow.1')
+
+for radius
+theme('radius.round')
+
+for weight
+theme('font.weight.medium')
+
+for border color
+ border-top: 1px solid theme('color.gray.200');
+
+
+
+

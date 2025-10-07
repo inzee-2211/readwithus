@@ -1,0 +1,22 @@
+
+.box.box--narrow .field_label {
+    display: block;
+    width: 100%;
+}
+
+.box.box--narrow .field_label .-link-underline {
+    font-weight: normal;
+}
+.div-login-form .field_label .-link-underline {
+    font-weight: normal;
+}
+
+@media (max-width:theme('breakpoints.lg','value')) {
+
+   
+
+    .box.box--narrow .-float-right {
+        float: #{theme('direction.right','value')} !important;
+    }
+
+}

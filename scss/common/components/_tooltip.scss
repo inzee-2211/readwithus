@@ -1,0 +1,187 @@
+
+// .tooltip {
+//     display: inline-block;
+//     vertical-align: middle;
+//     position: relative;
+//     cursor: help;
+// }
+
+// .tooltip .tooltip__content {
+//     color: #fff;
+//     background: #333;
+//     padding: 3px 10px;
+//     max-width: 200px;
+//     position: absolute;
+//     #{theme('direction.right','value')}: 0;
+//     bottom: 0;
+//     font-size: 0.85rem;
+//     line-height: 1.4;
+//     opacity: 0;
+//     visibility: hidden;
+//     z-index: 3;
+//     -webkit-transition: 0.3s all ease-in-out;
+//     -moz-transition: 0.3s all ease-in-out;
+//     -o-transition: 0.3s all ease-in-out;
+//     transition: 0.3s all ease-in-out;
+//     border-radius: 3px;
+//     white-space: normal;
+// }
+
+// .tooltip .tooltip__content:before {
+//     position: absolute;
+//     #{theme('direction.right','value')}: 15px;
+//     bottom: -7px;
+//     content: "";
+//     border-left: 8px solid transparent;
+//     border-right: 8px solid transparent;
+//     border-top: 8px solid #333;
+// }
+
+// .tooltip:hover .tooltip__content {
+//     opacity: 1;
+//     visibility: visible;
+//     bottom: 30px;
+// }
+
+// .tooltip.tooltip--centered .tooltip__content {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 50%;
+//     transform: translate(-50%, 0);
+//     -webkit-transform: translate(-50%, 0);
+//     -ms-transform: translate(-50%, 0);
+// }
+
+// .tooltip.tooltip--centered .tooltip__content:before {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 50%;
+//     margin: 0 0 0 -8px;
+// }
+
+// .tooltip.tooltip--left .tooltip__content {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 0;
+// }
+
+// .tooltip.tooltip--left .tooltip__content:before {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 10px;
+// }
+
+// .tooltip.tooltip--bottom .tooltip__content {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 50%;
+//     margin-#{theme('direction.left','value')}: -100px;
+//     bottom: auto;
+//     top: 0;
+// }
+
+// .tooltip.tooltip--bottom .tooltip__content:before {
+//     border-top: none;
+//     border-bottom: 8px solid #333;
+//     bottom: auto;
+//     top: -7px;
+// }
+
+// .tooltip.tooltip--bottom .tooltip__content:before {
+//     #{theme('direction.right','value')}: auto;
+//     #{theme('direction.left','value')}: 50%;
+//     margin-#{theme('direction.left','value')}: -8px;
+// }
+
+// .tooltip.tooltip--bottom:hover .tooltip__content {
+//     opacity: 1;
+//     visibility: visible;
+//     top: 30px;
+//     bottom: auto;
+// }
+
+
+
+
+//
+//Tabs
+//
+$tooltip: "tooltip";
+
+.#{$tooltip}{
+  position: absolute;
+  z-index: 10;
+  display:flex;
+  max-width: 300px;
+  padding: theme('padding.1') theme('padding.2');
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0.05em;
+  // opacity: 0.9;
+  background-color:currentColor;
+  color: theme('color.white');transition:all 0.5s; box-shadow:theme('boxShadow.5');;
+
+ &:before{
+   position: absolute;
+   display: block;
+    width: 0.7em;
+    height: 0.7em;
+   background-color: inherit;
+   content: "";
+}
+
+  //Modifier
+  &--curve{
+    border-radius: theme('radius.curve');
+  }
+  &--round{
+    border-radius: theme('radius.round');
+  }
+
+  &--top{
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%) translateY(-90%);
+    text-align: center;
+    &:before{
+      bottom: 0;
+      left: 50%;
+      transform: translateY(50%) translateX(-50%) rotate(45deg);
+    }
+  }
+  &--bottom{
+    left: 50%;
+    top:100%;
+    transform: translateX(-50%);
+    text-align: center;
+    &:before{
+      top: 0;
+      left: 50%;
+      transform: translateY(-50%) translateX(-50%) rotate(45deg);
+    }
+  }
+  &--left{
+    #{theme('direction.right','value')}: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: #{theme('direction.left','value')};
+    &:before{
+      #{theme('direction.right','value')}: -3px;
+      top: 50%;
+      transform: translateY(-50%) rotate(45deg);
+    }
+  }
+  &--right{
+    #{theme('direction.left','value')}: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: #{theme('direction.left','value')};
+    &:before{
+      #{theme('direction.left','value')}: -3px;
+      top: 50%;
+      transform: translateY(-50%) rotate(45deg);
+    }
+  }
+
+.is-hover &{opacity: 0;visibility: hidden;}
+.is-hover:hover &{opacity:1;visibility:visible;}
+ 
+
+
+
+}

@@ -1,0 +1,12 @@
+@font-face {
+    font-family: 'JejuGothic';
+    src: url('JejuGothic.eot');
+    src: url('JejuGothic.eot?#iefix') format('embedded-opentype'),
+        url('JejuGothic.woff2') format('woff2'),
+        url('JejuGothic.woff') format('woff'),
+        url('JejuGothic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+

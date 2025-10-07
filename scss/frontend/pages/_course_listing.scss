@@ -1,0 +1,222 @@
+.style-italic{font-style: italic;}
+
+
+$mark-option: "mark-option";
+
+.#{$mark-option} {
+    &{width: 36px; height: 36px; position: relative; display: flex; color: theme('color.black'); align-items: center; justify-content: center; border-radius: theme('radius.round');background-color: rgba(255,255,255,0.8);
+        &.is-active{background-color: theme('color.primary');
+            & svg{fill:theme('color.white');}
+        }
+    }
+}
+
+
+.btn--favorite {border-color:currentColor; color: theme('color.gray.900');
+    &.is-active{background-color: theme('color.secondary'); border-color:theme('color.secondary'); color: theme('color.secondary-inverse');}
+}
+
+
+$course-card: "course-card";
+
+.#{$course-card}{
+
+
+    .#{$mark-option} {
+        &{position: absolute; #{theme('direction.left','value')}:1.6rem;top:1.6rem; 
+    
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{ #{theme('direction.left','value')}:1rem;top:1rem;z-index: 1;}
+            }
+        }
+    }
+
+    &{background-color: theme('color.white');border-radius: theme('radius.0'); box-shadow: theme('boxShadow.all'); width: 100%; margin-bottom: theme('margin.10'); transition: all 0.4s; position: relative;
+    
+        &__label{display: block; color: theme('color.primary'); font-weight: theme('font.weight.medium'); font-size: theme('font.size.small'); text-transform: uppercase; max-width: 76%;
+        
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{font-size: theme('font.size.sm');}
+            }
+        }
+        &__title{display: block; color: theme('color.black'); font-weight: theme('font.weight.bold'); margin: theme('margin.4') 0 theme('margin.1');word-wrap: break-word;
+        
+            @media (max-width:theme('breakpoints.lg','value')){
+                &{font-size: theme('font.size.h5');}display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;margin-top: theme('margin.6');
+            }
+
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{font-size: theme('font.size.medium'); margin-bottom: theme('margin.4');margin-top: theme('margin.2'); overflow: visible; text-overflow: unset;white-space: normal;}
+            }
+        }
+        &__subtitle{display: block;
+        
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{display: none;}
+            }
+        }
+
+
+        @media (min-width:theme('breakpoints.xl','value')){
+            &:hover{box-shadow: theme('boxShadow.vertical');}
+        }
+
+    }
+   
+
+}
+
+
+
+
+
+$course-grid: "course-grid";
+
+.#{$course-grid}{
+    &{padding: theme('padding.4');}
+        @media (min-width:theme('breakpoints.xl','value')){
+            &{display: flex; flex-wrap: wrap; justify-content: space-between;}
+        }
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{padding: 0;}
+        }
+
+    &__head{width: 260px;
+        
+        @media (max-width:theme('breakpoints.xl','value')){
+            &{float: #{theme('direction.left','value')}; margin-#{theme('direction.right','value')}: theme('margin.6');}
+        }
+
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{float:none; margin-#{theme('direction.right','value')}:0; width: 100%;}
+        }
+
+        @media (min-width:theme('breakpoints.xl','value')){
+            &{width: 400px;}
+        }
+    }
+    &__body{width:100%; 
+    
+        @media (min-width:theme('breakpoints.xl','value')){
+            &{width: calc(100% - 430px); padding: theme('padding.2') 0 0;}
+        }
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{ padding: theme('padding.4');}
+        }
+
+    }
+
+}
+
+
+$course-stats: "course-stats";
+
+.#{$course-stats}{
+    &{display: flex; flex-wrap: wrap; align-items: center;
+
+        @media (min-width:theme('breakpoints.sm','value')){
+            &{ margin-bottom:theme('margin.3');}
+        }
+
+        &__item{padding: theme('padding.4');
+            &:first-child{padding-#{theme('direction.left','value')}: 0;}
+        }
+
+        @media (max-width:theme('breakpoints.xl','value')){
+            &{clear: #{theme('direction.left','value')};}
+        }
+
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{
+            
+                &__item{padding: theme('padding.1') theme('padding.2');
+                    &:first-child{padding-#{theme('direction.left','value')}: 0;}
+                }
+            }
+        }
+
+    }
+}
+
+
+
+$course-actions: "course-actions";
+
+.#{$course-actions}{
+    &{
+
+        @media (min-width:theme('breakpoints.sm','value')){
+            &{display: flex; flex-wrap: wrap;align-items: center; justify-content: space-between;}
+        }
+
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{margin-top: theme('margin.4');
+                // &__grid-left{display: none;}
+            }
+        }
+    }
+}
+
+
+$course-controls: "course-controls";
+
+.#{$course-controls}{
+    &{display: flex; flex-wrap: wrap;align-items: center; justify-content: space-between;
+       &__item{padding: theme('padding.2');} 
+            @media (max-width:theme('breakpoints.sm','value')){
+                    &{border-top: 1px solid theme('color.gray.200');margin-top: theme('margin.4');padding-top: theme('padding.4');}
+            }
+
+            @media (max-width:theme('breakpoints.sm','value')){
+                &__item{flex: 1;
+                    & .btn{display:block; width: 100%; text-align: center;}
+                }
+            }
+
+    }
+}
+
+
+
+$snakeline-hover: "snakeline-hover";
+
+.#{$snakeline-hover} {
+    text-decoration: none;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(currentColor), to(currentColor));
+    background-image: -o-linear-gradient(currentColor, currentColor);
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    -webkit-transition: background-size .3s;
+    -o-transition: background-size .3s;
+    transition: background-size .3s;
+
+    @media (min-width: theme("breakpoints.xl","value")) {
+        &:hover{background-size: 100% 1px; color: theme('color.primary');}
+    }
+
+}
+
+
+
+
+$course-tag: "course-tag";
+
+.#{$course-tag} {
+    &{ position: absolute; #{theme('direction.right','value')}: 1rem; top:1rem;padding: theme('padding.1') theme('padding.3'); color: theme('color.secondary');font-size: 11px; display: flex; align-items: center;
+        & svg{color: currentColor;}
+        @media (max-width: theme("breakpoints.sm","value")) {
+            &{background-color: theme('color.white'); border-radius: theme('radius.round'); padding: theme('padding.1') theme('padding.3'); padding-right: theme('padding.4'); font-size: 12px;
+            & .icon{width: 22px; height: 22px;}
+            }
+        }
+    }
+}
+
+
+.course-media{
+    .course-preview__action span{width: 60px;height: 45px;
+    &:before{border-top: 8px solid transparent;border-bottom: 8px solid transparent; border-#{theme('direction.left','value')}-width: 14px;}
+    }
+}

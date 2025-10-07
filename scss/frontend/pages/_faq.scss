@@ -1,0 +1,228 @@
+.panel-nav{
+    display: flex;
+    justify-content: center;
+    @media(max-width: theme('breakpoints.xl','value')) {
+        justify-content: flex-start;
+        overflow: auto;
+    }
+    ul{
+        display: flex;
+        align-items: center;
+        li{
+            padding: 0 1.2rem;
+            a{
+                text-transform: uppercase;
+                color: inherit;
+                height: 60px;
+                align-items: center;
+                display: flex;
+                line-height: 1;
+                color: theme('color.gray.500');
+
+
+                @media(max-width: theme('breakpoints.xl','value')) {
+                    &{white-space: nowrap;}
+                }
+
+            }
+        }
+        .is--active{
+            a{
+                border-bottom: 2px solid theme('color.primary');
+                color: theme('color.primary');
+                font-weight: bold;
+            }
+        }
+    }
+}
+
+.section--faq{
+    background: theme('color.gray.100');
+}
+
+.faq-cover {
+    max-width: 920px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.search-panel{
+    position: relative;
+    width: 100%;
+    margin-bottom: theme('margin.12');
+    .icon{
+        z-index: 1;
+        top: 50%;
+        transform: translateY(-50%);
+        #{theme('direction.left','value')}: 30px;
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        fill: theme('color.gray.600');
+        @media(max-width: theme('breakpoints.md','value')) {
+            width: 18px;
+            height: 18px;
+            #{theme('direction.left','value')}: 13px;
+        }
+    }
+    input[type="text"]{
+        border-radius: 0;
+        height: 80px;
+        padding-#{theme('direction.left','value')}: theme('padding.20');
+        padding-#{theme('direction.right','value')}: theme('padding.16');
+        position: relative;
+        border: 1px solid theme('color.gray.200');
+        @media(max-width: theme('breakpoints.md','value')) {
+            height: 60px;
+            padding-#{theme('direction.left','value')}: theme('padding.12');
+            padding-#{theme('direction.right','value')}: theme('padding.6');
+        }
+    }
+    @media(max-width: theme('breakpoints.lg','value')) {
+        margin-bottom: theme('margin.6');
+    }
+}
+
+.faq-container{
+    .faq-row {
+        background: #fff;
+        
+        border: 1px solid theme('color.gray.200');
+        position: relative;
+        margin-bottom: theme('margin.6');
+        counter-increment: counter-inc;
+
+        @media(max-width: theme('breakpoints.md','value')) {
+            margin-bottom: theme('margin.3');
+        }
+        .faq-title{
+            padding: theme('padding.10');
+            display: block;
+            position: relative;
+            padding-#{theme('direction.right','value')}: theme('padding.14');
+            @media(max-width: theme('breakpoints.md','value')) {
+                padding: theme('padding.5');
+                padding-#{theme('direction.right','value')}: theme('padding.10');
+            }
+            @media(max-width: theme('breakpoints.xl','value')) {
+                padding: theme('padding.6');
+                padding-#{theme('direction.right','value')}: theme('padding.10');
+            }
+            h5{
+                color: theme('color.dark');
+                font-size: theme('font.size.h5');
+                position: relative;
+                
+                &::before{
+                    content: counter(counter-inc)".";
+                    font-weight: bold;
+                    margin-#{theme('direction.right','value')}: theme('margin.1');
+                }
+                
+                @media(max-width: theme('breakpoints.md','value')) {
+                    font-size: 1.1rem;
+                    line-height: 1.6rem;
+                }
+            }
+
+            &::before{
+                content: "";
+                position: absolute;
+                height: 10px;
+                width: 10px;
+                background: transparent;
+                border-#{theme('direction.right','value')}: 2px solid theme('color.dark');
+                border-bottom: 2px solid theme('color.dark');
+                transform: rotate(45deg)  translateY(-50%);
+                #{theme('direction.right','value')}: 30px;
+                top: 48%; 
+                transition: all 0.3s;
+                @media(max-width: theme('breakpoints.md','value')) {
+                    height: 8px;
+                    width: 8px;
+                    #{theme('direction.right','value')}: 17px;
+                }
+                @media(max-width: theme('breakpoints.xl','value')) {
+                    #{theme('direction.right','value')}: 26px;
+                }
+            }
+        }
+
+        .faq-answer{
+            display: none;
+            padding: 0 theme('padding.10') theme('padding.10');
+            @media(max-width: theme('breakpoints.md','value')) {
+                padding: 0 theme('padding.5') theme('padding.5');
+            }
+            @media(max-width: theme('breakpoints.xl','value')) {
+                padding: 0 theme('padding.6') theme('padding.6');
+            }
+            p{
+                margin-bottom: theme('margin.10');
+                line-height: 30px;
+                @media(max-width: theme('breakpoints.md','value')) {
+                    margin-bottom: theme('margin.4');
+                    line-height: 25px;
+                }
+                &:last-child{
+                    margin-bottom: 0;
+                }
+            }
+        }
+    }
+    .is-active{
+        .faq-title{
+            h5{
+                color: theme('color.primary');
+            }
+            &::before{
+                border-color: theme('color.primary');
+                transform: rotate(-135deg);
+            }
+        }
+    }
+}
+
+.contact-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 920px;
+    margin: 0 auto;
+    @media(max-width: theme('breakpoints.sm','value')) {
+        flex-direction: column;
+        align-items: center;
+    }
+    .contact__content{
+        h3{
+            font-size: theme('font.size.h3');
+            color: theme('color.dark');
+            margin-bottom: theme('margin.2');
+        }
+        p{
+            font-size: theme('font.size.h5');
+            margin-bottom: 0;
+            @media(max-width: theme('breakpoints.md','value')) {
+                font-size: 1.1rem;
+            }
+        }
+        @media(max-width: theme('breakpoints.sm','value')) {
+            text-align: center;
+        }
+        @media(max-width: theme('breakpoints.md','value')) {
+            margin-bottom: theme('margin.6');
+        }
+    }
+    .btn{
+        width: 159px;
+    }
+}
+
+
+
+.faq.faq-index{
+    & .section{padding-top: 3rem;}
+    & .section.section--faq{padding: 4rem 0;}
+}

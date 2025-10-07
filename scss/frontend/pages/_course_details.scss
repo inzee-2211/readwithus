@@ -1,0 +1,667 @@
+$section-view: "section-view";
+.#{$section-view}{padding: theme('padding.8') 0 theme('padding.20');}
+
+
+
+$page-heading: "page-heading";
+.#{$page-heading}{ font-weight: theme('font.weight.bold'); font-size: calc(1rem + 1vw); margin: theme('margin.1') 0 theme('margin.1');
+    
+    
+    @media (max-width:theme('breakpoints.sm','value')){
+
+        &{font-size: 1.6rem;}
+    }
+    
+}
+
+$page-subheading: "page-subheading";
+.#{$page-subheading}{ font-weight: normal; margin-bottom: theme('margin.3');
+
+    @media (max-width:theme('breakpoints.sm','value')){
+
+        &{font-size: 1.06rem; line-height: 1.6; margin-bottom: theme('margin.6');}
+    }
+    
+}
+
+
+
+
+$page-nav: "page-nav";
+.#{$page-nav}{
+
+     @media (min-width:theme('breakpoints.sm','value')){
+        &{position: sticky;top: 0; background-color: theme('color.white');z-index: 1;
+            & ul{
+                & li{
+                    & a{padding: theme('padding.8') 0;}
+                }
+            }
+        }
+     }
+
+     @media (max-width:theme('breakpoints.lg','value')){
+        &{margin-top: theme('margin.8');}
+     }
+
+     @media (max-width:theme('breakpoints.sm','value')){
+        &{display: none;}
+     }
+
+}
+
+
+
+
+$course-counts: "course-counts";
+
+.#{$course-counts}{
+    &{display: flex; flex-wrap: wrap; align-items: center;
+
+        // @media (min-width:theme('breakpoints.sm','value')){
+        //     &{ margin-bottom:theme('margin.3');}
+        // }
+
+        &__item{padding: theme('padding.1') theme('padding.4') theme('padding.1');
+            &:first-child{padding-#{theme('direction.left','value')}: 0;}
+        }
+
+        @media (max-width:theme('breakpoints.xl','value')){
+            &{clear: #{theme('direction.left','value')};
+               
+            }
+        }
+
+        @media (max-width:theme('breakpoints.sm','value')){
+            &{
+            
+                &__item{padding: theme('padding.1') theme('padding.2'); padding-#{theme('direction.left','value')}: 0; padding-#{theme('direction.right','value')}: theme('padding.6');
+                    &:first-child{padding-#{theme('direction.left','value')}: 0;}
+                }
+            }
+        }
+
+    }
+}
+
+
+$page-view: "page-view";
+.#{$page-view}{
+    &__head{
+        &{
+            .#{$course-counts}{margin-top: theme('margin.10');}
+        }
+    }
+}
+
+
+
+$course-info: "course-info";
+
+.#{$course-info}{
+    &{display: flex; flex-wrap: wrap; align-items: center;
+        &__media{width: 24px; height: 24px; display: flex; align-items: center;justify-content: center; margin-#{theme('direction.right','value')}: theme('margin.1');}
+    }
+}
+
+
+
+$page-flex: 'page-flex';
+
+.#{$page-flex} {position: relative; width:100%;
+
+    @media(min-width: theme('breakpoints.lg','value')){
+        &{display: grid; grid-column-gap: 60px; grid-row-gap: 40px; grid-template-columns:1fr 1fr 340px;
+            &__large{ grid-column-start: 1; grid-column-end: 3;}
+            &__small{grid-column-start: 3; grid-column-end:4;grid-row-start: 1; grid-row-end: 3;}
+        }
+    }
+
+    @media(max-width: theme('breakpoints.xl','value')){
+        &{grid-column-gap: 40px;grid-template-columns:1fr 1fr 320px; }
+    }
+
+    @media(min-width: theme('breakpoints.lg','value')){
+        &__sticky{position: sticky; top: 2rem;}
+    }
+
+}
+
+
+
+$course-preview: 'course-preview';
+
+.#{$course-preview} {position: relative; width:100%;border-radius: theme('radius.0'); overflow: hidden;
+    &__action{ position: absolute; left: 0;right: 0;top: 0; bottom: 0; background-color: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;
+        & span{width: 90px; height: 65px; background-color: rgba(255,255,255,0.7); border-radius: theme('radius.2'); display: block; margin: auto; transition: all 0.4s;
+            &:before{position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-top: 12px solid transparent;border-bottom: 12px solid transparent; content: ""; border-left: 18px solid theme('color.primary');}
+        }
+
+        @media(min-width: theme('breakpoints.xl','value')){
+            &:hover{
+                & span{background-color: rgba(255,255,255,1);}
+            }
+        }
+        
+    }
+}
+
+
+
+$panel-content: 'panel-content';
+
+.#{$panel-content} {position: relative; width:100%; 
+
+    @media(min-width: theme('breakpoints.sm','value')){
+        &{margin-top: theme('margin.6');
+            &:not(:first-child){margin-top: theme('margin.20');}
+        }
+    }
+
+   
+    &__head{
+        & h3{font-weight: theme('font.weight.bold');}
+
+        @media(max-width: theme('breakpoints.sm','value')){
+            &{padding: theme('padding.6') 0; position: relative; border-top: 1px solid theme('color.gray.300');border-bottom: 1px solid theme('color.gray.300'); margin-top: -1px; background-color:theme('color.white'); padding-#{theme('direction.right','value')}: theme('padding.10'); cursor: pointer;
+            &:after{position: absolute;
+                #{theme('direction.right','value')}: 1.4rem;
+                top: 1.8rem;
+                width: 10px;
+                height: 10px;
+                content: "";
+                border-left: 2px solid currentColor;
+                border-bottom: 2px solid currentColor;
+
+                transform: rotate(-45deg);
+  
+                transition: 0.3s all ease-in-out;}
+                
+
+                & h3{font-size: theme('font.size.h5');}
+
+               
+            }
+
+        }
+
+    }
+
+    @media(max-width: theme('breakpoints.sm','value')){
+        &.is-active{
+
+            .#{$panel-content} {
+                &__head{color: theme('color.primary');
+                    &:after{transform: rotate(135deg); top: 2.2rem;}
+                }
+            }
+
+          
+        }
+    }
+  
+
+
+    @media(max-width: theme('breakpoints.sm','value')){
+        &__body{display: none;}
+    }
+    
+}
+
+
+$content-group: 'content-group';
+
+.#{$content-group} {position: relative; width:100%; margin-top: theme('margin.4');
+        &:not(:first-child){margin-top: theme('margin.8');}
+
+        & h5{font-weight: theme('font.weight.bold');}
+   
+}
+
+
+
+$check-list: 'check-list';
+
+.#{$check-list} {position: relative; width:100%;
+    & ul{
+        & li{position: relative; padding-#{theme('direction.left','value')}:theme('padding.10'); margin-bottom: theme('margin.2'); line-height: 1.8;
+
+            @media(min-width: theme('breakpoints.xl','value')){
+                &{ margin-bottom: theme('margin.6'); }
+            }
+
+            &:before{position: absolute; #{theme('direction.left','value')}:5px;top: 0.4rem; content: ""; width: 8px; height: 14px; border-bottom: 0.12rem solid theme('color.primary'); border-right: 0.12rem solid theme('color.primary'); transform: rotate(45deg);}
+        }
+    }
+    &--half{
+        @media(min-width: theme('breakpoints.sm','value')){
+            & ul{display: flex; flex-wrap: wrap; justify-content: space-between;
+                & li{flex: 0 0 44%;}
+            }
+        }
+       
+    }
+}
+
+
+
+$dots-list: 'dots-list';
+
+.#{$dots-list} {position: relative; width:100%;
+    & ul{display: flex; align-items: center;flex-wrap: wrap;
+        & li{position: relative; font-weight: theme('font.weight.medium');
+            &:not(:first-child){padding-#{theme('direction.left','value')}: theme('padding.10');
+                &:before{position: absolute; #{theme('direction.left','value')}:1.1rem; top: 0.4rem; content: ""; width: 6px; height: 6px; background-color: currentColor; border-radius: theme('radius.round');}
+            }
+            
+        }
+    }
+}
+
+
+
+
+
+$course-layout: 'course-layout';
+$step-caption: 'step-caption';
+$step-counter: 'step-counter';
+
+.#{$course-layout} {position: relative; width:100%; margin-top: theme('margin.8');  padding-top: theme('padding.8');border-top: 1px solid theme('color.gray.300');
+
+    &:last-child{border-bottom: 1px solid theme('color.gray.300'); padding-bottom: theme('padding.8');}
+
+   &__left{
+        &{
+            .#{$step-caption} { text-transform: uppercase;font-weight: theme('font.weight.bold'); }
+                .#{$step-counter} { font-weight: theme('font.weight.bold');}
+
+            @media(min-width:theme('breakpoints.sm','value')){
+                min-width: 160px;
+                .#{$step-caption} {display: block; text-transform: uppercase; opacity: 0.8; font-size: 80%; margin-bottom: theme('margin.8');margin-top: theme('margin.1');}
+                .#{$step-counter} {display: block;  font-weight: theme('font.weight.bold'); font-size: theme('font.size.h3');}
+            }
+        }
+       
+    }
+
+   &__right{
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{flex:1; width: calc(100% - 160px);}
+        }
+
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{padding-top: theme('padding.3'); width: 100%;}
+        }
+
+        .course-content{
+            @media(max-width:theme('breakpoints.sm','value')){
+                & h5{margin-bottom: theme('margin.3')!important;}
+            }
+            & p{margin-bottom: theme('margin.6');}
+        }
+    }
+}
+
+$course-trigger: 'course-trigger';
+
+
+.#{$course-trigger} {
+    &{color: theme('color.primary'); font-weight: theme('font.weight.medium'); position: relative; padding: theme('padding.4'); padding-#{theme('direction.right','value')}: theme('padding.6');
+        &:after{position: absolute; #{theme('direction.right','value')}: 0; top: 1.24rem; content: ""; border-right: 2px solid currentColor;border-bottom: 2px solid currentColor; transform: rotate(45deg);width: 8px; height: 8px;}
+        &.is-active:after{ transform: rotate(-135deg); top: 1.55rem;}
+    }
+}
+
+
+$course-topic: 'course-topic';
+
+
+.#{$course-topic} { padding: theme('padding.3') 0;margin: theme('margin.1') 0;
+
+    @media(min-width:theme('breakpoints.sm','value')){
+        &{display: flex; align-items: flex-start; }
+    }
+
+
+    &__action{ width: 100%;
+
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{display: flex; align-items: flex-start; }
+        }
+
+        .#{$course-topic} {
+            &__name, &__preview{text-decoration: underline; text-underline-offset: 4px; color: theme('color.primary');}
+            &__name{width:calc(100% - 30px)}
+            @media(max-width:theme('breakpoints.sm','value')){
+                &__preview{margin-#{theme('direction.right','value')}:1rem;}
+            }
+        }
+    }
+    &__title{ 
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{display: flex; align-items: flex-start; max-width: 75%;width: 100%;}
+        }
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{font-weight: theme('font.weight.medium');}
+        }
+    }
+    &__content{
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{margin-#{theme('direction.left','value')}: auto;}
+        }
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{padding-#{theme('direction.left','value')}: 2.3rem;padding-top: 0.5rem;}
+        }
+    }
+    &__time{
+    
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{margin-#{theme('direction.left','value')}:  theme('margin.10');}
+        }
+    }
+}
+
+
+$course-topic-list: 'course-topic-list';
+
+
+.#{$course-topic-list} { border-top: 1px solid theme('color.gray.300'); padding-top: theme('padding.4'); margin-top: theme('margin.4');}
+
+
+
+
+
+
+$author-box: "author-box";
+
+.#{$author-box}{ width: 100%;  min-height: 100px; padding: theme('padding.4') 0;
+
+    @media(min-width:theme('breakpoints.sm','value')){
+        &{display: flex; flex-wrap: wrap;}
+    }
+
+    @media(min-width:theme('breakpoints.sm','value')){
+        &{ padding: theme('padding.6') 0;}
+    }
+
+    &__media{
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{max-width: 100px;}
+        }
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{float: #{theme('direction.left','value')}; margin-#{theme('direction.right','value')}: theme('margin.6');
+                .avtar.avtar--large{width: 4rem; height:4rem; }
+            }
+        }
+    }
+    &__content{
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{ padding-#{theme('direction.left','value')}: theme('padding.8'); width: calc(100% - 100px); padding-#{theme('direction.left','value')}: theme('padding.6');}
+        }
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{
+                .rating{margin: 1rem 0 ;}
+                
+            }
+        }
+    }
+    &__head{margin-bottom: theme('margin.2');
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{margin-top: -0.3rem;}
+        }
+        & .author-name{
+            & a{ font-weight: theme('font.weight.bold');}
+        }
+
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{display: flex; justify-content: space-between; margin-bottom: theme('margin.6');}
+        }
+        @media(max-width:theme('breakpoints.sm','value')){
+            &{
+                & .author-name{margin-bottom: theme('margin.1')!important; display: block;
+                    & a{ font-weight: theme('font.weight.bold');}
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+$page-box: 'page-box';
+
+.#{$page-box} {position: relative; width:100%; 
+    min-height: 300px;
+
+    @media(min-width:theme('breakpoints.sm','value')){
+        &{border: 1px solid theme('color.gray.200'); border-radius: theme('radius.1'); box-shadow:0px 5px 10px #0000000D;}
+    }
+    
+    &__head{padding:theme('padding.8') 0 0;
+    
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{padding:theme('padding.8') theme('padding.10') 0;}
+        }
+    }
+    &__body{padding:theme('padding.8') 0 ;
+    
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{padding:theme('padding.8') theme('padding.10');}
+        }
+    }
+    &__footer{padding:theme('padding.8') 0; border-top: 1px solid theme('color.gray.200');
+    
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{padding: theme('padding.10');}
+        }
+        @media(max-width:theme('breakpoints.lg','value')){
+            &{padding-bottom: 0;
+                .sharing-view{padding: 0; border: none;}
+            }
+        }
+    }
+}
+
+
+
+$course-options: 'course-options';
+
+.#{$course-options} {
+
+    
+    @media(max-width:theme('breakpoints.lg','value')){
+        &{
+           & ul {display: flex; flex-wrap: wrap;
+                & li{flex: 0 0 50%;}
+            }
+        }
+    }
+
+    @media(max-width:theme('breakpoints.sm','value')){
+        &{
+           & ul {display: flex; flex-wrap: wrap;
+                & li{flex: 0 0 100%;}
+            }
+        }
+    }
+
+
+    &__item{padding: theme('padding.1') 0; display: flex; align-items: center;
+
+        @media(min-width:theme('breakpoints.sm','value')){
+            &{padding: theme('padding.2') 0;}
+        }
+
+        &-media{margin-#{theme('direction.right','value')}: theme('margin.5');}
+        &:first-child{padding-top: 0;}
+        &.is-hurry{color: theme('color.secondary'); font-weight: theme('font.weight.medium');}
+    }
+
+}
+
+
+$course-pricing: 'course-pricing';
+
+.#{$course-pricing} {
+    &__head{display: flex; align-items: center ; justify-content: space-between; margin-bottom: theme('margin.6');}
+    &__price{font-size: theme('font.size.h4'); font-weight: theme('font.weight.bold'); color: theme('color.primary');}
+}
+
+
+
+
+$video-item: 'video-item';
+
+.#{$video-item} {
+    &{display: flex; justify-content: space-between;width: 100%; cursor: pointer; padding: theme('padding.3') theme('padding.5') theme('padding.3');
+        &__media{width: 80px; margin-top: 0.3rem;}
+        &__content{ width: calc(100% - 100px); display: flex; justify-content: space-between;}
+        &__title{max-width: 80%; line-height: 1.7; font-size: theme('font.size.small'); display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;}
+        &__time{font-size: theme('font.size.small'); }
+        &.is-active{background-color: theme('color.gray.100');
+            .#{$video-item} {
+                &__title{font-weight: theme('font.weight.medium');}
+            }
+        }
+    }
+}
+
+$more-videos: 'more-videos';
+
+.#{$more-videos} {position: relative; width:100%;max-height: 346px; overflow: auto;
+  
+}
+
+
+
+
+$card-tile-cover: "card-tile-cover";
+
+.#{$card-tile-cover}{ 
+    @media (min-width:theme('breakpoints.sm','value')){
+
+        &{padding:0 15px theme('padding.8');}
+
+    }
+
+}
+
+
+
+
+$card-tile: "card-tile";
+
+.#{$card-tile}{
+
+
+    .#{$mark-option} {
+        &{position: absolute; #{theme('direction.left','value')}:1rem;top:1rem;z-index: 1;
+    
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{#{theme('direction.right','value')}:1rem;top:1rem;z-index: 1;}
+            }
+        }
+    }
+
+    &{background-color: theme('color.white');border-radius: theme('radius.0'); box-shadow: theme('boxShadow.all'); width: 100%; transition: all 0.4s; position: relative;
+    
+        &__label{display: block; color: theme('color.primary'); font-weight: theme('font.weight.medium'); font-size: theme('font.size.small'); text-transform: uppercase;
+        
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{font-size: theme('font.size.sm');}
+            }
+        }
+        &__title{display: block; color: theme('color.black'); font-weight: theme('font.weight.bold'); margin: theme('margin.2') 0 theme('margin.4'); min-height: 50px; word-wrap: break-word;
+        
+            @media (max-width:theme('breakpoints.lg','value')){
+                &{font-size: theme('font.size.h5');}display: block;white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{font-size: theme('font.size.medium'); margin-bottom: theme('margin.4');margin-top: theme('margin.2'); overflow: visible; text-overflow: unset;white-space: normal;}
+            }
+        }
+        &__subtitle{display: block;white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        
+            @media (max-width:theme('breakpoints.sm','value')){
+                &{display: none;}
+            }
+        }
+
+
+        @media (mIN-width:theme('breakpoints.xl','value')){
+            &:hover{box-shadow: theme('boxShadow.vertical');}
+        }
+
+        &__body{padding: theme('padding.6');}
+        &__footer{padding:theme('padding.4') theme('padding.6') theme('padding.6');}
+
+
+
+        .#{$course-tag} {
+            &{background-color: theme('color.white'); border-radius: theme('radius.round'); padding: theme('padding.1') theme('padding.3'); padding-right: theme('padding.4'); font-size: 12px;}
+        }
+
+    }
+   
+
+}
+
+
+
+$video-preview: "video-preview";
+
+.#{$video-preview}{
+
+    &{
+
+        @media (min-width:theme('breakpoints.xl','value')){
+            &{min-width: 1100px;}
+        }
+
+        &__large{
+            @media (min-width:theme('breakpoints.xl','value')){
+                &{width: calc(100% - 380px); padding: theme('padding.8');}
+            }
+        }
+        &__small{
+        
+            @media (min-width:theme('breakpoints.xl','value')){
+                &{width: 380px;padding: theme('padding.3') 0; border-#{theme('direction.left','value')}: 1px solid theme('color.gray.200');}
+            }
+        }
+        &__body{ position: relative; width: 100%;
+            &{
+                @media (min-width:theme('breakpoints.xl','value')){
+                    &{ display: flex; flex-wrap: wrap;}
+                }
+            }
+        }
+        &__head{border-bottom: 1px solid theme('color.gray.200');padding: theme('padding.8');}
+    }
+}
+
+
+
+.btn--favorite{
+    .fav-icon{fill:none;stroke: theme('color.gray.800'); stroke-width: 2px; width:18px; height: 18px; position: relative;top:1px; display: block;margin-#{theme('direction.right','value')}:0.5rem;}
+
+    &.is-active{
+        & .fav-icon{fill:theme('color.white'); stroke:theme('color.white');}
+    }
+
+}
+
+.mark-option{
+    .fav-icon{fill:none;stroke: theme('color.gray.800'); stroke-width: 2px; width:18px; height: 18px; position: relative;top:1px; display: block;}
+
+    &.is-active{
+        & .fav-icon{fill:theme('color.white'); stroke:theme('color.white');}
+    }
+
+}

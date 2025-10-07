@@ -1,0 +1,36 @@
+
+.media-group .media {
+    position: relative;
+    width: 100%;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.media-group .media img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    margin: auto;
+    width: 100%;
+}
+
+.media-group .media:before {
+    position: relative;
+    padding-bottom: 77%;
+    content: "";
+    display: block;
+}
+
+.media-group .media.media--small {
+    width: 70%;
+    right: -20%;
+    top: 45%;
+    position: absolute;
+}
+
+.section--content .row:nth-child(even) .media-group .media.media--small {
+    right: auto;
+    left: -20%;
+}

@@ -1,0 +1,847 @@
+$header: 'header';
+
+.#{$header} {
+
+    #{theme('direction.left','value')}: 0;
+    #{theme('direction.right','value')}: 0;
+    position: relative;
+    top: 0;
+    transition: all 0.5s;
+
+    z-index: 11;
+
+    @media(min-width: theme('breakpoints.xxxxl','value')) {
+        .container{
+            max-width: 1800px;
+            width: 100%;
+        }
+    }
+
+
+    // @media(max-width: theme('breakpoints.xl','value')) {
+    //    &{ position: sticky; top: 0;}
+    // }
+
+    // @media(min-width: theme('breakpoints.xl','value')) {
+    //     &.nav-down{transform: translateY(0);}
+    //     &.nav-up{transform: translateY(-100%);}
+    // }
+
+}
+
+.home.home-index {
+    .#{$header} {
+        position: sticky;
+        top: 0;
+    }
+}
+
+$header-primary: 'header-primary';
+
+.#{$header-primary} {
+    padding: theme('padding.3') 0;
+    color: #111;
+    background: theme('color.white');
+    -webkit-transition: 0.3s all ease-in-out;
+    -moz-transition: 0.3s all ease-in-out;
+    -o-transition: 0.3s all ease-in-out;
+    transition: 0.3s all ease-in-out;
+    box-shadow:0px 3px 3px #0000000F;
+
+    @media(min-width: theme('breakpoints.sm','value')) {
+        & .header-flex{
+            min-height: 70px;
+        }
+    }
+
+    @media(max-width: theme('breakpoints.md','value')) {
+        padding:theme('padding.3') 0;
+        ;
+    }
+
+    .header__logo{ max-width: 180px; max-height: 80px;
+        position: relative; display: flex; align-items: center;
+
+        @media(min-width: theme('breakpoints.md','value')) {
+            margin-#{theme('direction.right','value')}:theme('margin.3');
+        }
+
+
+    }
+
+    .header__left{
+        display: flex;
+        align-items: center;
+
+        .header-dropdown{
+            .is-visible{
+                @media(max-width: theme('breakpoints.xl','value')){
+                    opacity: 1;
+                    visibility: visible;
+                }
+                @media(max-width: theme('breakpoints.md','value')){
+                    bottom: 100%;
+                    z-index: 3;
+                    padding-top: 0;
+                    top: 60px;
+                }
+            }
+
+            .is-active{
+                @media(max-width: theme('breakpoints.md','value')){
+                    &:after{
+                        position: fixed;
+                        left: 0;
+                        right: 0;
+                        top: 0;
+                        bottom: 0;
+                        background-color: rgba(0, 0, 0, 0.8);
+                        content: "";
+                        z-index: 3;
+                    }
+                }
+            }
+
+            @media(max-width: theme('breakpoints.md','value')){
+                .dropdown__cover{
+                    &::before{
+                        content: none;
+                    }
+                }
+            }
+
+
+        }
+        @media(max-width: theme('breakpoints.md','value')) {
+            .header-dropdown__target{
+                bottom: auto;
+                top: 0;
+                padding-top: 0;
+                width: calc(100% - 30px);
+                #{theme('direction.left','value')}: 15px;
+            }
+        }
+    }
+}
+
+.header__right{
+    .header-dropdown{
+        .is-visible{
+            @media(max-width: theme('breakpoints.xl','value')){
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+    }
+}
+
+.header-dropdown{
+    .header-dropdown__trigger{
+        padding: 0 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        height: 42px;
+
+
+        @media(min-width: theme('breakpoints.lg','value')) and (max-width: 1599px){
+
+            font-size: 0.9rem;
+        }
+
+        span{
+            margin-#{theme('direction.left','value')}: theme('margin.2');
+            @media(max-width: theme('breakpoints.md','value')) {
+                font-size: 0;
+            }
+        }
+
+        @media(max-width: theme('breakpoints.xl','value')) {
+            padding: 0.65rem 0;
+        }
+
+        @media(min-width: theme('breakpoints.lg','value')) and (max-width: theme('breakpoints.xxl','value')) {
+            padding: 0.65rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        &:hover{
+            color: theme('color.primary');
+        }
+    }
+
+}
+
+
+.header__action{
+    text-transform: uppercase;
+}
+.header__right{
+    display: flex;
+    align-items: center;
+
+    .icon--arrow{
+        @media(max-width: theme('breakpoints.md','value')) {
+            display: none;
+        }
+    }
+
+    .header-dropdown__trigger{
+        span{
+            @media(max-width: theme('breakpoints.md','value')) {
+                font-size: 0;
+            }
+        }
+        .icon--globe{
+            @media(max-width: theme('breakpoints.md','value')) {
+                width: 30px;
+                height: 30px;
+                fill: theme('color.white');
+            }
+
+        }
+
+    }
+
+    .user-click{
+        @media(min-width: theme('breakpoints.md','value')) {
+            svg{
+                display: none;
+            }
+        }
+    }
+
+    @media(max-width: theme('breakpoints.md','value')) {
+
+        .user-click{
+            svg{
+                fill: theme('color.white');
+            }
+        }
+    }
+
+    @media(max-width: theme('breakpoints.md','value')) {
+        .header-action, .header-action .header__action{
+            display: contents;
+        }
+    }
+
+
+
+}
+
+$menu: 'menu';
+
+.#{$menu} {
+
+    @media(max-width: theme('breakpoints.xl','value')) {
+        bottom: 0;
+        background: #fff;
+        padding: 0;
+        box-shadow: 0 0 10px rgba(51, 51, 51, 0.38);
+        #{theme('direction.left','value')}: 0;
+        margin: 0;
+        overflow: auto;
+        position: fixed;
+        text-align: left;
+        top: 0;
+        opacity: 0;
+        visibility: hidden;
+        z-index: 11;
+        width: 280px;
+    }
+
+    ul{
+        @media(min-width: theme('breakpoints.xl','value')) {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .menu__item{
+            a{
+                padding: 0 calc(0.4rem + 0.6vw);
+                text-transform: uppercase;
+                font-weight: 600;
+                color: inherit;
+                height: 42px;
+                display: block;
+                line-height: 1;
+                position: relative;
+                display: flex;
+                align-items: center;
+                &:hover{
+                    color: theme('color.primary');
+                }
+
+                @media(min-width: theme('breakpoints.lg','value')) and (max-width: 1599px){
+                    padding: 0 0.5rem;
+                    font-size: 0.9rem;
+                }
+            }
+
+        }
+        .is--active{
+            a{
+                color: theme('color.primary');
+            }
+        }
+    }
+}
+
+$header__action : 'header__action';
+.#{$header__action} {
+    .btn{
+        margin-#{theme('direction.left','value')}: theme('margin.2');
+        padding: 0 theme('padding.5');
+        &:first-child{
+            margin-#{theme('direction.left','value')}: 0;
+        }
+    }
+}
+
+$header-dropdown--arrow: 'header-dropdown--arrow';
+
+.#{$header-dropdown--arrow} {
+    margin-#{theme('direction.right','value')}: theme('margin.2');
+
+    .header-dropdown__trigger{
+        .icon--globe{
+            width: 14px;
+            height: 14px;
+        }
+    }
+}
+
+
+.header-dropdown__target {
+    min-width: 200px;
+    z-index: 2;
+    #{theme('direction.right','value')}: 0;
+    top: 100%;
+    position: absolute;
+    padding: 0;
+    opacity: 0;
+    visibility: hidden;
+    width: 100%;
+
+    @media(min-width: theme('breakpoints.xl','value')){
+        &{
+            top: 150%;
+            padding-top: theme('padding.6');
+        }
+    }
+}
+
+.header-dropdown.header-dropdown--explore{
+    @media(min-width: theme('breakpoints.xl','value')){
+        &{
+            .header-dropdown__target {
+                &{
+                    left: 0;
+                    right: auto;
+                }
+            }
+        }
+    }
+}
+
+.menu--inline{
+    max-height: 334px;
+    overflow: auto;
+    ul{
+        .menu__item{
+            padding: 0;
+            display: block;
+            a{
+                padding: theme('padding.3') theme('padding.4');
+                display: block;
+                color: theme('color.dark');
+                font-weight: 400;
+
+            }
+
+            &:hover{
+                a{
+                    background: theme('color.gray.100');
+                    color: theme('color.primary');
+                }
+            }
+        }
+        .is--active{
+            a{
+                position: relative;
+                color: theme('color.primary');
+                font-weight: 600;
+                border-#{theme('direction.left','value')}: 3px solid;
+                &::before{
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    top: 0;
+                    content: "";
+                    pointer-events: none;
+                    background-color: currentColor;
+                    opacity: 0.04;
+                }
+            }
+        }
+    }
+}
+
+.dropdown__cover{
+    background-color: #fff;
+    box-shadow: 0 0 20px 4px rgba(0,0,0,0.08);
+    border-radius:theme('radius.0');
+
+}
+
+.header-dropdown{
+    position: relative;
+    @media(min-width: theme('breakpoints.xl','value')) {
+        &:hover{
+            .header-dropdown__target{
+                opacity: 1;
+                visibility: visible;
+                top: 100%;
+                transition: all 300ms;
+            }
+        }
+    }
+    @media(max-width: theme('breakpoints.md','value')) {
+        position: static;
+    }
+}
+
+
+.header__left{
+    .header-dropdown{
+        .menu--inline{
+            position: relative;
+
+        }
+        .icon--menu{
+            @media(max-width: theme('breakpoints.md','value')) {
+                width: 30px;
+                height: 30px;
+            }
+        }
+    }
+    @media(max-width: theme('breakpoints.md','value')) {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.header-dropdown--arrow{
+
+    .header-dropdown__target{
+        @media(min-width: theme('breakpoints.md','value')) {
+            min-width: 20rem;
+        }
+
+        .menu--inline{
+            ul{
+                display: flex;
+                flex-wrap: wrap;
+                li{
+                    padding: theme('padding.1') !important;
+                    flex: 0 0 33.3%;
+                    max-width: 33.3%;
+                    a{
+                        display: block;
+                        padding: theme('padding.2');
+                        font-size: theme('font.size.sm');
+                        border: 1px solid theme('color.gray.200');
+                        text-align: center;
+                        color: theme('color.gray.800');
+                        &:hover{
+                            color: theme('color.primary');
+                            border-color: theme('color.primary');
+                        }
+                    }
+                }
+                .is-active{
+                    a{
+                        color: theme('color.primary');
+                        border-color: theme('color.primary');
+                    }
+                }
+            }
+        }
+    }
+
+    .header-dropdown__trigger{
+        .icon{
+            @media(max-width: theme('breakpoints.md','value')) {
+                width: 17px;
+                height: 17px;
+            }
+        }
+    }
+
+    .dropdown__cover{
+        padding: theme('padding.6') theme('padding.8') theme('padding.10');
+
+    }
+
+    .settings{
+        margin-bottom: theme('margin.8');
+        .dropdaown__title{
+            text-transform: uppercase;
+            color: theme('color.gray.700');
+            font-size: theme('font.size.sm');
+        }
+        .btn{
+            color: theme('color.dark') !important;
+            border-color: theme('color.gray.300');
+            &::before{
+                width: 6px;
+                height: 6px;
+                top: 13px;
+            }
+        }
+
+    }
+}
+
+.dropdown__cover{
+    position: relative;
+    &::before{
+        content: "";
+        border-#{theme('direction.right','value')}: 9px solid transparent;
+        border-#{theme('direction.left','value')}: 9px solid transparent;
+        border-bottom: 9px solid #fff;
+        top: -9px;
+        left: 28px;
+        position: absolute;
+        pointer-events: none;
+    }
+}
+
+.explore-wrapper{
+    position: relative;
+    &::before{
+        content: "";
+        border-#{theme('direction.right','value')}: 9px solid transparent;
+        border-#{theme('direction.left','value')}: 9px solid transparent;
+        border-bottom: 9px solid #fff;
+        top: -9px;
+        left: 39px;
+        position: absolute;
+        pointer-events: none;
+        z-index: 1;
+    }
+}
+
+.header-dropdown--explore{
+    .dropdown__cover{
+        padding: theme('padding.4');
+    }
+}
+
+.user-icon{
+    @media(min-width: theme('breakpoints.md','value')) {
+        display: none !important;
+    }
+}
+
+.user-click{
+
+    @media(max-width: theme('breakpoints.md','value')) {
+        font-size: 0;
+        padding: 0 !important;
+        width: 35px;
+        line-height: 35px;
+        height: 35px;
+        background-color: theme('color.primary') !important;
+    }
+    .user-icon{
+        margin: 0;
+        svg{
+            fill: theme('color.white');
+        }
+    }
+}
+
+.toggle--nav {
+    width: 26px;
+    height: 26px;
+    vertical-align: middle;
+    margin: 0 10px 0 0;
+    padding: 2px;
+    display: none;
+    @media(max-width: theme('breakpoints.xl','value')) {
+        display: inline-block;
+    }
+}
+
+
+.nav--primary-offset{
+    @media(max-width: theme('breakpoints.xl','value')) {
+        bottom: 0;
+        background: #fff;
+        padding: 0;
+        box-shadow: 0 0 10px rgba(51, 51, 51, 0.38);
+        left: 0;
+        margin: 0;
+        overflow: auto;
+        position: fixed;
+        text-align: left;
+        top: 0;
+        z-index: 11;
+        width: 280px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 300ms ease 0s;
+        transform: translate3d(-100%, 0px, 0px);
+    }
+}
+
+.show-nav-js{
+    .menu{
+        visibility: visible;
+        opacity: 1;
+        transform: translate3d(0px, 0px, 0px);
+    }
+}
+
+.header-controls{
+    display: flex;
+    align-items: center;
+    @media(max-width: theme('breakpoints.md','value')){
+        position: fixed;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        #{theme('direction.left','value')}: 0;
+        #{theme('direction.right','value')}: 0;
+        top: auto;
+        background: theme('color.primary');
+        padding: 0 theme('padding.2');
+    }
+    .header-controls__item{
+
+        @media(min-width: theme('breakpoints.md','value')){
+            display: none;
+        }
+
+
+        .header-actions{
+            @media(min-width: theme('breakpoints.md','value')){
+                display: none !important;
+            }
+        }
+
+        &:not(.header-dropdown--arrow, .header-dropwown--profile){
+            a{
+                padding: theme('padding.3') theme('padding.5');
+                position: relative;
+            }
+        }
+
+        @media(max-width: theme('breakpoints.md','value')){
+            .header-controls__action{
+                padding: theme('padding.5') theme('padding.4');
+                height: auto;
+                svg{
+                    fill: theme('color.white');
+                    width: 17px;
+                    height: 17px;
+                }
+                .lang{
+                    display: none;
+                }
+            }
+        }
+    }
+
+
+
+    @media(min-width: theme('breakpoints.xl','value')){
+        .header--notification{
+            display: block;
+            svg{
+                fill: theme('color.dark') !important;
+            }
+        }
+
+        .header--message{
+            display: block;
+            svg{
+                fill: theme('color.dark') !important;
+            }
+        }
+        .header-dropdown--arrow{
+            display: block;
+        }
+    }
+
+    .header-dropdown--arrow{
+        margin: 0;
+        .dropdown__cover{
+            &::before{
+                #{theme('direction.right','value')}: 26px;
+                #{theme('direction.left','value')}: unset;
+            }
+        }
+    }
+
+    .header-dropdown--arrow{
+        .is-visible{
+            @media(max-width: theme('breakpoints.md','value')){
+                bottom: 100%;
+                opacity: 1;
+                visibility: visible;
+                z-index: 3;
+                padding-top: 0;
+                bottom: 0px;
+                bottom: 60px;
+            }
+        }
+
+        .is-active{
+            @media(max-width: theme('breakpoints.md','value')){
+                &:after{
+                    position: fixed;
+                    left: 0;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    content: "";
+                    z-index: 3;
+                }
+            }
+        }
+        @media(max-width: theme('breakpoints.md','value')){
+            .dropdown__cover{
+                &::before{
+                    content: none;
+                }
+            }
+        }
+
+        @media(min-width: theme('breakpoints.md','value')) {
+            margin-#{theme('direction.right','value')}: theme('margin.2');
+        }
+    }
+
+
+
+    @media(max-width: theme('breakpoints.md','value')){
+        .header-dropdown__target{
+            top: auto;
+            bottom: 0;
+            padding-top: 0;
+            width: calc(100% - 30px);
+            #{theme('direction.left','value')}: 15px;
+        }
+    }
+
+    .header-action{
+        @media(min-width: theme('breakpoints.md','value')) {
+            display: block;
+
+        }
+    }
+}
+
+
+
+.head-count{
+    position: absolute;
+    height: 16px;
+    background: theme('color.secondary');
+    text-align: center;
+    font-size: 11px;
+    color: theme('color.white');
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 1px;
+    #{theme('direction.right','value')}: 2px;
+    padding: 3px 4px;
+}
+
+
+.header-dropwown--profile{
+    text-transform: capitalize;
+    .teacher__name{
+        text-transform: capitalize;
+        @media(max-width: theme('breakpoints.md','value')) {
+            font-size: 0;
+        }
+    }
+
+    .is-visible{
+        @media(max-width: theme('breakpoints.md','value')){
+            bottom: 100%;
+            opacity: 1;
+            visibility: visible;
+            z-index: 3;
+            padding-top: 0;
+            bottom: 0px;
+            bottom: 60px;
+        }
+    }
+
+    .is-active{
+        @media(max-width: theme('breakpoints.md','value')){
+            &:after{
+                position: fixed;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.8);
+                content: "";
+                z-index: 3;
+            }
+        }
+    }
+
+    @media(max-width: theme('breakpoints.md','value')){
+        .dropdown__cover{
+            &::before{
+                content: none;
+            }
+        }
+    }
+
+    .teacher__media{
+        svg{
+            display: none;
+            @media(max-width: theme('breakpoints.md','value')) {
+                margin: 0;
+                fill: theme('color.white');
+                display: block;
+            }
+        }
+
+        @media(max-width: theme('breakpoints.md','value')) {
+            margin-#{theme('direction.right','value')}: 0 !important;
+            padding: theme('padding.3');
+        }
+    }
+    .dropdown__cover{
+        &::before{
+            #{theme('direction.right','value')}: 20px;
+            #{theme('direction.left','value')}:unset;
+        }
+        .menu--inline{
+
+            ul{
+                .is--active{
+                    a{
+                        border: none;
+                    }
+                }
+            }
+        }
+    }
+}
+
+

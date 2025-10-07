@@ -1,0 +1,3 @@
+.cms-view .section--hiw:before, .cms-view .section--hiw .col__content:before{display: none;}
+.cms-view .col__content{padding: 2rem; background-color: #eee;}
+.cms-view .col__content .media{margin: 0;}

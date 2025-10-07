@@ -1,0 +1,22 @@
+{
+    "require": {
+        "aws/aws-sdk-php": "^3.173",
+        "mailchimp/marketing": "^3.0",
+        "google/apiclient": "^2.10",
+        "facebook/graph-sdk": "^5.7",
+        "phpmailer/phpmailer": "^6.5",
+        "google/recaptcha": "^1.2",
+        "stripe/stripe-php": "^7.87",
+        "mpdf/mpdf": "^8.1"
+    },
+    "scripts": {
+        "pre-autoload-dump": "Google\\Task\\Composer::cleanup"
+    },
+    "extra": {
+        "google/apiclient-services": [
+            "Analytics",
+            "Oauth2",
+            "Calendar"
+        ]
+    }
+}

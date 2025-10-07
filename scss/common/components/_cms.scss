@@ -1,0 +1,107 @@
+.editor-content, .cms-container{line-height: 2; color: theme('color.black');word-break: break-word;
+    p{margin-bottom: theme('margin.10'); line-height: inherit; color: inherit;}
+}
+
+
+
+
+
+.cms-container ol, .editor-content ol,
+.cms-container ul, .editor-content ul {
+    margin:20px 0 40px;
+    line-height:inherit;
+
+}
+
+.cms-container ul li, .editor-content ul li {
+    position: relative;
+    padding-#{theme('direction.left','value')}: theme('padding.6');
+    margin-bottom: theme('margin.2');
+    color: inherit;
+}
+
+.cms-container ul li:before, .editor-content ul li:before {
+    position: absolute;
+    #{theme('direction.left','value')}: 0;
+    top: 14px;
+    content: "";
+    width: 8px;
+    height: 2px;
+    background: theme('color.primary');
+    
+}
+
+.cms-container ol, .editor-content ol {
+    list-style: decimal
+}
+
+.cms-container ol li, .editor-content ol li {
+    position: relative;
+    padding: 0;
+    margin-#{theme('direction.left','value')}: theme('margin.6');margin-bottom: theme('margin.2');
+}
+
+.cms-container ol li a, .editor-content ol li a {
+    color: inherit;
+}
+
+
+
+
+.container--cms ul,
+.container--cms ol {
+    margin: 30px 0;
+    font-size: 1.1rem;
+}
+
+.container--cms ul li {
+    position: relative;
+    padding: 0 0 10px 30px;
+    color: inherit;
+}
+
+.container--cms ul li:before {
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    content: "";
+    width: 3px;
+    height: 12px;
+    background: #B7B7B7;
+    transform: rotate(45deg);
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+}
+
+.container--cms ul li:after {
+    position: absolute;
+    left: 2px;
+    top: 8px;
+    content: "";
+    width: 3px;
+    height: 6px;
+    background: #B7B7B7;
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    -ms-transform: rotate(-45deg);
+}
+
+.container--cms ol {
+    list-style: decimal;
+}
+
+.container--cms ol li {
+    position: relative;
+    padding: 0 0 15px 0;
+    color: inherit;
+    margin: 0 0 0 15px;
+}
+
+.container--cms ol li a {
+    color: inherit;
+}
+
+
+
+
+

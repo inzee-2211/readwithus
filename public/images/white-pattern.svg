@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 131 107" width="131" height="107">
+	<style>
+		tspan { white-space:pre }
+		.shp0 { fill: #ffffff } 
+	</style>
+	<path id="Layer" class="shp0" d="M30.21 34.28L17 27.44L17 0L30.21 6.84L30.21 34.28Z" />
+	<path id="Layer" class="shp0" d="M21.19 46.28L7.98 39.45L7.98 12.01L21.19 18.85L21.19 46.28Z" />
+	<path id="Layer" class="shp0" d="M13.22 34.28L0 27.44L0 0L13.22 6.84L13.22 34.28Z" />
+	<g id="Layer">
+		<path id="Layer" class="shp0" d="M90.21 34.28L77 27.44L77 0L90.21 6.84L90.21 34.28Z" />
+		<path id="Layer" class="shp0" d="M81.19 46.28L67.98 39.45L67.98 12.01L81.19 18.85L81.19 46.28Z" />
+		<path id="Layer" class="shp0" d="M73.22 34.28L60 27.44L60 0L73.22 6.84L73.22 34.28Z" />
+	</g>
+	<g id="Layer">
+		<path id="Layer" class="shp0" d="M70.21 94.28L57 87.44L57 60L70.21 66.84L70.21 94.28Z" />
+		<path id="Layer" class="shp0" d="M61.19 106.28L47.98 99.44L47.98 72.01L61.19 78.85L61.19 106.28Z" />
+		<path id="Layer" class="shp0" d="M53.22 94.28L40 87.44L40 60L53.22 66.84L53.22 94.28Z" />
+	</g>
+	<g id="Layer">
+		<path id="Layer" class="shp0" d="M130.21 94.28L117 87.44L117 60L130.21 66.84L130.21 94.28Z" />
+		<path id="Layer" class="shp0" d="M121.19 106.28L107.98 99.44L107.98 72.01L121.19 78.85L121.19 106.28Z" />
+		<path id="Layer" class="shp0" d="M113.22 94.28L100 87.44L100 60L113.22 66.84L113.22 94.28Z" />
+	</g>
+</svg>

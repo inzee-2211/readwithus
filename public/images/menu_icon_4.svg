@@ -1,0 +1,4 @@
+<svg id="flashcards" xmlns="http://www.w3.org/2000/svg" width="105" height="105" viewBox="0 0 105 105">
+  <path fill="#000" d="M5,13H97V88H5V13ZM92,83V18H10V83H92Z" transform="translate(1.5 2)"/>
+  <path class="-color-fill" d="M76,40H58L70,20H41L28,53H43L34,83ZM35,49L45,24H62L50,44H65L43,67l8-18H35Z" transform="translate(1.5 2)"/>
+</svg>

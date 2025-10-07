@@ -1,0 +1,36 @@
+
+
+$avtar: "avtar";
+
+.#{$avtar}{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: theme('radius.1');
+  width: 3.428rem;
+  height: 3.428rem;
+  font-size: theme('font.size.md');
+  font-weight: 700;
+ text-transform: uppercase;overflow: hidden;
+ background: theme('color.primary');
+
+  &:before{
+     position: absolute;
+     left: 50%;
+     top: 50%;
+     transform: translate(-50%,-50%);
+     -webkit-transform: translate(-50%,-50%);
+     -ms-transform: translate(-50%,-50%);
+     pointer-events: none;
+     content: attr(data-title);
+     color: theme('color.primary-inverse');
+    }
+    & img{position: relative;width: 100%; height: 100%;}
+
+  &--xsmall{width: 32px;height: 32px;font-size: theme('font.size.small');}
+  &--small{width: 36px;height: 36px;font-size: theme('font.size.small');}
+  &--large{width:100px;height: 100px;}
+  &--xlarge{width:14rem;height: 14rem;font-size: theme('font.size.xl');}
+  &--round{border-radius: theme('radius.round');}
+}

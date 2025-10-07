@@ -1,0 +1,69 @@
+$section: 'section';
+
+.#{$section} {
+    &{
+        &--certificate{padding: theme('padding.14') 0!important;}
+    }
+}
+
+
+$sidebox: 'sidebox';
+
+.#{$sidebox} {
+    &__head{padding-bottom: theme('padding.4');}
+}
+
+
+$layout-flex: 'layout-flex';
+
+.#{$layout-flex} {
+    @media(min-width: theme('breakpoints.lg','value')){
+        &{display: flex; flex-wrap: wrap;
+            &__large{flex: 1;}
+            &__small{ width: 360px; padding-#{theme('direction.left','value')}: theme('padding.14');}
+        }
+    }
+
+    @media(max-width: theme('breakpoints.lg','value')){
+        &{
+            
+            &__small{padding-top: theme('padding.10');margin-top: theme('margin.10'); border-top: 1px solid theme('color.gray.200');}
+        }
+    }
+    
+}
+
+$course-tile: 'course-tile';
+
+.#{$course-tile} {max-width: 360px;
+    &__body{padding-top: theme('padding.4');}
+    &__item{font-size: theme('font.size.small'); color:#666;}
+    &__price{font-size: theme('font.size.medium');
+        & .price-standard{font-weight: theme('font.weight.medium');}
+        & .price-old{text-decoration: line-through; opacity: 0.6;}
+    }
+}
+$share: 'share';
+
+$btn-actions: 'btn-actions';
+
+.#{$btn-actions} {
+    &{display: flex; align-items: center; flex-wrap: wrap;
+        & > *{flex: 1;max-width: 50%;}
+
+
+
+        .#{$share} {
+            @media (max-width: theme("breakpoints.sm","value")){
+                &__trigger{
+                    &{font-size:100%;}
+                }
+                
+            }
+
+        }
+
+    }
+}
+
+

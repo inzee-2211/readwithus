@@ -1,0 +1,114 @@
+ 
+
+@media (max-width: 991px){
+    .cta-primary{
+        max-width: 100%;
+        min-width: 100%;
+        width: 100%;
+    }
+    .course-drop-select{
+        width: 100%;
+    }
+    .quiz-result-lst {
+        flex-wrap: wrap;
+        gap: 15px !important;
+    }
+    .bar-result-wrap{
+        justify-content: space-between!important;
+        margin-top: 20px;
+    }
+    .gap-quiz.p-4{
+        padding-left: 0rem!important;
+        padding-right: 0rem!important;
+    }
+    .slider-parent-55 .col-left {
+        padding-right: 10px;
+        border-right: 1px solid transparent;
+        text-align: center;
+    }
+    .slider-parent-55 .col-right {
+        padding-left: 10px;
+        text-align: center;
+    }
+    .header.mb-3{
+        text-align: center;
+    }
+    .col-left img{
+        width: 100%;
+        margin-bottom: 25px;
+    }
+}
+@media (max-width: 768px) {
+
+    #quizInfoModal .modal-width{
+        width: 96.7% !important;
+    }
+    .twin-btn-wrap .custom-quiz-btn.w-75{
+        width: 100%!important;
+        padding: 20px;
+    }
+    .twin-btn-wrap{
+        flex-direction: column;
+    }
+    .quiz-wrapper{
+        padding: 35px 15px;
+    }
+    .dropdown-content{
+        right:0px;
+    }
+    .sign-in-btn {
+        background-color: #419ad5;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 400;
+        padding: 5px 48px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .navbar {
+        padding: 20px;
+        flex-wrap: wrap;
+        flex-direction: column;
+    }
+    
+    .nav-right {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .hero-section {
+        padding: 50px 20px;
+    }
+    
+    .main-heading {
+        font-size: 36px;
+        line-height: 44px;
+    }
+    
+    .description {
+        font-size: 16px;
+        line-height: 30px;
+    }
+    
+    .secondary-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    .logo-wrap {
+        display: flex;
+        align-items: end;
+        gap: 30px;
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+@media (max-width: 540px){
+    .logo-wrap img.logo-edu {
+        height: auto;
+        width: 146px;
+    }
+    
+}
+

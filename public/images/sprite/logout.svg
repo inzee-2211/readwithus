@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <g transform="translate(-10 5)">
+        <rect fill="none" width="24" height="24" transform="translate(10 -5)" />
+        <g transform="translate(13 -3.85)">
+            <g transform="translate(0 0.85)">
+                <path fill="#fff" d="M9.967,19.122H2.492a.831.831,0,0,1-.831-.831V3.342a.831.831,0,0,1,.831-.831H9.967a.831.831,0,0,0,0-1.661H2.492A2.5,2.5,0,0,0,0,3.342v14.95a2.5,2.5,0,0,0,2.492,2.492H9.967a.831.831,0,1,0,0-1.661Z" transform="translate(0 -0.85)" />
+            </g>
+            <g transform="translate(6.645 5.003)">
+                <path fill="#fff" d="M183.208,112.387l-5.05-4.983a.83.83,0,1,0-1.166,1.183l3.609,3.561h-9.67a.831.831,0,0,0,0,1.661h9.67l-3.609,3.561a.83.83,0,1,0,1.166,1.183l5.05-4.983a.83.83,0,0,0,0-1.183Z" transform="translate(-170.1 -107.165)" />
+            </g>
+        </g>
+    </g>
+</svg>

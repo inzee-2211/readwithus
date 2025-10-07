@@ -1,0 +1,96 @@
+.section--contect{
+    background: theme('color.gray.100');
+}
+
+.contact-form{
+    background-color: theme('color.white');
+}
+
+.contact-info{
+    @media(max-width: theme('breakpoints.md','value')){
+        margin-bottom: theme('margin.10');
+    }
+}
+
+.contact-info__row{
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: theme('margin.8');
+    padding-bottom: theme('padding.8');
+    border-bottom: 1px dashed theme('color.gray.600');
+    @media(max-width: theme('breakpoints.md','value')){
+        margin-bottom: theme('margin.6');
+        padding-bottom: theme('padding.6');
+    }
+    &:last-child{
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .contact__icon{
+        .icon{
+            @media(max-width: theme('breakpoints.lg','value')){
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+    .contact__content {
+        margin-#{theme('direction.left','value')}: calc(theme('margin.12') - 3px);
+        color: theme('color.dark');
+        margin-#{theme('direction.left','value')}: theme('margin.6');
+        @media(max-width: theme('breakpoints.lg','value')){
+            margin-#{theme('direction.left','value')}: theme('margin.6');
+        }
+        h6{
+            margin-bottom: theme('margin.4');
+            text-transform: uppercase;
+            color: inherit;
+        }
+        p{
+            font-size: theme('font.size.medium');
+            color: inherit;
+            margin-bottom: 0;
+        }
+    }
+}
+
+
+
+.contact-form{
+    .field-set{
+        margin-bottom: calc(theme('margin.10') - 3px);
+        .field-wraper{
+
+            .field_cover{
+
+                input{
+                    font-size: theme('font.size.h6');
+                    padding: 0 theme('padding.8');
+                    width: 100%;
+                    height: 60px;
+                    @media(max-width: theme('breakpoints.xl','value')){
+                        height: 50px;
+                    }
+                }
+                textarea{
+                    width: 100%;
+                    height: 115px;
+                    border-radius: 0;
+                    padding: theme('padding.5') theme('padding.8');
+                    border:1px solid theme('color.gray.200');
+                }
+            }
+            .field_label{
+                @media(max-width: theme('breakpoints.xl','value')){
+                    margin-bottom: theme('margin.4');
+                }
+            }
+        }
+    }
+}
+
+.dummy-capcha{
+    margin-bottom: calc(theme('margin.10') - 3px);
+}

@@ -1,0 +1,20 @@
+
+.IssueBlockquote {
+    border-#{theme('direction.left','value')}: 3px solid;
+    border-color: var(--color-primary);
+    padding-#{theme('direction.left','value')}: 15px;
+    margin-bottom: 30px;
+}
+
+.IssueBlockquote h6 {
+    margin-bottom: 15px;
+}
+
+.IssueBlockquote ul {
+    list-style: disc;
+    list-style-position: inside;
+}
+
+.IssueBlockquote ul li {
+    padding: 3px;
+}
