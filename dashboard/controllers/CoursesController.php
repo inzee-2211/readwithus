@@ -326,23 +326,111 @@ class CoursesController extends DashboardController
      * Setup Intended Learners Data
      *
      */
-    public function setupIntendedLearners()
-    {
+    /**
+ * Setup Intended Learners Data with enhanced error handling
+ *
+ */
+public function setupIntendedLearners()
+{
+    try {
         $frm = $this->getIntendedLearnersForm();
         if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
+
+        // Validate course ownership and existence
         $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+
+        // Clean and validate the data before processing
+        $cleanedData = $this->cleanIntendedLearnersData($post);
+        
         $intended = new IntendedLearner();
-        if (!$intended->setup($post)) {
+        if (!$intended->setup($cleanedData)) {
             FatUtility::dieJsonError($intended->getError());
         }
+        
         FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
+        
+    } catch (Exception $e) {
+        error_log("CoursesController::setupIntendedLearners error: " . $e->getMessage());
+        FatUtility::dieJsonError(Label::getLabel('LBL_SYSTEM_ERROR_OCCURRED'));
+    }
+}
+
+/**
+ * Clean and validate intended learners data
+ *
+ * @param array $post
+ * @return array
+ */
+private function cleanIntendedLearnersData(array $post): array
+{
+    $cleaned = [
+        'course_id' => (int)$post['course_id'],
+        'type_learnings' => [],
+        'type_requirements' => [],
+        'type_learners' => [],
+        'type_learnings_ids' => [],
+        'type_requirements_ids' => [],
+        'type_learners_ids' => []
+    ];
+
+    // Clean learning data
+    if (isset($post['type_learnings']) && is_array($post['type_learnings'])) {
+        foreach ($post['type_learnings'] as $index => $learning) {
+            $cleanedLearning = trim(strip_tags($learning));
+            if (!empty($cleanedLearning)) {
+                $cleaned['type_learnings'][] = $cleanedLearning;
+                // Handle corresponding ID
+                if (isset($post['type_learnings_ids'][$index])) {
+                    $id = trim($post['type_learnings_ids'][$index]);
+                    $cleaned['type_learnings_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
+                } else {
+                    $cleaned['type_learnings_ids'][] = '';
+                }
+            }
+        }
     }
 
+    // Clean requirements data
+    if (isset($post['type_requirements']) && is_array($post['type_requirements'])) {
+        foreach ($post['type_requirements'] as $index => $requirement) {
+            $cleanedRequirement = trim(strip_tags($requirement));
+            if (!empty($cleanedRequirement)) {
+                $cleaned['type_requirements'][] = $cleanedRequirement;
+                // Handle corresponding ID
+                if (isset($post['type_requirements_ids'][$index])) {
+                    $id = trim($post['type_requirements_ids'][$index]);
+                    $cleaned['type_requirements_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
+                } else {
+                    $cleaned['type_requirements_ids'][] = '';
+                }
+            }
+        }
+    }
+
+    // Clean learners data
+    if (isset($post['type_learners']) && is_array($post['type_learners'])) {
+        foreach ($post['type_learners'] as $index => $learner) {
+            $cleanedLearner = trim(strip_tags($learner));
+            if (!empty($cleanedLearner)) {
+                $cleaned['type_learners'][] = $cleanedLearner;
+                // Handle corresponding ID
+                if (isset($post['type_learners_ids'][$index])) {
+                    $id = trim($post['type_learners_ids'][$index]);
+                    $cleaned['type_learners_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
+                } else {
+                    $cleaned['type_learners_ids'][] = '';
+                }
+            }
+        }
+    }
+
+    return $cleaned;
+}
     /**
      * Updating Intended Learner Records sort order
      *
@@ -549,6 +637,7 @@ class CoursesController extends DashboardController
         if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
+        
         $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
         if (!$course->setupSettings($post)) {
             FatUtility::dieJsonError($course->getError());

@@ -523,41 +523,49 @@ class Course extends MyAppModel
      * @param array $data
      * @return bool
      */
-    public function setupSettings(array $data)
-    {
-        if (!$this->canEditCourse()) {
-            return false;
-        }
-        $db = FatApp::getDb();
-        if (!$db->startTransaction()) {
-            $this->error = $db->getError();
-            return false;
-        }
-        $this->setFldValue('course_updated', date('Y-m-d H:i:s'));
-        $this->setFldValue('course_certificate', $data['course_certificate']);
-        if (!$this->save()) {
-            $db->rollbackTransaction();
-            $this->error = $this->getError();
-            return false;
-        }
-        $tagsList = explode(',', $data['course_tags']);
-        $langData = [
-            'course_id' => $this->getMainTableRecordId(),
-            /* 'course_welcome' => $data['course_welcome'],
-              'course_congrats' => $data['course_congrats'], */
-            'course_srchtags' => json_encode($tagsList),
-        ];
-        if (!$this->setupLangData($langData)) {
-            $db->rollbackTransaction();
-            $this->error = $this->getError();
-            return false;
-        }
-        if (!$db->commitTransaction()) {
-            $this->error = $db->getError();
-            return false;
-        }
-        return true;
+   public function setupSettings(array $data)
+{
+    if (!$this->canEditCourse()) {
+        return false;
     }
+    
+    $db = FatApp::getDb();
+    if (!$db->startTransaction()) {
+        $this->error = $db->getError();
+        return false;
+    }
+    
+    // Update main course table
+    $this->setFldValue('course_updated', date('Y-m-d H:i:s'));
+    $this->setFldValue('course_certificate', $data['course_certificate']);
+    
+    if (!$this->save()) {
+        $db->rollbackTransaction();
+        $this->error = $this->getError();
+        return false;
+    }
+    
+    $tagsList = explode(',', $data['course_tags']);
+    
+    // Only update the tags field in language table
+    $langData = [
+        'course_srchtags' => json_encode($tagsList),
+    ];
+    $where = ['smt' => 'course_id = ?', 'vals' => [$this->getMainTableRecordId()]];
+    
+    if (!$db->updateFromArray(static::DB_TBL_LANG, $langData, $where)) {
+        $db->rollbackTransaction();
+        $this->error = $db->getError();
+        return false;
+    }
+    
+    if (!$db->commitTransaction()) {
+        $this->error = $db->getError();
+        return false;
+    }
+    
+    return true;
+}
 
     /**
      * Function to remove course
@@ -801,6 +809,7 @@ class Course extends MyAppModel
                 'coapre_learners' => json_encode($intendedLearnerData[IntendedLearner::TYPE_LEARNERS]),
                 'coapre_learnings' => json_encode($intendedLearnerData[IntendedLearner::TYPE_LEARNING]),
                 'coapre_requirements' => json_encode($intendedLearnerData[IntendedLearner::TYPE_REQUIREMENTS]),
+                'coapre_remark'     => '',
             ];
 
 
@@ -813,7 +822,7 @@ class Course extends MyAppModel
             $data = [
                 'coapre_id' => $requestId,
                 'coapre_status' => $data['coapre_status'],
-                'coapre_remark' => $data['coapre_remark'],
+                'coapre_remark' => $data['coapre_remark']??'',
                 'coapre_updated' => date('Y-m-d H:i:s')
             ];
 

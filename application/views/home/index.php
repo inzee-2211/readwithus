@@ -48,7 +48,7 @@
 <br>
   <button class="cta-primary" id="openSelector">
   Revise Your Topic
-  <img src="<?php echo getBaseUrl(); ?><public/assets/img/arrow-2.svg" alt="Arrow icon" class="arrow">
+<img src="<?php echo getBaseUrl(); ?>public/assets/img/arrow-2.svg" alt="Arrow icon" class="arrow">
 </button>
 <br>
 <div class="course-drop-select" id="dropDownOptions">
@@ -398,11 +398,11 @@ $(".faq__trigger-js").click(function(e) {
 </script>  
 
 <script>
-const baseUrl = "<?php echo getBaseUrl(); ?>"; // site base URL
-
+const baseUrlRaw = "<?php echo getBaseUrl(); ?>"; // site base URL
+const baseUrl = baseUrlRaw.endsWith('/') ? baseUrlRaw : baseUrlRaw + '/'; //line added by rehan to ensure trailing slash in baseUrl
 let steps = [
-  { title: "Select Level", options: [], url: "/api.php?url=getCourses", paramKey: null },
-  { title: "Select Subject", options: [], url: "/api.php?url=getSubjects", paramKey: "levelId" }
+  { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
+  { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" }
 ];
 
 const selectedValues = {
@@ -427,10 +427,13 @@ function fetchOptionsForStepWithParam(stepIndex, params) {
       resolve();
       return;
     }
-    let url = new URL(step.url, window.location.origin);
+      const rel = step.url.replace(/^\//, ''); // strip leading slash ADDED BY REHAN
+     const url = new URL(rel, baseUrl);       
+    
     if (step.paramKey && params[step.paramKey]) {
       url.searchParams.append(step.paramKey, params[step.paramKey]);
     }
+     console.log(`[Step ${stepIndex}] → ${step.title}`, url.toString(), 'params:', params);
 
     fetch(url.toString())
       .then(res => res.json())
@@ -530,8 +533,9 @@ function renderStep(stepIndex) {
     const displayName = opt.name;
     const optId = opt.id;
 
-    btn.innerHTML = `<span>${displayName}</span>
-                     <img src="http://readwithus.org.uk/public/assets/img/right-arrow.svg" alt="Arrow" class="arrow">`;
+  btn.innerHTML = `<span>${displayName}</span>
+                 <img src="${baseUrl.replace(/\/$/, '/') }public/assets/img/right-arrow.svg" alt="Arrow" class="arrow">`;
+
 
     btn.onclick = () => {
       selectedSteps[stepIndex] = { id: optId, name: displayName };
@@ -542,17 +546,17 @@ function renderStep(stepIndex) {
         if (displayName === "GCSE") {
           // GCSE → Examboard + Tier
           steps = [
-            { title: "Select Level", options: [], url: "/api.php?url=getCourses", paramKey: null },
-            { title: "Select Subject", options: [], url: "/api.php?url=getSubjects", paramKey: "levelId" },
-            { title: "Select Examboard", options: [], url: "/api.php?url=getExamboards", paramKey: "subjectId" },
-            { title: "Select Tier", options: [], url: "/api.php?url=getTiers", paramKey: "examboardId" },
+            { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
+            { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
+            { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
+            { title: "Select Tier", options: [], url: "api.php?url=getTiers", paramKey: "examboardId" },
           ];
         } else {
           // Non-GCSE → Year
           steps = [
-            { title: "Select Level", options: [], url: "/api.php?url=getCourses", paramKey: null },
-            { title: "Select Subject", options: [], url: "/api.php?url=getSubjects", paramKey: "levelId" },
-            { title: "Select Year", options: [], url: "/api.php?url=getYears", paramKey: "subjectId" },
+            { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
+            { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
+            { title: "Select Year", options: [], url: "api.php?url=getYears", paramKey: "subjectId" },
           ];
         }
 

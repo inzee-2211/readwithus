@@ -32,13 +32,36 @@
 <?php
 
  
-function getBaseUrl() {
-    $protocol = "https://";
-    $host = $_SERVER['HTTP_HOST'];
-    $script = $_SERVER['SCRIPT_NAME'];
-    $path = str_replace(basename($script), '', $script);
-    return $protocol . $host . $path;
-} 
+
+    function getBaseUrl(): string
+    {
+        // Prefer configured constant if present
+        if (defined('CONF_WEBROOT_FRONTEND') && CONF_WEBROOT_FRONTEND) {
+            return rtrim(CONF_WEBROOT_FRONTEND, '/') . '/';
+        }
+
+        // Detect scheme safely (supports proxies)
+        $scheme = 'http';
+        if (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        ) {
+            $scheme = 'https';
+        }
+
+        // Host
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+        // Path to the running script (eg. /SDH/readwithus/public)
+        $script = $_SERVER['SCRIPT_NAME'] ?? '/';
+        $dir    = rtrim(str_replace('\\', '/', dirname($script)), '/');
+
+        // Normalize: root dir should be empty (not '/')
+        $path = ($dir === '' || $dir === '/') ? '/' : $dir . '/';
+
+        return $scheme . '://' . $host . $path;
+    }
+
 /**
  * Note var names of monthNames, weekDayNames and meridiems must not be changed
  */

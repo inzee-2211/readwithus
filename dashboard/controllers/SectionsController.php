@@ -113,7 +113,7 @@ class SectionsController extends DashboardController
     {
         $frm = new Form('frmSection');
  
-        $frm->addButton('', 'btn_add_quiz', Label::getLabel('LBL_ADD_QUIZ'));
+        $frm->addButton('', 'btn_add_quiz', Label::getLabel('LBL_ADD_Exam'));
 
         $frm->addTextBox(Label::getLabel('LBl_TITLE'), 'section_title')->requirements()->setRequired();
         $frm->addTextArea(Label::getLabel('LBl_DESCRIPTION'), 'section_details')->requirements()->setRequired();

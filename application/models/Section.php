@@ -29,44 +29,51 @@ class Section extends MyAppModel
      * @param array $data
      * @return bool
      */
-    public function setup(array $data)
-    {
-        
-        $db = FatApp::getDb();
-        if (!$db->startTransaction()) {
-            $this->error = $db->getError();
-            return false;
-        }
-        
-            $this->assignValues([
-                'section_course_id' => $data['section_course_id'],
-                'section_updated' => date('Y-m-d H:i:s'),
-                'section_title' => $data['section_title'],
-                'section_details' => $data['section_details'],
-                'section_quiz_id' => $data['section_quiz_id'],
-            ]);
- 
-     
-        if ($data['section_id'] < 1) {
-            $this->setFldValue('section_created', date('Y-m-d H:i:s'));
-        }
-        if (!$this->save($data)) {
-            $db->rollbackTransaction();
-            $this->error = $this->getError();
-            return false;
-        }
-        /* reset section order */
-        if (!$this->resetOrder($data['section_course_id'])) {
-            $db->rollbackTransaction();
-            return false;
-        }
-        if (!$this->setCourseSectionCount($data['section_course_id'])) {
-            $db->rollbackTransaction();
-            return false;
-        }
-        $db->commitTransaction();
-        return true;
+   public function setup(array $data)
+{
+    $db = FatApp::getDb();
+    if (!$db->startTransaction()) {
+        $this->error = $db->getError();
+        return false;
     }
+
+    // normalize inputs first
+    $quizId = isset($data['section_quiz_id']) && is_numeric($data['section_quiz_id']) ? (int)$data['section_quiz_id'] : null;
+
+    $this->assignValues([
+        'section_course_id' => (int)$data['section_course_id'],
+        'section_title'     => trim((string)$data['section_title']),
+        'section_details'   => trim((string)$data['section_details']),
+        'section_quiz_id'   => $quizId,          // nullable or 0 based on your schema
+        'section_updated'   => date('Y-m-d H:i:s'),
+    ]);
+
+    if (empty($data['section_id']) || (int)$data['section_id'] < 1) {
+        // set creation values and counters on first insert
+        $this->setFldValue('section_created', date('Y-m-d H:i:s'));
+        $this->setFldValue('section_lectures', 0);
+        $this->setFldValue('section_order', 0);
+        $this->setFldValue('section_duration', 0);
+    }
+
+    if (!$this->save($data)) {
+        $db->rollbackTransaction();
+        $this->error = $this->getError();
+        return false;
+    }
+
+    if (!$this->resetOrder((int)$data['section_course_id'])) {
+        $db->rollbackTransaction();
+        return false;
+    }
+    if (!$this->setCourseSectionCount((int)$data['section_course_id'])) {
+        $db->rollbackTransaction();
+        return false;
+    }
+    $db->commitTransaction();
+    return true;
+}
+
 
     /**
      * Function to remove Section
