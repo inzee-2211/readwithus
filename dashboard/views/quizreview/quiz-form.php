@@ -37,7 +37,7 @@ $bannerSize = MyUtility::convertBitesToMb(Afile::getAllowedUploadSize(Afile::TYP
 ?>
 <div class="facebox-panel">
     <div class="facebox-panel__head">
-        <h4>Quizzes</h4>
+        <h4>Exams</h4>
     </div>
     <div class="facebox-panel__body">
 

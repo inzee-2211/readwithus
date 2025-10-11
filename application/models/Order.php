@@ -85,6 +85,7 @@ class Order extends MyAppModel
                 'ordles_lesson_endtime' => null,
                 'ordles_duration' => $lesson['ordles_duration'],
                 'ordles_status' => Lesson::UNSCHEDULED,
+            
             ];
             foreach ($lesson['lessons'] as $value) {
                 $value = array_merge($value, $lessonData);
@@ -257,6 +258,8 @@ class Order extends MyAppModel
                 'ordcrs_amount' => $rows[$courseId]['course_price'],
                 'ordcrs_commission' => $commission['comm_courses'],
                 'ordcrs_status' => OrderCourse::IN_PROGRESS,
+                'ordcrs_certificate_number' => '',
+                'ordcrs_reviewed' => 0,
                 'ordcrs_payment' => AppConstant::UNPAID,
             ]);
         }
@@ -1239,5 +1242,6 @@ class Order extends MyAppModel
         $mail->sendMail([$order['user_email']]);
         return true;
     }
+    
 
 }

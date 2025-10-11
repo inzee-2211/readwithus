@@ -31,7 +31,7 @@ $validityFld = $frm->getField('quiz_validity');
             <div class="box-panel__head border-bottom">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h4><?php echo Label::getLabel('LBL_MANAGE_QUIZ_SETTINGS'); ?></h4>
+                        <h4><?php echo Label::getLabel('LBL_MANAGE_EXAM_SETTINGS'); ?></h4>
                     </div>
                 </div>
             </div>

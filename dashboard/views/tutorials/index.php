@@ -177,7 +177,7 @@ echo $this->includeTemplate('tutorials/head-section.php', [
                                                                     </svg>
                                                                     <span>
                                                                     <?php echo 1; ?>
-                                                                    <?php echo Label::getLabel('LBL_QUIZ'); ?>
+                                                                    <?php echo Label::getLabel('LBL_EXAM'); ?>
                                                                     </span>
                                                                     </div>
                                                                     <?php } ?>

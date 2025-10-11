@@ -4,7 +4,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 
 if (count($allClasses) == 0) {
     $link = MyUtility::makeFullUrl('Teachers', '', [], CONF_WEBROOT_FRONTEND);
-    $variables = ['msgHeading' => Label::getLabel('LBL_NO_QUIZ_REVIEW_FOUND')];
+    $variables = ['msgHeading' => Label::getLabel('LBL_NO_EXAM_REVIEW_FOUND')];
     if ($siteUserType == User::LEARNER) {
         $variables['btn'] = '<a href="' . $link . '" class="btn btn--primary">' . Label::getLabel('LBL_FIND_TEACHER') . '</a>';
     }
@@ -25,7 +25,7 @@ if (count($allClasses) == 0) {
             <th><?php echo $titleLabel = Label::getLabel('LBL_STUDENT_NAME'); ?></th>
             <th><?php echo $typeLabel = Label::getLabel('LBL_COURSE_NAME'); ?></th>
             <th><?php echo $languageLabel = Label::getLabel('LBL_NUMBER_OF_RE_ATTEMPT'); ?></th>
-            <th><?php echo $lessonLabel = Label::getLabel('LBL_NUMBER_OF_QUIZZES'); ?></th>
+            <th><?php echo $lessonLabel = Label::getLabel('LBL_NUMBER_OF_EXAMS'); ?></th>
             <th><?php echo $statusLabel = Label::getLabel('LBL_STATUS'); ?></th>
             <th><?php echo $added_onLabel = Label::getLabel('LBL_ADDED_ON'); ?></th>
             <th><?php echo $actionLabel = Label::getLabel('LBL_ACTIONS'); ?></th>

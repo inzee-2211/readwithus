@@ -24,7 +24,7 @@ $textLength = 155;
             <div class="box-panel__head border-bottom">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h4><?php echo 'Add Quiz';//echo Label::getLabel('LBL_INTENDED_LEARNERS'); ?></h4>
+                        <h4><?php echo 'Add EXAMS';//echo Label::getLabel('LBL_INTENDED_LEARNERS'); ?></h4>
                     </div>
                     <div>
                    

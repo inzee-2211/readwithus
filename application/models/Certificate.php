@@ -129,7 +129,7 @@ class Certificate extends MyAppModel
             'crspro_completed',
             'IFNULL(clanglang.clang_name, clang.clang_identifier) AS course_clang_name',
             'learner.user_lang_id',
-            'ordcrs_certificate_number',
+            'ordcrs_certificate_number'??'',
             'course_duration'
         ]);
         $srch->addCondition('ordcrs_id', '=', $ordcrsId);

@@ -856,6 +856,7 @@ public function uploadQuestionBank()
             'tier'              => trim($tier),
             'hint'              => trim($hint),
             'question_type'     => trim($question_type),
+             'category'          => '',                  // <-- add this line
             'subcategory'       => '', // optional
             'question_added_on' => date('Y-m-d H:i:s'),
         ];
@@ -1117,6 +1118,7 @@ public function uploadQuestionBank()
                                     'tier'              => trim($tier),
                                     'hint'              => trim($hint),
                                     'question_type'     => trim($question_type),
+                                     'category'          => '',
                                     'subcategory'       => '', // optional
                                     'question_added_on' => date('Y-m-d H:i:s')
                                 ];

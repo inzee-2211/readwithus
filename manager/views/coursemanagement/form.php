@@ -25,7 +25,7 @@ $frm->setFormTagAttribute('onsubmit', 'setup(this); return(false);');
 
     <div class="sectionhead d-flex justify-content-between align-items-center">
    
-    <h4 class="mb-0"><?php echo Label::getLabel('LBL_ADD_COURSE'); ?></h4>
+    <h4 class="mb-0"><?php echo Label::getLabel('LBL_ADD_QUIZ'); ?></h4>
  
     <a href="<?php echo CONF_WEBROOT_FRONT_URL . 'public/uploads/sample_csv/questions.csv'; ?>" 
        class="btn btn--primary btn--sm" 

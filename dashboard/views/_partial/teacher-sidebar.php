@@ -141,7 +141,7 @@ if (
 // {
 ?>
 <div class="menu-group">
-    <h6 class="heading-6">Quiz</h6>
+    <h6 class="heading-6">Examination</h6>
     <nav class="menu menu--primary">
         <ul>
          
@@ -159,7 +159,7 @@ if (
                 <svg class="icon icon--lesson margin-right-2">
                     <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#lessons'; ?>"></use>
                     </svg>
-                    <span><?php //echo Label::getLabel('LBL_GROUP_CLASSES'); ?>Quizzes</span>
+                    <span><?php //echo Label::getLabel('LBL_GROUP_CLASSES'); ?>Exams</span>
                 </a>
             </li>
 
@@ -168,7 +168,7 @@ if (
                 <svg class="icon icon--lesson margin-right-2">
                     <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#wallet'; ?>"></use>
                     </svg>
-                    <span><?php //echo Label::getLabel('LBL_GROUP_CLASSES'); ?>Quiz Review</span>
+                    <span><?php //echo Label::getLabel('LBL_GROUP_CLASSES'); ?>Exam Review</span>
                 </a>
             </li>
         

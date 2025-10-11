@@ -22,7 +22,7 @@ $btnReset->addFieldTagAttribute('onclick', 'clearSearch()');
     <div class="page__head">
         <div class="row align-items-center justify-content-between">
             <div class="col-sm-7">
-                <h1><?php echo Label::getLabel('LBL_MANAGE_QUIZZES'); ?></h1>
+                <h1><?php echo Label::getLabel('LBL_MANAGE_EXAMS'); ?></h1>
                 <p class="margin-0">
                     <?php// echo Label::getLabel('LBL_MANAGE_COURSE_PAGE_SUB_HEADING'); ?>
                 </p>
@@ -40,7 +40,7 @@ $btnReset->addFieldTagAttribute('onclick', 'clearSearch()');
                             <svg class="icon icon--uploader margin-right-2">
                                 <use xlink:href="<?php echo CONF_WEBROOT_URL ?>images/sprite.svg#uploader"></use>
                             </svg>
-                            <?php echo Label::getLabel('LBL_ADD_NEW_QUIZ'); ?>
+                            <?php echo Label::getLabel('LBL_ADD_NEW_EXAM'); ?>
                         </a>
                     <?php } ?>
                 </div>

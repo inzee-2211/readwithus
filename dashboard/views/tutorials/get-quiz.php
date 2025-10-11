@@ -1,3 +1,6 @@
+<!-- //quizzes have been changed into exams so this is actually get-exam.php -->
+
+
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 if ($quizDetails) {
@@ -7,7 +10,7 @@ if ($quizDetails) {
 <div id="quizPopup" style="display: none;">
     <div class="quiz-popup-overlay" onclick="closePopup()"></div>
     <div class="quiz-popup-content">
-        <h3>Quiz Evaluation Summary</h3>
+        <h3>Exam Evaluation Summary</h3>
         <div id="quizSummary" class="quiz-summary-content">
             <!-- Dynamic quiz summary content will go here -->
         </div>
@@ -288,7 +291,7 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
                 <?php } ?>
 
                 <div class="text-right">
-                    <button type="submit" class="btn-submit" onclick="submitQuiz();"><?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?></button>
+                    <button type="submit" class="btn-submit" onclick="submitQuiz();"><?php echo Label::getLabel('LBL_SUBMIT_EXAM'); ?></button>
                 </div>
             </form>
         </div>
@@ -303,7 +306,7 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
         //     const interval = setInterval(() => {
         //         if (timeRemaining <= 0) {
         //             clearInterval(interval);
-        //             alert('<?php echo Label::getLabel('LBL_TIME_UP_PLEASE_CONDUCT_THE_QUIZ_AGAIN'); ?>');
+        //             alert('<?php echo Label::getLabel('LBL_TIME_UP_PLEASE_CONDUCT_THE_EXAM_AGAIN'); ?>');
         //             location.reload();
         //         } else {
         //             const minutes = Math.floor(timeRemaining / 60);
@@ -323,7 +326,7 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
         timerInterval = setInterval(() => {
             if (timeRemaining <= 0) {
                 clearInterval(timerInterval);
-                alert('<?php echo Label::getLabel('LBL_TIME_UP_PLEASE_CONDUCT_THE_QUIZ_AGAIN'); ?>');
+                alert('<?php echo Label::getLabel('LBL_TIME_UP_PLEASE_CONDUCT_THE_EXAM_AGAIN'); ?>');
                 location.reload();
             } else {
                 const minutes = Math.floor(timeRemaining / 60);
@@ -360,7 +363,7 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
     });
 
     if (!allAnswered) {
-        alert('Please answer all the questions before submitting the quiz.');
+        alert('Please answer all the questions before submitting the Exam.');
         // Optionally, highlight unanswered questions
         unansweredQuestions.forEach((questionId) => {
             const questionElement = $(`[name="${questionId}"]`).closest('.quiz-question');
@@ -407,7 +410,7 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
   
         },
         error: function () {
-            alert('<?php echo Label::getLabel('LBL_ERROR_SUBMITTING_QUIZ'); ?>');
+            alert('<?php echo Label::getLabel('LBL_ERROR_SUBMITTING_EXAM'); ?>');
         }
     });
 }
@@ -468,6 +471,6 @@ $imageUrl = MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_QUESTIONS_FI
         <div class="message-display__media">
             <svg><use xlink:href="<?php echo CONF_WEBROOT_DASHBOARD ?>images/sprite.svg#stuck"></use></svg>
         </div>
-        <h4><?php echo stripslashes(Label::getLabel("LBL_NO_QUIZ_AVAILABLE.")); ?></h4>
+        <h4><?php echo stripslashes(Label::getLabel("LBL_NO_EXAM_AVAILABLE.")); ?></h4>
     </div>
 <?php } ?>

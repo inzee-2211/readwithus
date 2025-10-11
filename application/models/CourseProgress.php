@@ -59,6 +59,8 @@ class CourseProgress extends MyAppModel
         $this->assignValues([
             'crspro_ordcrs_id' => $ordcrsId,
             'crspro_status' => static::PENDING,
+             'crspro_lecture_id' => 0,
+            'crspro_progress' => 0,
         ]);
         if (!$this->save()) {
             $this->error = $this->getError();

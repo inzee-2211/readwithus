@@ -7,7 +7,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
             <svg class="icon icon--back margin-right-3">
                 <use xlink:href="<?php echo CONF_WEBROOT_URL; ?>images/sprite.svg#arrow-back"></use>
             </svg>
-            <?php echo Label::getLabel('LBL_BACK_TO_QUIZZES'); ?>
+            <?php echo Label::getLabel('LBL_BACK_TO_EXAMS'); ?>
         </a>
         <div class="row align-items-center justify-content-between">
             <div class="col-sm-8">
@@ -16,7 +16,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
                 if ($courseId > 0) {
                     echo $courseTitle;
                 } else {
-                    echo Label::getLabel('LBL_MANAGE_QUIZZES');
+                    echo Label::getLabel('LBL_MANAGE_EXAMS');
                 }
                 ?>
                 </h1>

@@ -10,6 +10,7 @@ $(function () {
             fcom.setEditorLayout(siteLangId);
         });
     };
+
     
     mediaForm = function (process = true) {
         fcom.ajax(fcom.makeUrl('Courses', 'mediaForm', [courseId]), '', function (res) {
@@ -112,6 +113,7 @@ $(function () {
             settingsForm();
         });
     };
+
     setup = function () {
         var frm = $('#frmCourses');
         if (!$(frm).validate()) {
@@ -127,6 +129,12 @@ $(function () {
             getCourseEligibility();
         });
     };
+    lectureQuizForm = function (lectureId) {
+  fcom.ajax(fcom.makeUrl('Lectures', 'quizForm', [lectureId]), '', function (res) {
+    $('#sectionLectures' + lectureId).html(res);
+  });
+};
+
     setupMedia = function () {
         var frm = $('#frmCourses')[0];
         var data = new FormData(frm);

@@ -37,7 +37,7 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
     <div class="page__head">
         <div class="row align-items-center justify-content-between">
             <div class="col-sm-6">
-                <h1><?php //echo Label::getLabel('LBL_MANAGE_CLASSES'); ?> Quiz Review</h1>
+                <h1><?php //echo Label::getLabel('LBL_MANAGE_CLASSES'); ?> Exam Review</h1>
             </div>
             <div class="col-sm-auto">
                 <div class="buttons-group d-flex align-items-center">

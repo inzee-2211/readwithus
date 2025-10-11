@@ -8,7 +8,7 @@ $autoresult_data = json_decode($data['quiz_autoresult_data'], true);
  
 ?>
  
-    <title>Quiz Results</title>
+    <title>Exam Results</title>
     <style>
         :root {
             --color-primary: #F5411F;
@@ -207,7 +207,7 @@ $autoresult_data = json_decode($data['quiz_autoresult_data'], true);
 <div class="container">
     <div class="facebox-panel">
         <div class="facebox-panel__head">
-            Quiz Result : <?php
+            Exam Result : <?php
        
             echo $data['quiz_title']; ?>
         </div>

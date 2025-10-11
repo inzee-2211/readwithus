@@ -4,7 +4,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 
 if (count($courses) == 0) {
     $link = MyUtility::makeFullUrl('Teachers', '', [], CONF_WEBROOT_FRONTEND);
-    $variables = ['msgHeading' => Label::getLabel('LBL_NO_QUIZ_FOUND')];
+    $variables = ['msgHeading' => Label::getLabel('LBL_NO_EXAM_FOUND')];
     if ($siteUserType == User::LEARNER) {
         $variables['btn'] = '<a href="' . $link . '" class="btn btn--primary">' . Label::getLabel('LBL_FIND_TEACHER') . '</a>';
     }

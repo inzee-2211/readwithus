@@ -46,7 +46,7 @@ class CertificatesController extends MyAppController
             'teacher.user_id AS teacher_id',
             'learner.user_country_id',
             'orders.order_user_id',
-            'ordcrs_certificate_number'
+            'ordcrs_certificate_number'??'',
         ]);
         $srch->addCondition('ordcrs_id', '=', $ordcrsId);
         if (!$order = FatApp::getDb()->fetch($srch->getResultSet())) {

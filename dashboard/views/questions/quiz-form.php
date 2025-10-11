@@ -37,7 +37,7 @@ $bannerSize = MyUtility::convertBitesToMb(Afile::getAllowedUploadSize(Afile::TYP
 ?>
 <div class="facebox-panel">
     <div class="facebox-panel__head">
-        <h4>Quizzes</h4>
+        <h4>Exams</h4>
     </div>
     <div class="facebox-panel__body">
 
@@ -155,7 +155,7 @@ if (existingInput) {
         const message = document.createElement("span");
 
 // Use innerHTML to style "Quiz attached:" separately
-message.innerHTML = `<span style="color: #f5411f; font-weight: bold;">Quiz attached:</span> ${title}`;
+message.innerHTML = `<span style="color: #f5411f; font-weight: bold;">Exam attached:</span> ${title}`;
 
 message.classList.add("notification");
 form.appendChild(message);

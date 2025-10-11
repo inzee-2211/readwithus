@@ -16,6 +16,7 @@ class Lecture extends MyAppModel
     const TYPE_RESOURCE_EXTERNAL_URL = 1;
     const TYPE_RESOURCE_UPLOAD_FILE = 2;
     const TYPE_RESOURCE_LIBRARY = 3;
+    const TYPE_RESOURCE_QUIZ = 4;
     
     private $userId;
 
@@ -124,6 +125,8 @@ class Lecture extends MyAppModel
             'lecsrc_resrc_id' => $srcId,
             'lecsrc_lecture_id' => $this->getMainTableRecordId(),
             'lecsrc_course_id' => $courseId,
+            'lecsrc_link'       => '',
+               'lecsrc_duration'   => 0,       
             'lecsrc_created' => date('Y-m-d H:i:s')
         ]);
         if (!$obj->addNew()) {
@@ -372,6 +375,7 @@ class Lecture extends MyAppModel
             'lecsrc_link' => $post['lecsrc_link'],
             'lecsrc_lecture_id' => $this->getMainTableRecordId(),
             'lecsrc_course_id' => $post['lecsrc_course_id'],
+            'lecsrc_resrc_id'   => (int)($post['lecsrc_resrc_id'] ?? 0)
         ];
         if ($post['lecsrc_id'] < 1) {
             $data['lecsrc_created'] = date('Y-m-d H:i:s');

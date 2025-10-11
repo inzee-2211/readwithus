@@ -237,6 +237,149 @@ class LecturesController extends DashboardController
         ]);
     }
 
+//lines added by rehan for quiz linked to lecture
+public function quizForm(int $lectureId)
+{
+    $lectureId = FatUtility::int($lectureId);
+    if ($lectureId < 1) { FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST')); }
+
+    $obj = new LectureSearch();
+    $lecture = $obj->getById($lectureId, [
+        // include lecture_id so the view can use it
+        'lecture_id', 'lecture_title', 'lecture_section_id', 'lecture_order', 'lecture_course_id'
+    ]);
+    if (!$lecture) { FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST')); }
+
+    $db = FatApp::getDb();
+    $rs = $db->query("
+        SELECT *
+        FROM ".Lecture::DB_TBL_LECTURE_RESOURCE."
+        WHERE lecsrc_lecture_id = ".(int)$lectureId."
+          AND lecsrc_type = ".(int)Lecture::TYPE_RESOURCE_QUIZ."
+        LIMIT 1
+    ");
+    $quizRes = $db->fetch($rs);
+
+    // (not strictly necessary anymore, but safe)
+    $lecture['lecture_id'] = $lecture['lecture_id'] ?? $lectureId;
+
+    $this->sets([
+        'lecture'  => $lecture,
+        'quizRes'  => $quizRes,   // pass with the correct name the view will use
+    ]);
+    $this->_template->render(false, false, 'lectures/quiz-form.php');
+}
+public function setupQuiz()
+{
+    $lectureId = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+    $courseId  = FatApp::getPostedData('course_id',  FatUtility::VAR_INT, 0);
+
+    $levelId     = FatApp::getPostedData('levelId',     FatUtility::VAR_INT, 0);
+    $subjectId   = FatApp::getPostedData('subjectId',   FatUtility::VAR_INT, 0);
+    $examboardId = FatApp::getPostedData('examboardId', FatUtility::VAR_INT, 0);
+    $tierId      = FatApp::getPostedData('tierId',      FatUtility::VAR_INT, 0);
+    $yearId      = FatApp::getPostedData('yearId',      FatUtility::VAR_INT, 0);
+    $topicId     = FatApp::getPostedData('topicId',     FatUtility::VAR_INT, 0);
+
+    // real quiz id OR subtopic id (fallback)
+    $quizId   = FatApp::getPostedData('quizId',   FatUtility::VAR_INT, 0);
+    $subtopic = FatApp::getPostedData('subtopic', FatUtility::VAR_INT, 0);
+
+    if ($quizId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_QUIZ'));
+    }
+    if ($lectureId < 1 || $courseId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+    if (Course::getAttributesById($courseId, 'course_user_id') != $this->siteUserId) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_UNAUTHORIZED_ACCESS'));
+    }
+    if (Lecture::getAttributesById($lectureId, 'lecture_course_id') != $courseId) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_DATA_SENT'));
+    }
+
+    // Prefer subtopic in URL if available, else quizId
+    $subParam = $subtopic > 0 ? $subtopic : $quizId;
+    $quizUrl  = MyUtility::makeUrl('quizfocus', '', [], CONF_WEBROOT_FRONT_URL) . '?subtopic=' . rawurlencode((string)$subParam);
+
+    $metaJson = json_encode([
+        'levelId'     => $levelId,
+        'subjectId'   => $subjectId,
+        'examboardId' => $examboardId,
+        'tierId'      => $tierId,
+        'yearId'      => $yearId,
+        'topicId'     => $topicId,
+        'subtopic'    => $subtopic,
+        'quizId'      => $quizId,
+    ]);
+
+    $db = FatApp::getDb();
+
+    // existing row?
+    $rs  = $db->query("
+        SELECT lecsrc_id
+        FROM " . Lecture::DB_TBL_LECTURE_RESOURCE . "
+        WHERE lecsrc_lecture_id = " . (int)$lectureId . "
+          AND lecsrc_type = " . (int)Lecture::TYPE_RESOURCE_QUIZ . "
+        LIMIT 1
+    ");
+    $row = $db->fetch($rs);
+
+    // base data
+    $base = [
+        'lecsrc_lecture_id' => $lectureId,
+        'lecsrc_course_id'  => $courseId,
+        'lecsrc_type'       => Lecture::TYPE_RESOURCE_QUIZ,
+        'lecsrc_link'       => $quizUrl,
+        'lecsrc_duration'   => 0,
+        'lecsrc_resrc_id'   => 0,
+    ];
+
+    // We'll try with meta first; if it fails due to unknown column, retry without.
+    $withMeta = $base;
+    $withMeta['lecsrc_meta'] = $metaJson;
+
+    $ok = false;
+
+    if ($row) {
+        // UPDATE path
+        $withMeta['lecsrc_updated'] = date('Y-m-d H:i:s');
+        $ok = $db->updateFromArray(Lecture::DB_TBL_LECTURE_RESOURCE, $withMeta, [
+            'smt'  => 'lecsrc_id = ?',
+            'vals' => [$row['lecsrc_id']]
+        ]);
+
+        if (!$ok) {
+            // retry without meta (column might not exist in this DB)
+            $noMeta = $base + ['lecsrc_updated' => date('Y-m-d H:i:s')];
+            $ok = $db->updateFromArray(Lecture::DB_TBL_LECTURE_RESOURCE, $noMeta, [
+                'smt'  => 'lecsrc_id = ?',
+                'vals' => [$row['lecsrc_id']]
+            ]);
+        }
+    } else {
+        // INSERT path
+        $withMeta['lecsrc_created'] = date('Y-m-d H:i:s');
+        $ok = $db->insertFromArray(Lecture::DB_TBL_LECTURE_RESOURCE, $withMeta);
+
+        if (!$ok) {
+            // retry without meta
+            $noMeta = $base + ['lecsrc_created' => date('Y-m-d H:i:s')];
+            $ok = $db->insertFromArray(Lecture::DB_TBL_LECTURE_RESOURCE, $noMeta);
+        }
+    }
+
+    if (!$ok) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_SOMETHING_WENT_WRONG'));
+    }
+
+    FatUtility::dieJsonSuccess(['lectureId' => $lectureId, 'msg' => Label::getLabel('LBL_SETUP_SUCCESSFUL')]);
+}
+
+
+
+//line ends here
+
     /**
      * Updating Lectures sort order
      *
@@ -254,7 +397,7 @@ class LecturesController extends DashboardController
 
     /**
      * Get Media Form
-     *
+     *A
      * @param int $type
      */
     private function getMediaForm(): Form

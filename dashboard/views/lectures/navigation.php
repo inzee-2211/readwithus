@@ -16,5 +16,12 @@
                 <?php echo Label::getLabel('LBL_RESOURCES'); ?>
             </a>
         </li>
+<li class="<?php echo ($active == 'quizzes') ? 'is-active' : ''; ?>">
+  <a href="javascript:void(0)" <?php if ($lectureId > 0) { ?> onclick="lectureQuizForm('<?php echo $lectureId; ?>')" <?php } ?>>
+    <?php echo Label::getLabel('LBL_QUIZZES'); ?>
+  </a>
+</li>
+
+
     </ul>
 </nav>

@@ -100,17 +100,24 @@ class LectureResourcesController extends DashboardController
             if (empty($resources) || count($resources) < 1) {
                 FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_RESOURCES_FROM_THE_LIST'));
             }
-            foreach ($resources as $resource) {
-                $lecture = new Lecture($post['lecsrc_lecture_id']);
-                if (!$lecture->setupResources(
-                    $post['lecsrc_id'],
-                    Lecture::TYPE_RESOURCE_LIBRARY,
-                    $resource,
-                    $post['lecsrc_course_id']
-                )) {
-                    FatUtility::dieJsonError($resource->getError());
-                }
-            }
+           foreach ($resources as $resId) {
+    $resId = FatUtility::int($resId);
+    if ($resId < 1) { continue; } // or dieJsonError if you prefer strict
+
+    $lecture = new Lecture($post['lecsrc_lecture_id']);
+
+    // New linkage rows should not pass a PK; always 0 here.
+    if (!$lecture->setupResources(
+        0, // lecsrc_id -> let DB auto-increment
+        Lecture::TYPE_RESOURCE_LIBRARY,
+        $resId,
+        $post['lecsrc_course_id']
+    )) {
+        // IMPORTANT: the error belongs to $lecture, not $resId
+        FatUtility::dieJsonError($lecture->getError() ?: Label::getLabel('LBL_SOMETHING_WENT_WRONG'));
+    }
+}
+
         } elseif ($post['lecsrc_type'] == Lecture::TYPE_RESOURCE_UPLOAD_FILE) {
             if (empty($_FILES['resource_files']['name'])) {
                 FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
