@@ -14,10 +14,34 @@ if ($quizDetails) {
         <div id="quizSummary" class="quiz-summary-content">
             <!-- Dynamic quiz summary content will go here -->
         </div>
+      <a class="btn-tutor"
+   href="<?php echo MyUtility::makeUrl('teachers', '', [], CONF_WEBROOT_FRONT_URL); ?>">
+  Find a Tutor
+</a>
+
+
         <button class="btn-close-popup" onclick="closePopup()">Close</button>
     </div>
 </div>
     <style>
+        .btn-tutor{
+  display:block;          /* full width block like Close */
+  width:100%;
+  margin-top:12px;
+  padding:10px 20px;
+  background:#F5411F;     /* red to match your theme */
+  color:#fff;
+  border:none;
+  border-radius:5px;
+  text-align:center;
+  font-size:1em;
+  cursor:pointer;
+  text-decoration:none;   /* make <a> look like a button */
+}
+.btn-tutor:hover{
+  background:#d73d1c;     /* slightly darker on hover */
+}
+
  
 .quizcontent p {
   margin-bottom: 6px;
