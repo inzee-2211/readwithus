@@ -65,63 +65,74 @@ $frm->setFormTagAttribute('onsubmit', 'setup(this); return(false);');
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const subj  = document.getElementById('subject_id');
-  const topic = document.getElementById('quiz_setup_id');
-  if (!subj || !topic) return;
+(function () {
+  // Event delegation works even if the form is injected later
+  document.addEventListener('change', function (e) {
+    const t = e.target;
+    if (!t) return;
 
-  function resetTopics(label) {
-    topic.innerHTML = '<option value="">' + (label || 'Select Topic') + '</option>';
-  }
+    // Match the Subject select by id or name
+    const isSubject =
+      t.id === 'subject_id' || t.name === 'subject_id';
 
-  async function loadTopics(subjectId) {
-    resetTopics('Loading...');
+    if (!isSubject) return;
+
+    const sid = (t.value || '').trim();
+    // Find the Topic select reliably
+    const topic = document.querySelector('#quiz_setup_id,[name="quiz_setup_id"]');
+    if (!topic) { console.error('Topic <select> not found'); return; }
+
+    if (!sid) {
+      topic.innerHTML = '<option value="">Select Topic</option>';
+      return;
+    }
+
+    // Show loading and call endpoint
+    topic.innerHTML = '<option value="">Loading...</option>';
+
     const fd = new FormData();
-    fd.append('subject_id', subjectId);
+    fd.append('subject_id', sid);
 
-    try {
-      const res = await fetch('<?= MyUtility::makeUrl('Coursemanagement', 'topicsBySubject'); ?>', {
-        method: 'POST',
-        body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
+    fetch('<?= MyUtility::makeUrl('Coursemanagement','topicsBySubject'); ?>', {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(async res => {
+      const text = await res.text();          // log raw for debugging
+      console.log('topicsBySubject raw:', text);
+      try { return JSON.parse(text); } catch { return null; }
+    })
+    .then(json => {
+      const map = (json && json.data) || {};
+      const ids = Object.keys(map);
 
-      let json;
-      try { json = await res.json(); } catch (e) {
-        console.error('topicsBySubject returned non-JSON', await res.text());
-        resetTopics('No topics found');
-        return;
-      }
+      topic.innerHTML = '<option value="">' + (ids.length ? 'Select Topic' : 'No topics for this subject') + '</option>';
 
-      console.log('topicsBySubject response:', json);
-
-      const data = (json && (json.data || json)) || {};
-      const ids = Object.keys(data);
-
-      resetTopics(ids.length ? 'Select Topic' : 'No topics for this subject');
-
+      const frag = document.createDocumentFragment();
       ids.forEach(id => {
         const opt = document.createElement('option');
         opt.value = id;
-        opt.textContent = data[id];
-        topic.appendChild(opt);
+        opt.textContent = map[id];
+        frag.appendChild(opt);
       });
-    } catch (err) {
-      console.error('topicsBySubject fetch failed:', err);
-      resetTopics('No topics found');
-    }
-  }
+      topic.appendChild(frag);
 
-  subj.addEventListener('change', () => {
-    const sid = subj.value ? String(subj.value).trim() : '';
-    console.log('Subject changed:', sid);
-    if (!sid) { resetTopics('Select Topic'); return; }
-    loadTopics(sid);
+      // If using Select2 / Bootstrap-Select, refresh it
+      if (window.jQuery && jQuery(topic).data('select2')) jQuery(topic).trigger('change.select2');
+      if (window.jQuery && jQuery.fn.selectpicker) jQuery(topic).selectpicker('refresh');
+    })
+    .catch(err => {
+      console.error('topicsBySubject failed:', err);
+      topic.innerHTML = '<option value="">No topics found</option>';
+    });
   });
 
-  // If subject is preselected (edit flow), auto-load topics
-  if (subj.value) {
-    loadTopics(subj.value);
+  // If subject is preselected, load topics once
+  const subj = document.querySelector('#subject_id,[name="subject_id"]');
+  if (subj && subj.value) {
+    const evt = new Event('change', { bubbles: true });
+    subj.dispatchEvent(evt);
   }
-});
+})();
 </script>

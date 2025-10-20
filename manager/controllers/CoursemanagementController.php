@@ -37,39 +37,77 @@ class CoursemanagementController extends AdminBaseController
      * Search & List
      */
     public function search()
-    {
-        $frm = $this->getSearchForm();
-        $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid']);
-        $srch = new CourseManagement($this->siteLangId, 0, User::SUPPORT);
+{
+    $frm  = $this->getSearchForm();
+    $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid']);
 
-        $srch->addMultipleFields([
-            '*',
-            'question.id as qid',
-            'course_examboards.name as examboard_name',
-            'course_year.name as year_name',
-            'course_type.name as type_name',
-            'course_tier.name as tier_name',
-        ]);
-        $srch->addCondition('question.deleted', '=', 0);
-        $srch->applySearchConditionsadmin($post);
-        $srch->setPageSize($post['pagesize']);
-        $srch->setPageNumber($post['page']);
+    // qm = subtopic rows you created with the form
+    $srch = new SearchBase('tbl_quiz_management', 'qm');
 
-        // $srch->addOrder('question.id', 'DESC');
-        $orders = $srch->fetchAndFormat();
+    // quiz_setup (holds the keys and the topic_name)
+    $srch->joinTable('tbl_quiz_setup', 'INNER JOIN', 'qs.id = qm.quiz_setup_id', 'qs');
 
+    // lookups for pretty names
+    $srch->joinTable('course_subjects',   'LEFT JOIN', 'cs.id = qs.subject_id',      'cs');
+    $srch->joinTable('course_levels',     'LEFT JOIN', 'cl.id = qs.level_id',        'cl');
+    $srch->joinTable('course_tier',       'LEFT JOIN', 'ct.id = qs.tier_id',         'ct');
+    $srch->joinTable('course_type',       'LEFT JOIN', 'ctype.id = qs.type_id',      'ctype');
+    $srch->joinTable('course_year',       'LEFT JOIN', 'cy.id = qs.year_id',         'cy');
+    $srch->joinTable('course_examboards', 'LEFT JOIN', 'ceb.id = qs.examboard_id',   'ceb');
 
-        $this->sets([
-            'arrListing' => $orders,
-            'page' => $post['page'],
-            'post' => $post,
-            'pageSize' => $post['pagesize'],
-            'pageCount' => $srch->pages(),
-            'recordCount' => $srch->recordCount(),
-            'canEdit' => $this->objPrivilege->canEditCourses(true),
-        ]);
-        $this->_template->render(false, false);
+    // fields for your table + subtopic details
+    $srch->addMultipleFields([
+        'qm.id AS qid',                        // keep using qid in the view
+        'IFNULL(cl.level_name, "") AS level_name',
+        'IFNULL(cs.subject, "") AS subject',
+        'IFNULL(qs.topic_name, "") AS topic',
+        'IFNULL(ct.name, "") AS tier_name',
+        'IFNULL(ctype.name, "") AS type_name',
+        'IFNULL(cy.name, "") AS year_name',
+        'IFNULL(ceb.name, "") AS examboard_name',
+
+        // subtopic details:
+        'qm.subtopic_name',
+        'qm.video_url',
+        'qm.pdf_path',
+        'qm.created_at',
+        'qm.updated_at',
+    ]);
+
+    // Optional: apply filters from the search form if you want
+    // Safely check the posted filters and map them:
+    if (!empty($post['keyword'])) {
+        $srch->addCondition('cl.level_name', 'LIKE', '%' . trim($post['keyword']) . '%');
     }
+    if (!empty($post['subject'])) {
+        $srch->addCondition('cs.subject', 'LIKE', '%' . trim($post['subject']) . '%');
+    }
+    if (!empty($post['topic'])) {
+        $srch->addCondition('qs.topic_name', 'LIKE', '%' . trim($post['topic']) . '%');
+    }
+    if (!empty($post['subtopic'])) {
+        $srch->addCondition('qm.subtopic_name', 'LIKE', '%' . trim($post['subtopic']) . '%');
+    }
+
+    // paging + sort (newest subtopics first)
+    $srch->setPageSize((int)$post['pagesize']);
+    $srch->setPageNumber((int)$post['page']);
+    $srch->addOrder('qm.id', 'DESC');
+
+    $rs     = $srch->getResultSet();
+    $orders = FatApp::getDb()->fetchAll($rs);
+
+    $this->sets([
+        'arrListing'  => $orders,
+        'page'        => $post['page'],
+        'post'        => $post,
+        'pageSize'    => $post['pagesize'],
+        'pageCount'   => $srch->pages(),
+        'recordCount' => $srch->recordCount(),
+        'canEdit'     => $this->objPrivilege->canEditCourses(true),
+    ]);
+    $this->_template->render(false, false);
+}
 
     public function form(int $categoryId)
     {
@@ -95,35 +133,52 @@ class CoursemanagementController extends AdminBaseController
     }
 
 
-  private function getForm(): Form
+ private function getForm(int $id = 0): Form
 {
     $frm = new Form('frmQuizManagement');
+    $db  = FatApp::getDb();
 
-    // 🔹 Fetch topics from tbl_quiz_setup
-    $db = FatApp::getDb();
-
-    $topics = $db->fetchAll($db->query("SELECT id, topic_name FROM tbl_quiz_setup ORDER BY topic_name ASC"));
-    $topicList = ['' => 'Select Topic'];
-    if (!empty($topics)) {
-        foreach ($topics as $t) {
-            $topicList[$t['id']] = $t['topic_name'];
-        }
+    // SUBJECTS (course_subjects)
+    $subjects = $db->fetchAll($db->query(
+        "SELECT id, subject FROM course_subjects ORDER BY subject ASC"
+    ));
+    $subjectList = ['' => 'Select Subject'];
+    if ($subjects) {
+        foreach ($subjects as $s) { $subjectList[$s['id']] = $s['subject']; }
     }
 
-    // 🔹 Topic dropdown (only this replaces everything above)
-    $fld = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], '');
-    $fld->requirements()->setRequired();
+    // Keep previously selected values if coming back to the form
+    $posted = FatApp::getPostedData();
+    $subjectId = FatUtility::int($posted['subject_id'] ?? 0);
 
-    // 🔹 Subtopic name input
+    $fldSubj = $frm->addSelectBox('Subject', 'subject_id', $subjectList, $subjectId, [], '');
+    $fldSubj->setFieldTagAttribute('id', 'subject_id');
+    $fldSubj->requirements()->setRequired();
+
+    // TOPICS (from tbl_quiz_setup, filtered by subject)
+   $topicList = ['' => 'Select Topic'];
+if ($subjectId > 0) {
+    // ❌ was: $rs = $db->query("... ?", [$subjectId]); $rows = $db->fetchAll($rs);
+    $rows = $db->fetchAll(
+        "SELECT id, topic_name
+           FROM tbl_quiz_setup
+          WHERE subject_id = ?
+       ORDER BY topic_name ASC",
+        [$subjectId]
+    );
+    if ($rows) {
+        foreach ($rows as $t) { $topicList[$t['id']] = $t['topic_name']; }
+    }
+}
+
+    $fldTopic = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], '');
+    $fldTopic->setFieldTagAttribute('id', 'quiz_setup_id');
+    $fldTopic->requirements()->setRequired();
+
+    // Subtopic + uploads
     $frm->addTextBox('Subtopic Name', 'subtopic_name', '')->requirements()->setRequired();
-
-    // 🔹 Video URL
     $frm->addTextBox('Video URL (optional)', 'video_url', '');
-
-    // 🔹 PDF Upload
     $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
-
-    // 🔹 Quiz CSV Upload
     $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
 
     $frm->addSubmitButton('', 'btn_submit', 'Save Subtopic');
@@ -132,17 +187,33 @@ class CoursemanagementController extends AdminBaseController
 
 public function topicsBySubject()
 {
-    $db = FatApp::getDb();
-    $subjectId = FatUtility::int(FatApp::getPostedData('subject_id', FatUtility::VAR_INT, 0));
-    if ($subjectId <= 0) {
-        FatUtility::dieJsonSuccess(['data' => []]); // return empty safely
+    $db  = FatApp::getDb();
+    $sid = FatUtility::int(
+        FatApp::getPostedData('subject_id', FatUtility::VAR_INT,
+            FatApp::getPostedData('subjectId', FatUtility::VAR_INT, 0)
+        )
+    );
+    if ($sid <= 0) {
+        FatUtility::dieJsonSuccess(['status' => 1, 'data' => [], 'count' => 0]);
     }
-    // topics are stored in tbl_quiz_setup and linked by subject_id
-    $rs = $db->query("SELECT id, topic_name FROM tbl_quiz_setup WHERE subject_id = ? ORDER BY topic_name ASC", [$subjectId]);
-    $rows = $db->fetchAll($rs);
+
+    $qSid = $db->quoteVariable($sid); // ✅ quote
+    $sql  = "SELECT id, topic_name
+               FROM tbl_quiz_setup
+              WHERE subject_id = $qSid
+           ORDER BY topic_name ASC";
+
+    $rs   = $db->query($sql);         // ✅ query returns result set (or false)
+    if (!$rs) {
+        FatUtility::dieJsonSuccess(['status' => 1, 'data' => [], 'count' => 0]);
+    }
+
+    $rows = $db->fetchAll($rs);       // ✅ pass result set to fetchAll
     $pairs = $rows ? array_column($rows, 'topic_name', 'id') : [];
-    FatUtility::dieJsonSuccess(['data' => $pairs]);
+
+    FatUtility::dieJsonSuccess(['status' => 1, 'data' => $pairs, 'count' => count($pairs)]);
 }
+
 
 
     public function getsubtopicsbytopic()
@@ -605,6 +676,8 @@ public function setup()
     }
 
     $db->startTransaction();
+
+
 
     // 🔹 1. Insert into tbl_quiz_management
     $insertData = [
