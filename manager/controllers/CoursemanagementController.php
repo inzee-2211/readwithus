@@ -95,161 +95,54 @@ class CoursemanagementController extends AdminBaseController
     }
 
 
-    private function getForm(): Form
-    {
-        $frm = new Form('frmCourse');
-        $examboards = $this->getExamboardsFromDB();
-        $examboards = [
-            '' => 'Select Exam Board',
-            'add_new' => '➕ Add New'
-        ] + $examboards;
+  private function getForm(): Form
+{
+    $frm = new Form('frmQuizManagement');
 
-        // Add select box for Exam Board
-        $fldExamBoard = $frm->addSelectBox(Label::getLabel('LBL_EXAM_BOARD'), 'examboard', $examboards, '', [], '');
-        $fldExamBoard->setFieldTagAttribute('id', 'examboard');
-       $fldExamBoard->setFieldTagAttribute('class', 'examboard-select form-control');
+    // 🔹 Fetch topics from tbl_quiz_setup
+    $db = FatApp::getDb();
 
-        $fldExamBoard->setFieldTagAttribute('onchange', 'handleExamBoardChange(this.value)');
-        $fldExamBoard->requirements()->setRequired(false);
-        // Add a hidden input field for adding a new exam board
-        $fldNewExamBoard = $frm->addTextBox('', 'new_examboard', '');
-        $fldNewExamBoard->setFieldTagAttribute('id', 'new_examboard');
-        $fldNewExamBoard->setFieldTagAttribute('style', 'display:none;');
-        $fldNewExamBoard->requirements()->setRequired(false);
-
-        // Tier options
-        $tiers = $this->getTierFromDB();
-        $tiers = [
-            '' => 'Select Tier',
-            'add_new' => '➕ Add New'
-        ] + $tiers;
-
-        // Add select box for Tier
-        $fldTier = $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'tier', $tiers, '', [], '');
-        $fldTier->setFieldTagAttribute('id', 'tier');
-        $fldTier->setFieldTagAttribute('class', 'tier-select form-control');
-        $fldTier->setFieldTagAttribute('onchange', 'handleTierChange(this.value)');
-        $fldTier->requirements()->setRequired(false);
-        // Hidden input for adding a new Tier
-        $fldNewTier = $frm->addTextBox('', 'new_tier', '');
-        $fldNewTier->setFieldTagAttribute('id', 'new_tier');
-        $fldNewTier->setFieldTagAttribute('style', 'display:none;');
-        $fldNewTier->requirements()->setRequired(false);
-
-
-        // Type options
-        $types = $this->getTypeFromDB();
-        $types = [
-            '' => 'Select Type',
-            'add_new' => '➕ Add New'
-        ] + $types;
-
-        // Add select box for Type
-        $fldType = $frm->addSelectBox(Label::getLabel('LBL_TYPE'), 'type', $types, '', [], '');
-        $fldType->setFieldTagAttribute('id', 'type');
-        $fldType->setFieldTagAttribute('onchange', 'handleTypeChange(this.value)');
-        $fldType->requirements()->setRequired();
-        // Hidden input for adding a new Type
-        $fldNewType = $frm->addTextBox('', 'new_type', '');
-        $fldNewType->setFieldTagAttribute('id', 'new_type');
-        $fldNewType->setFieldTagAttribute('style', 'display:none;');
-        $fldNewType->requirements()->setRequired(false);
-
-
-        // Year options
-        $years = $this->getYearsFromDB();
-        $years = [
-            '' => 'Select Year',
-            'add_new' => '➕ Add New'
-        ] + $years;
-
-        // Add select box for Year
-        $fldYear = $frm->addSelectBox(Label::getLabel('LBL_YEAR'), 'year_id', $years, '', [], '');
-        $fldYear->setFieldTagAttribute('id', 'year');
-        $fldYear->setFieldTagAttribute('onchange', 'handleYearChange(this.value)');
-        $fldYear->requirements()->setRequired(false);
-        // Hidden input for adding a new Year
-        $fldNewYear = $frm->addTextBox('', 'new_year', '');
-        $fldNewYear->setFieldTagAttribute('id', 'new_year');
-        $fldNewYear->setFieldTagAttribute('style', 'display:none;');
-        $fldNewYear->requirements()->setRequired(false);
-
-
-
-
-        //level field for form
-        $levels = $this->getLevelsFromDB();
-        $levels = [
-            '' => 'Select Level', // Empty value for the placeholder
-            'add_new' => '➕ Add New'
-        ] + $levels;
-
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_LEVEL'), 'level', $levels, '', [], '');
-        $fld->setFieldTagAttribute('id', 'level');
-        $fld->setFieldTagAttribute('onchange', 'handleLevelChange(this.value)');
-        $fld->requirements()->setRequired();
-
-        // Add a hidden input field for adding a new level
-        $fldNewLevel = $frm->addTextBox('', 'new_level', '');
-        $fldNewLevel->setFieldTagAttribute('id', 'new_level');
-        $fldNewLevel->setFieldTagAttribute('style', 'display:none;');
-        $fldNewLevel->requirements()->setRequired(false);
-
-
-        // $subjects = $this->getSubjectsFromDB(); // Assuming a method to fetch subjects
-        $subjects = [];
-        $subjects = [
-            '' => 'Select Subject', // Empty value for the placeholder
-            'add_new' => '➕ Add New'
-        ] + $subjects;
-
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_SUBJECT'), 'subject', $subjects, '', [], '');
-        $fld->setFieldTagAttribute('id', 'subject'); // Ensure ID is set
-        $fld->setFieldTagAttribute('onchange', 'handleSubjectChange(this.value)');
-        $fld->requirements()->setRequired();
-
-        // Add a hidden input field for adding a new subject
-        $fldNewSubject = $frm->addTextBox('', 'new_subject', '');
-        $fldNewSubject->setFieldTagAttribute('id', 'new_subject');
-        $fldNewSubject->setFieldTagAttribute('style', 'display:none;');
-        $fldNewSubject->requirements()->setRequired(false);
-
-        // Topic Selection (Initially empty, dynamically loaded)
-        $topics = $this->getTopicsFromDB();
-
-        // safety check agar null/false mila
-        if (!is_array($topics)) {
-            $topics = [];
+    $topics = $db->fetchAll($db->query("SELECT id, topic_name FROM tbl_quiz_setup ORDER BY topic_name ASC"));
+    $topicList = ['' => 'Select Topic'];
+    if (!empty($topics)) {
+        foreach ($topics as $t) {
+            $topicList[$t['id']] = $t['topic_name'];
         }
-
-        $topics = [
-            ''        => 'Select Topics',
-            'add_new' => '➕ Add New'
-        ] + $topics;
-
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_TOPIC'), 'topic', $topics, '', [], '');
-        $fld->setFieldTagAttribute('id', 'topic');
-        $fld->setFieldTagAttribute('onchange', 'handleTopicChange(this.value)');
-        $fld->requirements()->setRequired();
-
-        // Hidden input for new Topic
-        $fldNewTopic = $frm->addTextBox('', 'new_topic', '');
-        $fldNewTopic->setFieldTagAttribute('id', 'new_topic');
-        $fldNewTopic->setFieldTagAttribute('style', 'display:none;');
-
-
-
-        // **Dynamic Sub-Topic Selection**
-        $frm->addHtml('', 'subtopic_container', '<div id="subtopic-container"></div>');
-
-        // "Add More" Button
-        $frm->addButton('', 'btn_add_subtopic', Label::getLabel('LBL_ADD_SUBTOPIC'))
-            ->setFieldTagAttribute('onclick', 'addSubTopicFields();');
-        // Submit Button
-        $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SUBMIT'));
-
-        return $frm;
     }
+
+    // 🔹 Topic dropdown (only this replaces everything above)
+    $fld = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], '');
+    $fld->requirements()->setRequired();
+
+    // 🔹 Subtopic name input
+    $frm->addTextBox('Subtopic Name', 'subtopic_name', '')->requirements()->setRequired();
+
+    // 🔹 Video URL
+    $frm->addTextBox('Video URL (optional)', 'video_url', '');
+
+    // 🔹 PDF Upload
+    $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
+
+    // 🔹 Quiz CSV Upload
+    $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
+
+    $frm->addSubmitButton('', 'btn_submit', 'Save Subtopic');
+    return $frm;
+}
+
+public function topicsBySubject()
+{
+    $db = FatApp::getDb();
+    $subjectId = FatUtility::int(FatApp::getPostedData('subject_id', FatUtility::VAR_INT, 0));
+    if ($subjectId <= 0) {
+        FatUtility::dieJsonSuccess(['data' => []]); // return empty safely
+    }
+    // topics are stored in tbl_quiz_setup and linked by subject_id
+    $rs = $db->query("SELECT id, topic_name FROM tbl_quiz_setup WHERE subject_id = ? ORDER BY topic_name ASC", [$subjectId]);
+    $rows = $db->fetchAll($rs);
+    $pairs = $rows ? array_column($rows, 'topic_name', 'id') : [];
+    FatUtility::dieJsonSuccess(['data' => $pairs]);
+}
 
 
     public function getsubtopicsbytopic()
@@ -291,195 +184,7 @@ class CoursemanagementController extends AdminBaseController
         return array_column($subtopics, 'topic', 'id');
     }
 
-    public function deleteExamBoard()
-    {
-        $examboardId = FatApp::getPostedData('examboard_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Exam_Board_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_examboards WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete_Exam_Board'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Exam_Board_Deleted_Successfully'));
-    }
-
-        public function deleteTier()
-    {
-        $examboardId = FatApp::getPostedData('tier_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_TIer_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_tier WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete_Tier'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Tier_Deleted_Successfully'));
-    }
-
-          public function deleteType()
-    {
-        $examboardId = FatApp::getPostedData('type_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Type_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_type WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Type_Deleted_Successfully'));
-    }
-
-          public function deleteYear()
-    {
-        $examboardId = FatApp::getPostedData('year_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Year_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_year WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Year_Deleted_Successfully'));
-    }
-
-         public function deleteLevel()
-    {
-        $examboardId = FatApp::getPostedData('level_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Level_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_levels WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Level_Deleted_Successfully'));
-    }
-
-         public function deleteSubject()
-    {
-        $examboardId = FatApp::getPostedData('subject_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Level_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_subjects WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Subject_Deleted_Successfully'));
-    }
-
-        public function deleteTopic()
-    {
-        $examboardId = FatApp::getPostedData('topic_id', FatUtility::VAR_INT, 0);
-        if ($examboardId <= 0) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Invalid_Topic_ID'));
-        }
-        $db = FatApp::getDb();
-        $sql = 'DELETE FROM course_topics WHERE id = ' . $db->quoteVariable($examboardId);
-
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_Could_Not_Delete'));
-        }
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Topic_Deleted_Successfully'));
-    }
-
-    private function getLevelsFromDB()
-    {
-        $db = FatApp::getDb();
-        $query = "SELECT id, level_name FROM course_levels"; // Replace with actual table name
-        $result = $db->query($query);
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-        $levels = $db->fetchAll($result);
-        if (empty($levels)) {
-            return []; // Return an empty array if no records found
-        }
-
-        return array_column($levels, 'level_name', 'id');
-    }
-
-    private function getExamboardsFromDB()
-    {
-        $db = FatApp::getDb();
-        $query = "SELECT id, name FROM course_examboards ORDER BY name ASC";
-        $result = $db->query($query);
-
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-
-        $examBoards = $db->fetchAll($result);
-        return empty($examBoards) ? [] : array_column($examBoards, 'name', 'id');
-    }
-
-    private function getTierFromDB()
-    {
-        $db = FatApp::getDb();
-        $query = "SELECT id, name FROM course_tier ORDER BY name ASC";
-        $result = $db->query($query);
-
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-
-        $tiers = $db->fetchAll($result);
-        return empty($tiers) ? [] : array_column($tiers, 'name', 'id');
-    }
-
-    private function getTypeFromDB()
-    {
-        $db = FatApp::getDb();
-        $query = "SELECT id, name FROM course_type"; // Replace with actual table name
-        $result = $db->query($query);
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-        $levels = $db->fetchAll($result);
-        if (empty($levels)) {
-            return []; // Return an empty array if no records found
-        }
-
-        return array_column($levels, 'name', 'id');
-    }
-
-    private function getYearsFromDB()
-    {
-        $db = FatApp::getDb();
-        $query = "SELECT id, name FROM course_year"; // Replace with actual table name
-        $result = $db->query($query);
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-        $levels = $db->fetchAll($result);
-        if (empty($levels)) {
-            return []; // Return an empty array if no records found
-        }
-
-        return array_column($levels, 'name', 'id');
-    }
-
-
+    
 
     public function gettopicforsubject()
 {
@@ -876,267 +581,82 @@ public function uploadQuestionBank()
         'status' => '1'
     ]);
 }
-
-
-    public function setup()
-    {
-        $this->objPrivilege->canEditCategories();
-
+public function setup()
+{
+    $db = FatApp::getDb();
     $post = FatApp::getPostedData();
-    $db   = FatApp::getDb();
+    $quizSetupId = FatUtility::int($post['quiz_setup_id']);
+    $subtopicName = trim($post['subtopic_name'] ?? '');
+    $videoUrl = trim($post['video_url'] ?? '');
 
-    // 🔴 Validation
-    if (empty($post['level']) || empty($post['subject'])) {
-        FatUtility::dieJsonError('❌ Level and Subject are required.');
+    if ($quizSetupId <= 0 || empty($subtopicName)) {
+        FatUtility::dieJsonError('Topic and Subtopic name are required.');
     }
 
-    // ✅ Handle Level
-    if ($post['level'] == 'add_new') {
-        if (empty($post['new_level'])) {
-            FatUtility::dieJsonError('❌ New Level is required.');
-        }
-        $levelRow = $db->fetch($db->query(
-            'SELECT id FROM course_levels WHERE level_name = ' . $db->quoteVariable($post['new_level'])
-        ));
-        if (!$levelRow) {
-            $db->insertFromArray('course_levels', [
-                'level_name' => $post['new_level'],
-                'created_at' => date('Y-m-d H:i:s')
-            ]) or FatUtility::dieJsonError('❌ Failed to insert new level: ' . $db->getError());
-            $levelId = $db->getInsertId();
-        } else {
-            $levelId = $levelRow['id'];
-        }
-    } else {
-        $levelId = (int)$post['level'];
+    // Upload PDF if provided
+    $pdfPath = '';
+    if (!empty($_FILES['pdf_path']['tmp_name']) && $_FILES['pdf_path']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['pdf_path']['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'pdf') FatUtility::dieJsonError('Only PDF allowed');
+        $uploadDir = 'uploads/past_papers/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        $pdfPath = $uploadDir . uniqid('paper_') . '.' . $ext;
+        move_uploaded_file($_FILES['pdf_path']['tmp_name'], $pdfPath);
     }
 
-    // ✅ Handle Subject
-    if ($post['subject'] == 'add_new') {
-        if (empty($post['new_subject'])) {
-            FatUtility::dieJsonError('❌ New Subject is required.');
-        }
-        $db->insertFromArray('course_subjects', [
-            'subject'   => $post['new_subject'],
-            'level_id'  => $levelId,
-            'created_at'=> date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
-        $subjectId = $db->getInsertId();
-    } else {
-        $subjectId = (int)$post['subject'];
-    }
+    $db->startTransaction();
 
-    // ✅ Handle Examboard
-    if ($post['examboard'] == 'add_new') {
-        if (empty($post['new_examboard'])) {
-            FatUtility::dieJsonError('❌ New Examboard is required.');
-        }
-        $db->insertFromArray('course_examboards', [
-            'name'       => $post['new_examboard'],
-            'subject_id' => $subjectId,
-            'created_at' => date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new examboard: ' . $db->getError());
-        $examboardId = $db->getInsertId();
-    } else {
-        $examboardId = (int)$post['examboard'];
-    }
-
-    // ✅ Handle Tier
-    if ($post['tier'] == 'add_new') {
-        if (empty($post['new_tier'])) {
-            FatUtility::dieJsonError('❌ New Tier is required.');
-        }
-        $db->insertFromArray('course_tier', [
-            'name'         => $post['new_tier'],
-            'examboard_id' => $examboardId,
-            'created_at'   => date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new tier: ' . $db->getError());
-        $tierId = $db->getInsertId();
-    } else {
-        $tierId = (int)$post['tier'];
-    }
-
-    // ✅ Handle Type
-    if ($post['type'] == 'add_new') {
-        if (empty($post['new_type'])) {
-            FatUtility::dieJsonError('❌ New Type is required.');
-        }
-        $db->insertFromArray('course_type', [
-            'name'       => $post['new_type'],
-            'created_at' => date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new type: ' . $db->getError());
-        $typeId = $db->getInsertId();
-    } else {
-        $typeId = (int)$post['type'];
-    }
-
-    // ✅ Handle Year
-    if ($post['year_id'] == 'add_new') {
-        if (empty($post['new_year'])) {
-            FatUtility::dieJsonError('❌ New Year is required.');
-        }
-        $db->insertFromArray('course_year', [
-            'name'       => $post['new_year'],
-            'subject_id' => $subjectId,
-            'created_at' => date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new year: ' . $db->getError());
-        $yearId = $db->getInsertId();
-    } else {
-        $yearId = (int)$post['year_id'];
-    }
-
-    // ✅ Handle Topic (fixed with examboard/year)
-    if ($post['topic'] == 'add_new') {
-        if (empty($post['new_topic'])) {
-            FatUtility::dieJsonError('❌ New Topic is required.');
-        }
-        $db->insertFromArray('course_topics', [
-            'topic'        => $post['new_topic'],
-            'subject_id'   => $subjectId,
-            'examboard_id' => $examboardId,
-            'year_id'      => $yearId,
-            'created_at'   => date('Y-m-d H:i:s')
-        ]) or FatUtility::dieJsonError('❌ Failed to insert new topic: ' . $db->getError());
-        $topicId = $db->getInsertId();
-    } else {
-        $topicId = (int)$post['topic'];
-    }
-
-    // ✅ Insert into main course management
+    // 🔹 1. Insert into tbl_quiz_management
     $insertData = [
-        'topic'       => $topicId,
-        'subject'     => $subjectId,
-        'level'       => $levelId,
-        'tier'        => $tierId,
-        'year_id'     => $yearId,
-        'type'        => $typeId,
-        'examBoards'  => $examboardId,
-        'created_on'  => date('Y-m-d H:i:s')
+        'quiz_setup_id' => $quizSetupId,
+        'subtopic_name' => $subtopicName,
+        'video_url'     => $videoUrl,
+        'pdf_path'      => $pdfPath,
+        'created_at'    => date('Y-m-d H:i:s'),
+        'updated_at'    => date('Y-m-d H:i:s'),
     ];
-    if (!$db->insertFromArray('tbl_course_management', $insertData)) {
-        FatUtility::dieJsonError('❌ Error inserting course: ' . $db->getError());
+
+    if (!$db->insertFromArray('tbl_quiz_management', $insertData)) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError('Failed to insert subtopic: ' . $db->getError());
     }
-    $courseId = $db->getInsertId();
 
-        if (!empty($post['subtopics']) && is_array($post['subtopics'])) {
-            foreach ($post['subtopics'] as $index =>  $subtopic) {
+    $subtopicId = $db->getInsertId();
 
+    // 🔹 2. Handle CSV upload
+    if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['quiz_csv']['tmp_name'];
+        $csvData = array_map('str_getcsv', file($file));
 
-                if ($subtopic == 'add_new') {
+        foreach ($csvData as $index => $row) {
+            if ($index === 0) continue; // Skip header row
+            if (count($row) < 6) continue;
 
-                    $insertData = [
-                        'topic' => $post['new_subtopics'][$index],
-                        'subject_id' => 0,
-                        'parent_id' => $topicId,
-                        'created_at' => date('Y-m-d H:i:s')
-                    ];
-                    if (!$db->insertFromArray('course_topics', $insertData)) {
-                        FatUtility::dieJsonError('❌ Failed to insert new subtopic: ' . $db->getError());
-                    }
-                    $subtopic = $db->getInsertId();
-                }
+            list($question_text, $a, $b, $c, $d, $correct,$difficulty,$question_type,$hint) = $row;
 
-
-
-                $pdfPath = '';
-                if (!empty($_FILES['past_exams']['tmp_name'][$index]) && $_FILES['past_exams']['error'][$index] === UPLOAD_ERR_OK) {
-                    $pdfFile = $_FILES['past_exams'];
-                    $pdfExtension = pathinfo($pdfFile['name'][$index], PATHINFO_EXTENSION);
-                    if (strtolower($pdfExtension) === 'pdf') {
-                        $uploadDir = 'uploads/previous_papers/';
-                        if (!is_dir($uploadDir)) {
-                            mkdir($uploadDir, 0777, true);
-                        }
-                        $pdfPath = $uploadDir . uniqid('paper_') . '.' . $pdfExtension;
-                        move_uploaded_file($pdfFile['tmp_name'][$index], $pdfPath);
-                    } else {
-                        $db->rollbackTransaction();
-                        FatUtility::dieJsonError('❌ Invalid PDF format. Only .pdf files are allowed.');
-                    }
-                }
-
-                $lessonData = [
-                    'course_id'   => $courseId,
-                    'subtopic'       => $subtopic,
-                    'video_url' => isset($post['video_urls'][$index]) ? $post['video_urls'][$index] : '',
-                    'previous_paper_pdf' => $pdfPath,
-                    'created_at'  => date('Y-m-d H:i:s')
-                ];
-                if (!$db->insertFromArray('course_subtopics', $lessonData)) {
-                    $db->rollbackTransaction();
-                    FatUtility::dieJsonError('❌ Error inserting lesson: ' . $db->getError());
-                }
-                $subtopicId = $db->getInsertId();
-                $subtopicId=$subtopic;
-
-
-                // ✅ Handle CSV file for this subtopic
-                if (!empty($_FILES['quiz_csvs']['tmp_name'][$index]) && $_FILES['quiz_csvs']['error'][$index] === UPLOAD_ERR_OK) {
-                    $file = $_FILES['quiz_csvs']['tmp_name'][$index];
-                    $csvData = array_map('str_getcsv', file($file));
-
-                    if (!empty($csvData)) {
-                        foreach ($csvData as $rowIndex => $row) {
-                            if ($rowIndex === 0) continue; // Skip header row
-
-                            if (count($row) < 14) continue; // Ensure valid row format
-
-                            list(
-                                $question_text,
-                                $answer_a,
-                                $answer_b,
-                                $answer_c,
-                                $answer_d,
-                                $correct_answer,
-                                $difficulty,
-                                $examboardName,
-                                $topic,
-                                $subtopicName,
-                                $levelName,
-                                $question_type,
-                                $tier,
-                                $hint
-                            ) = $row;
-
-                            // Insert question into question bank
-                
-
-                                $questionData = [
-                                    'question_title'    => trim($question_text),
-                                    'answer_a'          => trim($answer_a),
-                                    'answer_b'          => trim($answer_b),
-                                    'answer_c'          => trim($answer_c),
-                                    'answer_d'          => trim($answer_d),
-                                    'correct_answer'    => trim($correct_answer),
-                                    'difficult_level'   => trim($difficulty),
-                                    'examboard_id'      => $examboardId,
-                                    'level_id'          => $levelId,
-                                    'subtopic_id'       => $subtopicId, // ✅ Link question to the inserted subtopic
-                                    'course_id'         => $courseId,
-                                    'topic'             => trim($topic),
-                                    'subtopic'          => trim($subtopicName),
-                                    'tier'              => trim($tier),
-                                    'hint'              => trim($hint),
-                                    'question_type'     => trim($question_type),
-                                     'category'          => '',
-                                    'subcategory'       => '', // optional
-                                    'question_added_on' => date('Y-m-d H:i:s')
-                                ];
-                            if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
-                                $db->rollbackTransaction();
-                                FatUtility::dieJsonError('❌ Error inserting question: ' . $db->getError());
-                            }
-                        }
-                    }
-                }
+            $qData = [
+                'subtopic_id'     => $subtopicId,
+                'question_title'  => trim($question_text),
+                'answer_a'        => trim($a),
+                'answer_b'        => trim($b),
+                'answer_c'        => trim($c),
+                'answer_d'        => trim($d),
+                'hint'            => trim($hint) ?? '',
+                'correct_answer'  => trim($correct),
+                'difficult_level'  => trim($difficulty) !== '' ? trim($difficulty) : 'Medium', // fallbac
+                'question_type'   => trim($question_type) !== '' ? trim($question_type) : 'MCQ',
+                'question_added_on' => date('Y-m-d H:i:s'),
+            ];
+            if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
+                $db->rollbackTransaction();
+                FatUtility::dieJsonError('Error inserting question: ' . $db->getError());
             }
         }
-
-
-        $db->commitTransaction();
-    FatUtility::dieJsonSuccess(['msg' => '✅ Course added successfully!']);
     }
 
+    $db->commitTransaction();
+    FatUtility::dieJsonSuccess(['msg' => '✅ Subtopic and questions added successfully!']);
+}
 
 
 

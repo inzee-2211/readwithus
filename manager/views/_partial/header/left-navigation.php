@@ -142,6 +142,18 @@
 <li class="haschild">
                     <a href="javascript:void(0);"><?php echo Label::getLabel('LBL_MANAGE_QUIZ'); ?></a>
                     <ul>
+                        <?php if ($objPrivilege->canViewCategories(true)) { ?>
+                            <li>
+                                <a href="<?php echo MyUtility::makeUrl('Quizsetting'); ?>"><?php echo Label::getLabel('LBL_QUIZ_SETTINGS'); ?></a>
+                            </li>
+                        <?php } ?> 
+                      
+                        <?php if ($objPrivilege->canViewCategories(true)) { ?>
+                            <li>
+                                <a href="<?php echo MyUtility::makeUrl('Quiztopic'); ?>"><?php echo Label::getLabel('LBL_QUIZ_TOPICS'); ?></a>
+                            </li>
+                        <?php } ?>  
+                        <!-- lines added by rehan end here -->
                         <?php if ($objPrivilege->canViewCourseLanguage(true)) { ?>
                             <li>
                                 <a href="<?php echo MyUtility::makeUrl('Coursemanagement'); ?>"><?php echo Label::getLabel('LBL_QUIZ_MANAGEMENT'); ?></a>

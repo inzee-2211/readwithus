@@ -208,6 +208,24 @@ $(function () {
             $('.notesHeadJs .form-search__action--reset').hide();
         }
     });
+    //lines added by rehan for quiz-lecture starts here
+ getQuiz = function() {
+    if (currentLectureId > 0) {
+        fcom.ajax(fcom.makeUrl('Tutorials', 'getQuiz'), { 
+            'lecture_id': currentLectureId,
+            'course_id': courseId,
+            'progress_id': $('#progressId').val()
+        }, function(res) {
+            $('.lectureDetailJs, .notesJs, .reviewsJs, .tutorInfoJs, .quizJs').hide();
+            $('.sidebarPanelJs').css({ 'display': '' });
+            $('.quizJs').html(res).show();
+            $('.tabsPanelJs').show();
+        });
+    } else {
+        alert('Please select a lecture first');
+    }
+};
+//lines added by rehan end here for quiz-lecture
     setupNotes = function (frm) {
         if (!$(frm).validate()) {
             return;

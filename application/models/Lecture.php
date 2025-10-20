@@ -198,6 +198,124 @@ class Lecture extends MyAppModel
         return true;
     }
 
+    //lines added by rehan start here
+/**
+ * Get quiz with randomized questions
+ */
+/**
+ * Get quiz with randomized questions - IMPROVED VERSION
+ */
+private function getQuizWithRandomizedQuestions($quizId, $langId = 0)
+{
+    $db = FatApp::getDb();
+    
+    // Fetch quiz details - more comprehensive query
+    $quizSrch = new SearchBase('tbl_quizzes', 'qz');
+    $quizSrch->addCondition('qz.quiz_id', '=', $quizId);
+    
+    // Add language join if needed
+    if ($langId > 0) {
+        $quizSrch->joinTable('tbl_quiz_langs', 'LEFT JOIN', 
+            'quelang.quelang_quiz_id = qz.quiz_id AND quelang.quelang_lang_id = ' . $langId, 
+            'quelang');
+        $quizSrch->addMultipleFields([
+            'qz.*',
+            'quelang.quiz_title',
+            'quelang.quiz_description'
+        ]);
+    } else {
+        $quizSrch->addMultipleFields(['qz.*']);
+    }
+    
+    $quizSrch->doNotCalculateRecords();
+    $quizDetails = $db->fetch($quizSrch->getResultSet());
+    
+    if (!$quizDetails) {
+        return false;
+    }
+
+    // Fetch questions with randomization
+    $questionSrch = new SearchBase('tbl_quiz_questions', 'qq');
+    $questionSrch->joinTable('tbl_questions', 'INNER JOIN', 'qq.question_id = q.question_id', 'q');
+    $questionSrch->addCondition('qq.quiz_id', '=', $quizId);
+    $questionSrch->addCondition('q.question_active', '=', 1);
+    $questionSrch->addOrder('RAND()'); // Randomize questions
+    
+    $questionSrch->addMultipleFields([
+        'qq.quiz_id',
+        'qq.question_id',
+        'q.question_title',
+        'q.question_math_equation',
+        'q.question_type',
+        'q.question_desc',
+        'q.question_cat',
+        'q.question_subcat',
+        'q.question_marks',
+        'q.question_hint',
+        'q.question_option_1',
+        'q.question_option_2',
+        'q.question_option_3',
+        'q.question_option_4',
+        'q.question_other',
+        'q.question_answers',
+        'q.question_image',
+    ]);
+    
+    $questionSrch->doNotCalculateRecords();
+    $questions = $db->fetchAll($questionSrch->getResultSet());
+    
+    // Debug: Check if questions were found
+    if (empty($questions)) {
+        // Try alternative table structure
+        $altQuestionSrch = new SearchBase('tbl_questions', 'q');
+        $altQuestionSrch->addCondition('q.quiz_id', '=', $quizId);
+        $altQuestionSrch->addCondition('q.question_active', '=', 1);
+        $altQuestionSrch->addOrder('RAND()');
+        
+        $altQuestionSrch->addMultipleFields([
+            'q.question_id',
+            'q.question_title',
+            'q.question_math_equation',
+            'q.question_type',
+            'q.question_desc',
+            'q.question_cat',
+            'q.question_subcat',
+            'q.question_marks',
+            'q.question_hint',
+            'q.question_option_1',
+            'q.question_option_2',
+            'q.question_option_3',
+            'q.question_option_4',
+            'q.question_other',
+            'q.question_answers',
+            'q.question_image',
+        ]);
+        
+        $questions = $db->fetchAll($altQuestionSrch->getResultSet());
+    }
+    
+    // Randomize options for each question
+    foreach ($questions as &$question) {
+        if (in_array($question['question_type'], ['1', '2'])) { // MCQ or Checkbox
+            $options = [];
+            for ($i = 1; $i <= 4; $i++) {
+                $optionKey = "question_option_$i";
+                if (!empty($question[$optionKey])) {
+                    $options[] = [
+                        'id' => $i,
+                        'text' => $question[$optionKey]
+                    ];
+                }
+            }
+            shuffle($options); // Randomize options
+            $question['randomized_options'] = $options;
+        }
+    }
+    
+    $quizDetails['questions'] = $questions;
+    return $quizDetails;
+}
+//lines added by rehan end here
     /**
      * Reset Order
      *
@@ -261,6 +379,7 @@ class Lecture extends MyAppModel
             return FatApp::getDb()->fetchAll($srch->getResultSet());
         }
     }
+    
 
     /**
      * Get lecture resources
@@ -271,12 +390,20 @@ class Lecture extends MyAppModel
     {
         $srch = new SearchBase(static::DB_TBL_LECTURE_RESOURCE, 'lecsrc');
         $srch->addCondition('lecsrc.lecsrc_lecture_id', '=', $this->mainTableRecordId);
-        $srch->joinTable(
-            Resource::DB_TBL,
-            'INNER JOIN',
-            'resrc.resrc_id = lecsrc.lecsrc_resrc_id',
-            'resrc'
-        );
+        // $srch->joinTable(
+        //     Resource::DB_TBL,
+        //     'INNER JOIN',
+        //     'resrc.resrc_id = lecsrc.lecsrc_resrc_id',
+        //     'resrc'
+        // );
+        // Change to LEFT JOIN so we get records even if lecsrc_resrc_id = 0
+    $srch->joinTable(
+        Resource::DB_TBL,
+        'LEFT JOIN',  // CHANGED FROM INNER JOIN TO LEFT JOIN
+        'resrc.resrc_id = lecsrc.lecsrc_resrc_id',
+        'resrc'
+    );
+    
         $srch->addMultipleFields([
             'resrc_name',
             'resrc_size',
@@ -284,10 +411,18 @@ class Lecture extends MyAppModel
             'lecsrc_id',
             'lecsrc_lecture_id',
             'lecsrc_created',
-            'resrc_id'
+            'resrc_type', //lines added by rehan
+             'lecsrc_type',      // ADD THIS - from lecture_resources table
+        'lecsrc_link',      // ADD THIS - for external URLs
+        'lecsrc_meta',      // ADD THIS - for quiz metadata
+        'lecsrc_duration',  // ADD THIS - for video duration
+            'resrc_id',
+             'lecsrc_course_id' //lines added by rehan
         ]);
-        $srch->addCondition('resrc.resrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
-        $srch->addCondition('lecsrc.lecsrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+            $srch->addCondition('lecsrc.lecsrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+    $srch->addCondition('resrc.resrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true, true); // Optional condition
+        // $srch->addCondition('resrc.resrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+        // $srch->addCondition('lecsrc.lecsrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
         $srch->addOrder('lecsrc_id', 'DESC');
         $srch->doNotCalculateRecords();
         return FatApp::getDb()->fetchAll($srch->getResultSet());
@@ -376,6 +511,7 @@ class Lecture extends MyAppModel
             'lecsrc_lecture_id' => $this->getMainTableRecordId(),
             'lecsrc_course_id' => $post['lecsrc_course_id'],
             'lecsrc_resrc_id'   => (int)($post['lecsrc_resrc_id'] ?? 0)
+            
         ];
         if ($post['lecsrc_id'] < 1) {
             $data['lecsrc_created'] = date('Y-m-d H:i:s');

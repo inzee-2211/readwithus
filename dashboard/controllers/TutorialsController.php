@@ -274,16 +274,7 @@ foreach ($sections as $sectionKey => $section) {
 
 
 
-    //     $db = FatApp::getDb();
-    //     $srch = new SearchBase('tbl_quiz_attempt', 'qa');
-    //    // $srch->addCondition('qa.quiz_id', '=', $quizId);
-    //     $srch->addCondition('qa.quiz_learner_id', '=', $this->siteUserId);
-    //     $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
-    //     // Fetch specific columns (optional)
-    //     $srch->addMultipleFields(['qa.attempt', 'qa.quiz_id', 'qa.id', 'qa.status']);
-    //     $rs = $srch->getResultSet();
-    //     $QuizAttemptData = $db->fetchAll($rs);
-
+ 
     $db = FatApp::getDb();
 $srch = new SearchBase('tbl_quiz_attempt', 'qa');
 
@@ -306,6 +297,22 @@ $srch->addMultipleFields([
     'q.quiz_fail_message',
 ]);
 
+//lines added by rehan
+// find quiz attached to this lecture (per-lecture attachment)
+// $attachedQuizId = 0;
+// foreach ($resources as $r) {
+//     if ((int)$r['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+//         if (!empty($r['lecsrc_meta'])) {
+//             $meta = @json_decode($r['lecsrc_meta'], true);
+//             if (is_array($meta) && !empty($meta['quizId'])) {
+//                 $attachedQuizId = (int)$meta['quizId'];
+//                 break;
+//             }
+//         }
+//     }
+// }
+// end lines added by rehan
+
 $rs = $srch->getResultSet();
 $QuizAttemptData = $db->fetchAll($rs);
  
@@ -321,7 +328,8 @@ $QuizAttemptData = $db->fetchAll($rs);
             'progressId' => $progressId,
             'progData' => $progData,
             'video' => $video,
-            'QuizAttemptData'=>$QuizAttemptData
+            'QuizAttemptData'=>$QuizAttemptData,
+          //  'attachedQuizId' => $attachedQuizId // passing the attached quiz id to the template added by rehan for per-lecture quiz attachment
         ]);
         $this->_template->render(false, false, 'tutorials/get-lecture.php');
     }
@@ -657,6 +665,234 @@ $QuizAttemptData = $db->fetchAll($rs);
         ]);
         $this->_template->render(false, false);
     }
+//lines added by rehan for quiz-lecture starts here
+/**
+ * Get quiz with randomized questions
+ */
+/**
+ * Get quiz with randomized questions - IMPROVED VERSION
+ */
+/**
+ * Get quiz questions by subtopic ID
+ */
+private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
+{
+    $db = FatApp::getDb();
+    
+    // First, get the subtopic name from course_topics
+    $topicSrch = new SearchBase('course_topics', 'ct');
+    $topicSrch->addCondition('ct.id', '=', $subtopicId);
+    $topicSrch->addMultipleFields(['topic']);
+    $topicSrch->doNotCalculateRecords();
+    $subtopic = $db->fetch($topicSrch->getResultSet());
+    
+    if (!$subtopic) {
+        return false;
+    }
+    
+    $subtopicName = $subtopic['topic'];
+    
+    // Create quiz details structure
+    $quizDetails = [
+        'quiz_id' => $subtopicId,
+        'quiz_title' => $subtopicName . ' Quiz',
+        'quiz_description' => 'Quiz for: ' . $subtopicName,
+        'quiz_pass_percentage' => 60, // Default pass percentage
+        'quiz_duration' => 0, // No time limit by default
+        'quiz_user_id' => 0
+    ];
+    
+    // Fetch questions from tbl_quaestion_bank (note the table name spelling)
+   // Fetch questions related to the quiz
+        $questionSrch = new SearchBase('tbl_quiz_questions', 'qq');
+        $questionSrch->joinTable('tbl_questions', 'INNER JOIN', 'qq.question_id = q.question_id', 'q');
+        // $quizID->joinTable('tbl_lecture_resources', 'INNER JOIN', 'qq.quiz_id = quiz.quiz_id', 'quiz');
+        // $questionSrch->addCondition('qq.quiz_id', '=', $quizId);
+        $questionSrch->addMultipleFields([
+            // 'qq.quiz_id',
+            'qq.question_id',
+            'q.question_title',
+            'q.question_math_equation',
+            'q.question_type',
+            'q.question_desc',
+            'q.question_cat',
+            'q.question_subcat',
+            'q.question_marks',
+            'q.question_hint',
+            'q.question_option_1',
+            'q.question_option_2',
+            'q.question_option_3',
+            'q.question_option_4',
+            'q.question_other',
+            'q.question_answers',
+            'q.question_image',
+        ]);
+        $questionSrch->doNotCalculateRecords();
+        $questions = $db->fetchAll($questionSrch->getResultSet());
+    
+    // If no questions found in tbl_quaestion_bank, try alternative table names
+    if (empty($questions)) {
+        // Try tbl_question_bank (correct spelling)
+        $altQuestionSrch = new SearchBase('tbl_question_bank', 'qb');
+        $altQuestionSrch->addCondition('qb.subtopic', '=', $subtopicName);
+        $altQuestionSrch->addCondition('qb.question_active', '=', 1);
+        $altQuestionSrch->addOrder('RAND()');
+        $altQuestionSrch->addMultipleFields([
+            'qb.id as question_id',
+            'qb.question_title',
+            'qb.question_math_equation',
+            'qb.question_type',
+            'qb.question_desc',
+            'qb.question_cat',
+            'qb.question_subcat',
+            'qb.question_marks',
+            'qb.question_hint',
+            'qb.question_option_1',
+            'qb.question_option_2',
+            'qb.question_option_3',
+            'qb.question_option_4',
+            'qb.question_other',
+            'qb.question_answers',
+            'qb.question_image',
+        ]);
+        $questions = $db->fetchAll($altQuestionSrch->getResultSet());
+    }
+    
+    // Randomize options for each question
+    foreach ($questions as &$question) {
+        if (in_array($question['question_type'], ['1', '2'])) { // MCQ or Checkbox
+            $options = [];
+            for ($i = 1; $i <= 4; $i++) {
+                $optionKey = "question_option_$i";
+                if (!empty($question[$optionKey])) {
+                    $options[] = [
+                        'id' => $i,
+                        'text' => $question[$optionKey]
+                    ];
+                }
+            }
+            shuffle($options); // Randomize options
+            $question['randomized_options'] = $options;
+        }
+    }
+    
+    $quizDetails['questions'] = $questions;
+    return $quizDetails;
+}
+/**
+ * Get user quiz attempt - UPDATED VERSION
+ */
+private function getUserQuizAttemptLecture($userId, $subtopicId, $lectureId)
+{
+    $srch = new SearchBase('tbl_quiz_attempt', 'qa');
+    $srch->addCondition('qa.quiz_learner_id', '=', $userId);
+    $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
+    // We use subtopic ID as the identifier since we don't have quiz_id in tbl_quizzes
+    $srch->addCondition('qa.quiz_id', '=', $subtopicId);
+    $srch->addOrder('qa.attempt', 'DESC');
+    $srch->setPageSize(1);
+    $srch->doNotCalculateRecords();
+    
+    return FatApp::getDb()->fetch($srch->getResultSet());
+}
+//lines end here
+/**
+ * Get user quiz attempt
+ */
+private function getUserQuizAttempt($userId, $quizId, $lectureId)
+{
+    $srch = new SearchBase('tbl_quiz_attempt', 'qa');
+    $srch->addCondition('qa.quiz_learner_id', '=', $userId);
+    $srch->addCondition('qa.quiz_id', '=', $quizId);
+    $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
+    $srch->addOrder('qa.attempt', 'DESC');
+    $srch->setPageSize(1);
+    $srch->doNotCalculateRecords();
+    
+    return FatApp::getDb()->fetch($srch->getResultSet());
+}
+
+    /**
+ * Get quiz for lecture
+ */
+/**
+ * Get quiz for lecture
+ */
+/**
+ * Get quiz for lecture - UPDATED VERSION
+ */
+public function getQuiz()
+{
+    $lectureId = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+    $courseId = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
+    $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
+    
+    if ($lectureId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    // Get lecture details
+    $lectureData = Lecture::getAttributesById($lectureId);
+    
+    if (!$lectureData) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_LECTURE_NOT_FOUND'));
+    }
+
+
+    // Get quiz resources for this lecture
+    $lecture = new Lecture($lectureId);
+    $resources = $lecture->getResources();
+    // DEBUG: Let's see what's in the resources array
+echo "<pre>Resources for lecture $lectureId: ";
+print_r($resources);
+echo "</pre>";
+    $quizResource = null;
+    
+    foreach ($resources as $resource) {
+        if ($resource['lecsrc_type'] == Lecture::TYPE_RESOURCE_QUIZ) {
+            $quizResource = $resource;
+            break;
+        }
+    }
+    
+    if (!$quizResource) {
+        // No quiz found for this lecture
+        $this->set('msg', Label::getLabel('LBL_NO_QUIZ_AVAILABLE_FOR_THIS_LECTURE'));
+        $this->_template->render(false, false, 'tutorials/no-quiz.php');
+        return;
+    }
+    
+    // Parse quiz metadata
+    $quizMeta = json_decode($quizResource['lecsrc_meta'], true);
+    $subtopicId = $quizMeta['subtopic'] ?? 0;
+    
+    if ($subtopicId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_QUIZ_SUBTOPIC'));
+    }
+    
+    // Get quiz details using subtopic ID
+    $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
+    
+    if (!$quizDetails || empty($quizDetails['questions'])) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_NO_QUESTIONS_FOUND_FOR_THIS_QUIZ'));
+    }
+    
+    // Check if user has already attempted this quiz
+    $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+    
+    $this->sets([
+        'quizDetails' => $quizDetails,
+        'quizResource' => $quizResource,
+        'previousAttempt' => $previousAttempt,
+        'courseId' => $courseId,
+        'lectureId' => $lectureId,
+        'progressId' => $progressId,
+        'siteLangId' => $this->siteLangId
+    ]);
+    
+    $this->_template->render(false, false, 'tutorials/get-quiz-new.php');
+}
+//lines added by rehan for quiz-lecture ends here
 
     public function getQuizinfo()
     {
@@ -773,220 +1009,160 @@ $QuizAttemptData = $db->fetchAll($rs);
         $frm->addHiddenField('', 'pageno', 1);
         return $frm;
     }
-     
-//     public function submitQuiz()
-//     {
-//         $questions=$this->getCorrectAnswersForQuiz($_POST['quiz_id']);
-   
-//         $result = [
-//             'autoCheckedQuestions' => [],
-//             'manualCheckQuestions' => [],
-//             'score' => 0,
-//             'totalMarks' => 0,
-//         ];
-   
-//     foreach ($questions as $questionId => $questionDetails) {
-//         $correctAnswers = explode(',', trim($questionDetails['question_answers'])); // Split numeric answers
-//         $questionType = $questionDetails['question_type'];
-//         $marks = $questionDetails['question_marks'];
-//         $questionId = $questionDetails['question_id'];
-//         $result['totalMarks'] += $marks;
-//         // Map correct numeric answers to their corresponding options
-//         $mappedCorrectAnswers = [];
-//         foreach ($correctAnswers as $answer) {
-//             $mappedCorrectAnswers[] = $questionDetails["question_option_$answer"] ?? null;
-//         }
- 
-//         // Check single-choice and multiple-choice questions
-//         if ($questionType == '1' || $questionType == '2') {
-//             //echo $_POST['answers'][$questionId];die;
-//             $submittedAnswer = isset($_POST['answers'][$questionId]) ? $_POST['answers'][$questionId] : [];
+     //lines added by rehan for quiz-lecture starts here
+/**
+ * Submit lecture quiz
+ */
+/**
+ * Submit lecture quiz - UPDATED VERSION
+ */
+public function submitLectureQuiz()
+{
+    $post = FatApp::getPostedData();
+    $subtopicId = $post['quiz_id'] ?? 0; // This is actually the subtopic ID
+    $lectureId = $post['lecture_id'] ?? 0;
+    $answers = $post['answers'] ?? [];
+    $progressId = $post['progress_id'] ?? 0;
 
-//             // Normalize answers for comparison
-//             $submittedAnswer = is_array($submittedAnswer) ? $submittedAnswer : [$submittedAnswer];
-
-//             // Map submitted answers to their options
-//             $mappedSubmittedAnswers = [];
-//             foreach ($submittedAnswer as $answer) {
-//                // echo '<pre>';print_r($answer);die;
-//                 $mappedSubmittedAnswers[] = $answer ?? null;
-//             }
-
-//             sort($mappedSubmittedAnswers);
-//             sort($mappedCorrectAnswers);
-// //echo '<pre>';print_r($mappedCorrectAnswers);die;
-//             if ($mappedSubmittedAnswers === $mappedCorrectAnswers) {
-//                 $result['autoCheckedQuestions'][$questionId] = [
-//                     'status' => 'correct',
-//                     'marks' => $marks,
-//                 ];
-//                 $result['score'] += $marks;
-//             } else {
-//                 $result['autoCheckedQuestions'][$questionId] = [
-//                     'status' => 'incorrect',
-//                     'marks' => 0,
-//                 ];
-//             }
-//         } elseif ($questionType == '3') { // Text-based questions
-//             $result['manualCheckQuestions'][$questionId] = [
-//                 'submitted_answer' => isset($submittedAnswers[$questionId]) ? $submittedAnswers[$questionId] : '',
-//                 'correct_answer' => implode(', ', $mappedCorrectAnswers),
-//                 'marks' => $marks,
-//             ];
-//         }
-//     }
-
-
-//     echo '<pre>';print_r($result);die;
-//     return $result;
-//     }
-
-
-  /*  public function submitQuiz()
-    {
-        $db = FatApp::getDb();
-        $quizId = $_POST['quiz_id'];
-        //$userId = FatUtility::int(FatApp::getPostedData('user_id', FatUtility::VAR_INT, 0)); // Example to get the user ID
-       
-        // Get all correct answers for the quiz
-        $questions = $this->getCorrectAnswersForQuiz($_POST['quiz_id']);
-
-        // Initialize result data structure
-        $result = [
-            'autoCheckedQuestions' => [],
-            'manualCheckQuestions' => [],
-            'score' => 0,
-            'totalMarks' => 0,
-        ];
-
-        // Normalize `answers` array to handle nested arrays
-        $submittedAnswers = array_map(function ($answer) {
-            return is_array($answer) ? implode(',', $answer) : $answer;
-        }, $_POST['answers']);
-
-        foreach ($questions as $questionDetails) {
-            $correctAnswers = explode(',', trim($questionDetails['question_answers'])); // Split numeric answers
-            $questionType = $questionDetails['question_type'];
-            $marks = $questionDetails['question_marks'];
-            $questionId = $questionDetails['question_id'];
-            $result['totalMarks'] += $marks;
-
-            // Map correct numeric answers to their corresponding options
-            $mappedCorrectAnswers = array_map(function ($answer) use ($questionDetails) {
-                return $questionDetails["question_answers"] ?? null;
-            }, $correctAnswers);
-
-            // Process single-choice and multiple-choice questions
-            if (in_array($questionType, ['1', '2'])) {
-                $submittedAnswer = $submittedAnswers[$questionId] ?? '';
-
-                // Convert string answers back to arrays for comparison
-                $submittedAnswerArray = explode(',', $submittedAnswer);
-
-                // Map submitted answers to their options
-                $mappedSubmittedAnswers = array_map(function ($answer) {
-                    return $answer ?? null;
-                }, $submittedAnswerArray);
-
-                // Sort for accurate comparison
-                sort($mappedSubmittedAnswers);
-                sort($mappedCorrectAnswers);
-
-                if ($submittedAnswerArray == $correctAnswers) {
-                    $result['autoCheckedQuestions'][$questionId] = [
-                        'status' => 'correct',
-                        'marks' => $marks,
-                        'submitted_answer' => $submittedAnswerArray,
-                        'correctanswer' => $mappedCorrectAnswers,
-                    ];
-                    $result['score'] += $marks;
-                } else {
-                    $result['autoCheckedQuestions'][$questionId] = [
-                        'status' => 'incorrect',
-                        'marks' => 0,
-                        'submitted_answer' => $submittedAnswerArray,
-                        'correctanswer' => $mappedCorrectAnswers,
-                    ];
-                }
-            } elseif ($questionType === '3') { // Text-based questions
-
-         
-                $result['manualCheckQuestions'][$questionId] = [
-                    'submitted_answer' => $submittedAnswers[$questionId] ?? '',
-                    'correct_answer' => '',
-                    'marks' => $marks,
-                ];
-            }
-        }
-
-        $db = FatApp::getDb();
-        $srch = new SearchBase('tbl_quiz_attempt', 'qa');
-        $srch->addCondition('qa.quiz_id', '=', $quizId);
-        $srch->addCondition('qa.quiz_learner_id', '=', $this->siteUserId);
-        $srch->addCondition('qa.quiz_lecture_id', '=', $_POST['lectureId']);
-        // Fetch specific columns (optional)
-        $srch->addMultipleFields(['qa.attempt', 'qa.quiz_id', 'qa.id']);
-        $rs = $srch->getResultSet();
-        $existingData = $db->fetchAll($rs);
- 
-        if (empty($existingData)) {
-            $attempt=1;
-            $data = [
-              
-                'quiz_id' => $quizId,
-                'quiz_learner_id' =>  $this->siteUserId,
-                'quiz_lecture_id' => $_POST['lectureId'],
-                'attempt' => $attempt,
-                'created_on' => date('Y-m-d H:i:s'), // Use current timestamp
-            ];
-            if (!$db->insertFromArray('tbl_quiz_attempt', $data)) {
-                return $db->getError(); // Return error if insert fails
-            }
-            
-        } else {
-            $attempt=$existingData[0]['attempt']+1;
-            $data = [
-                'quiz_id' => $quizId,
-                'quiz_learner_id' =>  $this->siteUserId,
-                'quiz_lecture_id' => $_POST['lectureId'],
-                'attempt' => $attempt,
-                'created_on' => date('Y-m-d H:i:s'), // Use current timestamp
-            ];
-           
-        
-            if (!$db->updateFromArray('tbl_quiz_attempt', $data, ['smt' => 'id = ?', 'vals' => [$existingData[0]['id']]])) {
-                return $db->getError(); // Return error if update fails
-            }
-            
-        }
-  
-        $dataToInsert = [
-            'quiz_id' => $quizId,
-            'quiz_learner_id' => $this->siteUserId,
-            'course_id' => $_POST['courseId'],
-            'quiz_tutor_id' => $_POST['quiz_teacher_id'],
-            'quiz_lecture_id' => $_POST['lectureId'],
-            'quiz_submit_data' => json_encode($_POST),
-            'quiz_autoresult_data' => json_encode($result),
-            'score' => $result['score'],
-            'attempt' => $attempt,
-            'status' => 0,
-            'total_marks' => $result['totalMarks'],
-            'quiz_added_on' => date('Y-m-d H:i:s'),
-        ];
-        if (!$db->insertFromArray('tbl_quiz_grading', $dataToInsert)) {
-            FatUtility::dieJsonError($db->getError()); // Handle any insertion errors
-        }
-         
-
-        // FatUtility::dieJsonSuccess('Data updated successfully.');
-        //return "Data updated successfully.";
-
-
-         FatUtility::dieJsonSuccess(Label::getLabel('LBL_QUIZ_SUBMITTED_SUCCESSFULLY'));
-      //  FatUtility::dieJsonSuccess('Quiz results stored successfully');
+    if ($subtopicId < 1 || $lectureId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
-*/
+
+    // Get quiz questions to evaluate
+    $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
+    
+    if (!$quizDetails || empty($quizDetails['questions'])) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_QUIZ_NOT_FOUND'));
+    }
+
+    // Evaluate the quiz (you can reuse your existing evaluation logic)
+    $result = $this->evaluateQuizAnswers($answers, $quizDetails['questions']);
+    
+    if ($result) {
+        // Mark lecture as completed if quiz passed
+        if ($result['passed']) {
+            $progress = new CourseProgress($progressId);
+            $progress->setCompletedLectures($lectureId, 1);
+        }
+
+        // Save attempt record
+        $this->saveQuizAttempt($subtopicId, $lectureId, $progressId, $result);
+
+        FatUtility::dieJsonSuccess([
+            'status' => 'success',
+            'message' => Label::getLabel('LBL_QUIZ_SUBMITTED_SUCCESSFULLY'),
+            'data' => $result
+        ]);
+    }
+
+    FatUtility::dieJsonError(Label::getLabel('LBL_ERROR_SUBMITTING_QUIZ'));
+}
+
+/**
+ * Evaluate quiz answers
+ */
+private function evaluateQuizAnswers($answers, $questions)
+{
+    $score = 0;
+    $totalMarks = 0;
+    $autoCheckedQuestions = [];
+
+    foreach ($questions as $question) {
+        $questionId = $question['question_id'];
+        $marks = $question['question_marks'];
+        $totalMarks += $marks;
+
+        $submittedAnswer = $answers[$questionId] ?? '';
+        $correctAnswer = $question['question_answers'];
+        
+        // Simple evaluation logic - you can enhance this
+        if ($question['question_type'] == '1') { // Single choice
+            if ($submittedAnswer == $correctAnswer) {
+                $score += $marks;
+                $status = 'correct';
+            } else {
+                $status = 'incorrect';
+            }
+        } elseif ($question['question_type'] == '2') { // Multiple choice
+            // You'll need more complex logic for multiple choice
+            $submittedArray = is_array($submittedAnswer) ? $submittedAnswer : [$submittedAnswer];
+            $correctArray = explode(',', $correctAnswer);
+            sort($submittedArray);
+            sort($correctArray);
+            
+            if ($submittedArray == $correctArray) {
+                $score += $marks;
+                $status = 'correct';
+            } else {
+                $status = 'incorrect';
+            }
+        } else { // Text answer
+            // For text answers, you might want to always mark as correct or implement AI grading
+            $score += $marks;
+            $status = 'correct';
+        }
+
+        $autoCheckedQuestions[$questionId] = [
+            'status' => $status,
+            'marks' => $status == 'correct' ? $marks : 0,
+            'question_title' => $question['question_title'],
+            'submitted_answer' => $submittedAnswer,
+            'correctanswer' => $correctAnswer,
+        ];
+    }
+
+    $percentage = ($score / $totalMarks) * 100;
+    $passed = $percentage >= 60; // Using default 60% pass rate
+
+    return [
+        'score' => $score,
+        'totalMarks' => $totalMarks,
+        'percentage' => $percentage,
+        'passed' => $passed,
+        'autoCheckedQuestions' => $autoCheckedQuestions
+    ];
+}
+
+/**
+ * Save quiz attempt
+ */
+private function saveQuizAttempt($subtopicId, $lectureId, $progressId, $result)
+{
+    $db = FatApp::getDb();
+    
+    // Check for existing attempt
+    $srch = new SearchBase('tbl_quiz_attempt', 'qa');
+    $srch->addCondition('qa.quiz_id', '=', $subtopicId);
+    $srch->addCondition('qa.quiz_learner_id', '=', $this->siteUserId);
+    $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
+    $srch->addMultipleFields(['qa.attempt', 'qa.id']);
+    $existingData = $db->fetchAll($srch->getResultSet());
+
+    $attempt = empty($existingData) ? 1 : ($existingData[0]['attempt'] + 1);
+    $status = $result['passed'] ? 2 : 1; // 2 = passed, 1 = failed
+
+    $data = [
+        'quiz_id' => $subtopicId,
+        'quiz_learner_id' => $this->siteUserId,
+        'quiz_lecture_id' => $lectureId,
+        'attempt' => $attempt,
+        'status' => $status,
+        'score' => $result['score'],
+        'total_marks' => $result['totalMarks'],
+        'percentage' => $result['percentage'],
+        'created_on' => date('Y-m-d H:i:s'),
+    ];
+
+    if (empty($existingData)) {
+        $db->insertFromArray('tbl_quiz_attempt', $data);
+    } else {
+        $db->updateFromArray('tbl_quiz_attempt', $data, [
+            'smt' => 'id = ?', 
+            'vals' => [$existingData[0]['id']]
+        ]);
+    }
+}
+//lines added by rehan end here
 
 public function submitQuiz()
 {

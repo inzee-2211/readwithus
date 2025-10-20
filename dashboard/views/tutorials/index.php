@@ -67,7 +67,11 @@ echo $this->includeTemplate('tutorials/head-section.php', [
                                             <?php echo stripslashes(Label::getLabel("LBL_TUTOR'S_INFO")); ?>
                                         </a>
                                     </li> -->
-                                  
+                                  <li>
+                                        <a href="javascript:void(0);" onclick="getQuiz();">
+                                            <?php echo stripslashes(Label::getLabel("LBL_QUIZ")); ?>
+                                        </a>
+                                    </li>
                                 </ul>
                             </nav>
                         </div>
