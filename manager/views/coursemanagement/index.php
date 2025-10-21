@@ -6,7 +6,7 @@ $srchFrm->setFormTagAttribute('id', 'frmSearch');
 $srchFrm->setFormTagAttribute('class', 'web_form');
 $srchFrm->developerTags['colClassPrefix'] = 'col-md-';
 $srchFrm->developerTags['fld_default_col'] = 3;
-$srchFrm->getField('keyword')->addFieldtagAttribute('class', 'search-input');
+// $srchFrm->getField('keyword')->addFieldtagAttribute('class', 'search-input');
 $srchFrm->getField('btn_reset')->addFieldtagAttribute('onclick', 'clearSearch();');
  
 ?>

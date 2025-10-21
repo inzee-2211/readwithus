@@ -36,37 +36,19 @@ class CoursemanagementController extends AdminBaseController
     /**
      * Search & List
      */
-    public function search()
+   public function search()
 {
     $frm  = $this->getSearchForm();
     $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid']);
 
-    // qm = subtopic rows you created with the form
-    $srch = new SearchBase('tbl_quiz_management', 'qm');
+    $srch = new SearchBase('tbl_quiz_management', 'qm');          // subtopics
+    $srch->joinTable('tbl_quiz_setup', 'INNER JOIN', 'qs.id = qm.quiz_setup_id', 'qs'); // topics
+    $srch->joinTable('course_subjects', 'LEFT JOIN', 'cs.id = qs.subject_id', 'cs');    // subjects
 
-    // quiz_setup (holds the keys and the topic_name)
-    $srch->joinTable('tbl_quiz_setup', 'INNER JOIN', 'qs.id = qm.quiz_setup_id', 'qs');
-
-    // lookups for pretty names
-    $srch->joinTable('course_subjects',   'LEFT JOIN', 'cs.id = qs.subject_id',      'cs');
-    $srch->joinTable('course_levels',     'LEFT JOIN', 'cl.id = qs.level_id',        'cl');
-    $srch->joinTable('course_tier',       'LEFT JOIN', 'ct.id = qs.tier_id',         'ct');
-    $srch->joinTable('course_type',       'LEFT JOIN', 'ctype.id = qs.type_id',      'ctype');
-    $srch->joinTable('course_year',       'LEFT JOIN', 'cy.id = qs.year_id',         'cy');
-    $srch->joinTable('course_examboards', 'LEFT JOIN', 'ceb.id = qs.examboard_id',   'ceb');
-
-    // fields for your table + subtopic details
     $srch->addMultipleFields([
-        'qm.id AS qid',                        // keep using qid in the view
-        'IFNULL(cl.level_name, "") AS level_name',
+        'qm.id AS qid',
         'IFNULL(cs.subject, "") AS subject',
         'IFNULL(qs.topic_name, "") AS topic',
-        'IFNULL(ct.name, "") AS tier_name',
-        'IFNULL(ctype.name, "") AS type_name',
-        'IFNULL(cy.name, "") AS year_name',
-        'IFNULL(ceb.name, "") AS examboard_name',
-
-        // subtopic details:
         'qm.subtopic_name',
         'qm.video_url',
         'qm.pdf_path',
@@ -74,11 +56,7 @@ class CoursemanagementController extends AdminBaseController
         'qm.updated_at',
     ]);
 
-    // Optional: apply filters from the search form if you want
-    // Safely check the posted filters and map them:
-    if (!empty($post['keyword'])) {
-        $srch->addCondition('cl.level_name', 'LIKE', '%' . trim($post['keyword']) . '%');
-    }
+    // Filters: subject / topic / subtopic (case-insensitive)
     if (!empty($post['subject'])) {
         $srch->addCondition('cs.subject', 'LIKE', '%' . trim($post['subject']) . '%');
     }
@@ -89,16 +67,15 @@ class CoursemanagementController extends AdminBaseController
         $srch->addCondition('qm.subtopic_name', 'LIKE', '%' . trim($post['subtopic']) . '%');
     }
 
-    // paging + sort (newest subtopics first)
     $srch->setPageSize((int)$post['pagesize']);
     $srch->setPageNumber((int)$post['page']);
     $srch->addOrder('qm.id', 'DESC');
 
     $rs     = $srch->getResultSet();
-    $orders = FatApp::getDb()->fetchAll($rs);
+    $rows   = FatApp::getDb()->fetchAll($rs);
 
     $this->sets([
-        'arrListing'  => $orders,
+        'arrListing'  => $rows,
         'page'        => $post['page'],
         'post'        => $post,
         'pageSize'    => $post['pagesize'],
@@ -108,6 +85,7 @@ class CoursemanagementController extends AdminBaseController
     ]);
     $this->_template->render(false, false);
 }
+
 
     public function form(int $categoryId)
     {
@@ -132,8 +110,7 @@ class CoursemanagementController extends AdminBaseController
         $this->_template->render(false, false);
     }
 
-
- private function getForm(int $id = 0): Form
+private function getForm(int $id = 0): Form
 {
     $frm = new Form('frmQuizManagement');
     $db  = FatApp::getDb();
@@ -156,20 +133,16 @@ class CoursemanagementController extends AdminBaseController
     $fldSubj->requirements()->setRequired();
 
     // TOPICS (from tbl_quiz_setup, filtered by subject)
-   $topicList = ['' => 'Select Topic'];
-if ($subjectId > 0) {
-    // ❌ was: $rs = $db->query("... ?", [$subjectId]); $rows = $db->fetchAll($rs);
-    $rows = $db->fetchAll(
-        "SELECT id, topic_name
-           FROM tbl_quiz_setup
-          WHERE subject_id = ?
-       ORDER BY topic_name ASC",
-        [$subjectId]
-    );
-    if ($rows) {
-        foreach ($rows as $t) { $topicList[$t['id']] = $t['topic_name']; }
+    $topicList = ['' => 'Select Topic'];
+    if ($subjectId > 0) {
+        $qSid = $db->quoteVariable($subjectId);
+        $rows = $db->fetchAll(
+            $db->query("SELECT id, topic_name FROM tbl_quiz_setup WHERE subject_id = $qSid ORDER BY topic_name ASC")
+        );
+        if ($rows) {
+            foreach ($rows as $t) { $topicList[$t['id']] = $t['topic_name']; }
+        }
     }
-}
 
     $fldTopic = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], '');
     $fldTopic->setFieldTagAttribute('id', 'quiz_setup_id');
@@ -180,8 +153,12 @@ if ($subjectId > 0) {
     $frm->addTextBox('Video URL (optional)', 'video_url', '');
     $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
     $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
+    
+    // ADD THESE HIDDEN FIELDS FOR EDIT MODE
+    $frm->addHiddenField('', 'id', $id);
+    $frm->addHiddenField('', 'existing_pdf', '');
 
-    $frm->addSubmitButton('', 'btn_submit', 'Save Subtopic');
+    $frm->addSubmitButton('', 'btn_submit', $id > 0 ? 'Update Subtopic' : 'Save Subtopic');
     return $frm;
 }
 
@@ -654,17 +631,19 @@ public function uploadQuestionBank()
 }
 public function setup()
 {
-    $db = FatApp::getDb();
+    $db   = FatApp::getDb();
     $post = FatApp::getPostedData();
-    $quizSetupId = FatUtility::int($post['quiz_setup_id']);
-    $subtopicName = trim($post['subtopic_name'] ?? '');
-    $videoUrl = trim($post['video_url'] ?? '');
+    $id   = FatUtility::int($post['id'] ?? 0); // qm.id when editing
 
-    if ($quizSetupId <= 0 || empty($subtopicName)) {
+    $quizSetupId  = FatUtility::int($post['quiz_setup_id']);
+    $subtopicName = trim($post['subtopic_name'] ?? '');
+    $videoUrl     = trim($post['video_url'] ?? '');
+
+    if ($quizSetupId <= 0 || $subtopicName === '') {
         FatUtility::dieJsonError('Topic and Subtopic name are required.');
     }
 
-    // Upload PDF if provided
+    // optional PDF
     $pdfPath = '';
     if (!empty($_FILES['pdf_path']['tmp_name']) && $_FILES['pdf_path']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['pdf_path']['name'], PATHINFO_EXTENSION));
@@ -677,47 +656,58 @@ public function setup()
 
     $db->startTransaction();
 
-
-
-    // 🔹 1. Insert into tbl_quiz_management
-    $insertData = [
+    $payload = [
         'quiz_setup_id' => $quizSetupId,
         'subtopic_name' => $subtopicName,
         'video_url'     => $videoUrl,
-        'pdf_path'      => $pdfPath,
-        'created_at'    => date('Y-m-d H:i:s'),
         'updated_at'    => date('Y-m-d H:i:s'),
     ];
+    if ($pdfPath) { $payload['pdf_path'] = $pdfPath; }
 
-    if (!$db->insertFromArray('tbl_quiz_management', $insertData)) {
-        $db->rollbackTransaction();
-        FatUtility::dieJsonError('Failed to insert subtopic: ' . $db->getError());
+    if ($id > 0) {
+        // UPDATE
+        if (!$db->updateFromArray('tbl_quiz_management', $payload, ['smt' => 'id = ?', 'vals' => [$id]])) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError('Failed to update subtopic: ' . $db->getError());
+        }
+        $subtopicId = $id;
+
+        // If a new CSV is uploaded on edit, replace questions
+        if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
+            if (!$db->deleteRecords('tbl_quaestion_bank', ['smt' => 'subtopic_id = ?', 'vals' => [$subtopicId]])) {
+                $db->rollbackTransaction();
+                FatUtility::dieJsonError('Failed to clear old questions: ' . $db->getError());
+            }
+        }
+    } else {
+        // INSERT
+        $payload['created_at'] = date('Y-m-d H:i:s');
+        if (!$db->insertFromArray('tbl_quiz_management', $payload)) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError('Failed to insert subtopic: ' . $db->getError());
+        }
+        $subtopicId = $db->getInsertId();
     }
 
-    $subtopicId = $db->getInsertId();
-
-    // 🔹 2. Handle CSV upload
+    // CSV (optional)
     if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES['quiz_csv']['tmp_name'];
-        $csvData = array_map('str_getcsv', file($file));
-
-        foreach ($csvData as $index => $row) {
-            if ($index === 0) continue; // Skip header row
-            if (count($row) < 6) continue;
-
-            list($question_text, $a, $b, $c, $d, $correct,$difficulty,$question_type,$hint) = $row;
+        $csvData = array_map('str_getcsv', file($_FILES['quiz_csv']['tmp_name']));
+        foreach ($csvData as $i => $row) {
+            if ($i === 0 || count($row) < 6) continue; // skip header/short rows
+            list($question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint) =
+                array_pad($row, 9, '');
 
             $qData = [
-                'subtopic_id'     => $subtopicId,
-                'question_title'  => trim($question_text),
-                'answer_a'        => trim($a),
-                'answer_b'        => trim($b),
-                'answer_c'        => trim($c),
-                'answer_d'        => trim($d),
-                'hint'            => trim($hint) ?? '',
-                'correct_answer'  => trim($correct),
-                'difficult_level'  => trim($difficulty) !== '' ? trim($difficulty) : 'Medium', // fallbac
-                'question_type'   => trim($question_type) !== '' ? trim($question_type) : 'MCQ',
+                'subtopic_id'       => $subtopicId,
+                'question_title'    => trim($question_text),
+                'answer_a'          => trim($a),
+                'answer_b'          => trim($b),
+                'answer_c'          => trim($c),
+                'answer_d'          => trim($d),
+                'correct_answer'    => trim($correct),
+                'difficult_level'   => $difficulty !== '' ? trim($difficulty) : 'Medium',
+                'question_type'     => $question_type !== '' ? trim($question_type) : 'MCQ',
+                'hint'              => trim($hint),
                 'question_added_on' => date('Y-m-d H:i:s'),
             ];
             if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
@@ -728,7 +718,7 @@ public function setup()
     }
 
     $db->commitTransaction();
-    FatUtility::dieJsonSuccess(['msg' => '✅ Subtopic and questions added successfully!']);
+    FatUtility::dieJsonSuccess(['msg' => '✅ Subtopic and questions saved successfully!']);
 }
 
 
@@ -1016,59 +1006,285 @@ public function setup()
      * @param int $cateId
      * @return \Form
      */
-    private function getSearchForm(int $cateId = 0): Form
-    {
-        $frm = new Form('frmSearch');
-        $frm->addTextBox(
-            Label::getLabel('LBL_LEVEL'),
-            'keyword',
-            '',
-            ['placeholder' => Label::getLabel('LBL_SEARCH_BY_LEVEL')]
-        );
-        $frm->addTextBox(
-            Label::getLabel('LBL_SUBJECT'),
-            'subject',
-            '',
-            //   ['id' => 'course_clang_id', 'autocomplete' => 'off']
-            ['placeholder' => Label::getLabel('LBL_SEARCH_BY_SUBJECT')]
-        );
-        $frm->addTextBox(
-            Label::getLabel('LBL_TOPIC'),
-            'topic',
-            '',
-            //   ['id' => 'course_clang_id', 'autocomplete' => 'off']
-            ['placeholder' => Label::getLabel('LBL_SEARCH_BY_TOPIC')]
-        );
-        $frm->addTextBox(
-            Label::getLabel('LBL_SUBTOPIC'),
-            'subtopic',
-            '',
-            //   ['id' => 'course_clang_id', 'autocomplete' => 'off']
-            ['placeholder' => Label::getLabel('LBL_SEARCH_BY_SUBTOPIC')]
-        );
-        // $categoryList = Category::getCategoriesByParentId($this->siteLangId, 0, Category::TYPE_COURSE, true);
-        // $frm->addSelectBox(Label::getLabel('LBL_CATEGORY'), 'course_cateid', $categoryList, '', [], Label::getLabel('LBL_SELECT'));
-        // $subcategories = [];
-        // if ($cateId > 0) {
-        //     $subcategories = Category::getCategoriesByParentId($this->siteLangId, $cateId);
-        // }
-        // $frm->addSelectBox(Label::getLabel('LBL_SUBCATEGORY'), 'course_subcateid', $subcategories, '', [], Label::getLabel('LBL_SELECT'));
-        //$frm->addHiddenField('', 'course_clang_id', '', ['id' => 'course_clang_id', 'autocomplete' => 'off']);
-        // $frm->addDateField(Label::getLabel('LBL_DATE_FROM'), 'course_addedon_from', '', ['readonly' => 'readonly']);
-        // $frm->addDateField(Label::getLabel('LBL_DATE_TO'), 'course_addedon_till', '', ['readonly' => 'readonly']);
-        $frm->addHiddenField('', 'pagesize', FatApp::getConfig('CONF_ADMIN_PAGESIZE'))->requirements()->setIntPositive();
-        $frm->addHiddenField('', 'page', 1)->requirements()->setIntPositive();
-        $frm->addHiddenField('', 'order_id');
+  private function getSearchForm(int $cateId = 0): Form
+{
+    $frm = new Form('frmSearch');
 
-        // $questionTypes = [
-        //     '1' => Label::getLabel('LBL_SINGLE_CHOICE'),
-        //     '2' => Label::getLabel('LBL_MULTIPLE_CHOICE'),
-        //     '3' => Label::getLabel('LBL_TEXT_BASED')
-        // ];
-        // $frm->addSelectBox(Label::getLabel('LBL_QUESTION_TYPE'), 'grpcls_tlang_id', $questionTypes, '', [], Label::getLabel('LBL_SELECT'));
-        $btnSubmit = $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_Search'));
-        $btnSubmit->attachField($frm->addButton('', 'btn_reset', Label::getLabel('LBL_Clear')));
-        return $frm;
+    $frm->addTextBox(Label::getLabel('LBL_SUBJECT'),  'subject',  '', ['placeholder' => Label::getLabel('LBL_SEARCH_BY_SUBJECT')]);
+    $frm->addTextBox(Label::getLabel('LBL_TOPIC'),    'topic',    '', ['placeholder' => Label::getLabel('LBL_SEARCH_BY_TOPIC')]);
+    $frm->addTextBox(Label::getLabel('LBL_SUBTOPIC'), 'subtopic', '', ['placeholder' => Label::getLabel('LBL_SEARCH_BY_SUBTOPIC')]);
+
+    $frm->addHiddenField('', 'pagesize', FatApp::getConfig('CONF_ADMIN_PAGESIZE'))->requirements()->setIntPositive();
+    $frm->addHiddenField('', 'page', 1)->requirements()->setIntPositive();
+    $frm->addHiddenField('', 'order_id');
+
+    $btnSubmit = $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_Search'));
+    $btnSubmit->attachField($frm->addButton('', 'btn_reset', Label::getLabel('LBL_Clear')));
+    return $frm;
+}
+public function questionBank(int $subtopicId)
+{
+    $subtopicId = FatUtility::int($subtopicId);
+    if ($subtopicId <= 0) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
+
+    $db = FatApp::getDb();
+
+    // Get subtopic details - FIXED: Use quoteVariable instead of parameter
+    $qid = $db->quoteVariable($subtopicId);
+    $sql = "SELECT qm.*, qs.topic_name, cs.subject
+              FROM tbl_quiz_management qm
+        INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+        INNER JOIN course_subjects cs ON cs.id = qs.subject_id
+             WHERE qm.id = $qid";
+
+    $rs = $db->query($sql);
+    $subtopic = $db->fetch($rs);
+    
+    if (!$subtopic) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    // Rest of your code remains the same...
+    $q = new SearchBase('tbl_quaestion_bank', 'qb');
+    $q->addCondition('qb.subtopic_id', '=', $subtopicId);
+    $q->addMultipleFields([
+        'qb.id','qb.question_title','qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
+        'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on'
+    ]);
+    
+    $rs = $q->getResultSet();
+    $questions = FatApp::getDb()->fetchAll($rs);
+
+    $this->sets([
+        'subtopic'  => $subtopic,
+        'questions' => $questions,
+        'canEdit'   => $this->objPrivilege->canEditCourses(true),
+    ]);
+    $this->_template->render(true, true, 'coursemanagement/questionbank.php');
+}
+public function subtopicForm(int $id = 0)
+{
+    $this->objPrivilege->canEditCourses();
+
+    $db = FatApp::getDb();
+    $row = null;
+    if ($id > 0) {
+        $qid = $db->quoteVariable($id);
+        $rs  = $db->query("SELECT qm.*, qs.subject_id
+                             FROM tbl_quiz_management qm
+                       INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+                            WHERE qm.id = $qid");
+        $row = $db->fetch($rs);
+        if (!$row) {
+            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+        }
+    }
+
+    $frm = $this->getForm($id);
+
+    if ($row) {
+        $frm->fill([
+            'id'            => $row['id'],
+            'subject_id'    => $row['subject_id'],
+            'quiz_setup_id' => $row['quiz_setup_id'],
+            'subtopic_name' => $row['subtopic_name'],
+            'video_url'     => $row['video_url'],
+            // Note: PDF path cannot be pre-filled in file upload field
+        ]);
+    }
+
+    $this->sets(['frm' => $frm, 'data' => ($row ?? []), 'categoryId' => $id]);
+    $this->_template->render(false, false, 'coursemanagement/form.php');
+}
+
+public function deleteSubtopic(int $id)
+{
+    $this->objPrivilege->canEditCourses();
+    $db = FatApp::getDb();
+    $id = FatUtility::int($id);
+    if ($id <= 0) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $db->startTransaction();
+    try {
+        // remove questions first
+        if (!$db->deleteRecords('tbl_quaestion_bank', ['smt' => 'subtopic_id = ?', 'vals' => [$id]])) {
+            throw new Exception($db->getError());
+        }
+        // then remove subtopic row
+        if (!$db->deleteRecords('tbl_quiz_management', ['smt' => 'id = ?', 'vals' => [$id]])) {
+            throw new Exception($db->getError());
+        }
+        $db->commitTransaction();
+        FatUtility::dieJsonSuccess(Label::getLabel('LBL_RECORD_DELETED_SUCCESSFULLY'));
+    } catch (Exception $e) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError(Label::getLabel('LBL_ERROR_DELETING_RECORD') . ': ' . $e->getMessage());
+    }
+}
+/* ---------- QUESTION FORM (add/edit) ---------- */
+public function questionForm(int $subtopicId, int $id = 0)
+{
+    $this->objPrivilege->canEditCourses();
+    $db = FatApp::getDb();
+
+    $subtopicId = FatUtility::int($subtopicId);
+    if ($subtopicId <= 0) FatUtility::dieJsonError('Invalid subtopic.');
+
+    $row = [];
+    if ($id > 0) {
+         $qid = $db->quoteVariable($id);
+    $rs  = $db->query("SELECT * FROM tbl_quaestion_bank WHERE id = $qid");
+    $row = $db->fetch($rs);
+
+    if (!$row) FatUtility::dieJsonError('Invalid question.');
+    }
+
+    // Build form
+ // ---- Build form (safe defaults) ----
+$frm = new Form('frmQuestion');
+$frm->addHiddenField('', 'id', $id);
+$frm->addHiddenField('', 'subtopic_id', $subtopicId);
+
+$currType = $row['question_type'] ?? 'Multiple-Choice'; // safe default
+
+$frm->addTextBox('Question Title', 'question_title', $row['question_title'] ?? '')->requirements()->setRequired();
+
+/* Use values that we also display elsewhere */
+$typeOptions = [
+  'Multiple-Choice' => 'Multiple-Choice',
+  'Story-Based'     => 'Story-Based',
+  'Short'           => 'Short',
+];
+$frm->addSelectBox('Type', 'question_type', $typeOptions, $currType, [], '')->setFieldTagAttribute('id','question_type');
+
+/* MCQ group */
+$frm->addHtml('', '', '<div class="mcq-fields">');
+$frm->addTextBox('Option A', 'answer_a', $row['answer_a'] ?? '');
+$frm->addTextBox('Option B', 'answer_b', $row['answer_b'] ?? '');
+$frm->addTextBox('Option C', 'answer_c', $row['answer_c'] ?? '');
+$frm->addTextBox('Option D', 'answer_d', $row['answer_d'] ?? '');
+$frm->addSelectBox('Correct Answer', 'correct_answer', ['A'=>'A','B'=>'B','C'=>'C','D'=>'D'], $row['correct_answer'] ?? '');
+$frm->addHtml('', '', '</div>');
+
+/* Text answer for Story/Short */
+$frm->addHtml('', '', '<div class="text-answer-field">');
+$frm->addTextArea('Answer (text)', 'answer_text', ($currType === 'Multiple-Choice') ? '' : ($row['answer_a'] ?? ''), ['rows'=>3]);
+$frm->addHtml('', '', '</div>');
+
+$frm->addSelectBox('Difficulty', 'difficult_level', ['Easy'=>'Easy','Medium'=>'Medium','Hard'=>'Hard'], $row['difficult_level'] ?? 'Medium');
+$frm->addTextBox('Hint (optional)', 'hint', $row['hint'] ?? '');
+$frm->addFileUpload('Image (optional)', 'image', ['accept'=>'.jpg,.jpeg,.png,.gif']);
+$frm->addHiddenField('', 'existing_image', $row['image'] ?? '');
+$frm->addSubmitButton('', 'btn_submit', ($id>0?'Update':'Add') . ' Question');
+
+/* Render without layout/header so no RWU logo appears inside the modal */
+$this->sets(['frm'=>$frm, 'q'=>$row, 'subtopicId'=>$subtopicId]);
+$this->_template->render(false, false, 'coursemanagement/question_form.php');
+
+}
+
+/* ---------- QUESTION SAVE ---------- */
+public function saveQuestion()
+{
+    $this->objPrivilege->canEditCourses();
+    $db   = FatApp::getDb();
+    $post = FatApp::getPostedData();
+
+    $id         = FatUtility::int($post['id'] ?? 0);
+    $subtopicId = FatUtility::int($post['subtopic_id'] ?? 0);
+    if ($subtopicId <= 0) FatUtility::dieJsonError('Invalid subtopic.');
+
+    // base payload first
+    $data = [
+        'subtopic_id'     => $subtopicId,
+        'question_title'  => trim($post['question_title'] ?? ''),
+        'answer_a'        => trim($post['answer_a'] ?? ''),
+        'answer_b'        => trim($post['answer_b'] ?? ''),
+        'answer_c'        => trim($post['answer_c'] ?? ''),
+        'answer_d'        => trim($post['answer_d'] ?? ''),
+        'correct_answer'  => trim($post['correct_answer'] ?? ''),
+        'difficult_level' => trim($post['difficult_level'] ?? 'Medium'),
+        'question_type'   => trim($post['question_type'] ?? 'Multiple-Choice'),
+        'hint'            => trim($post['hint'] ?? ''),
+    ];
+    if ($data['question_title'] === '') {
+        FatUtility::dieJsonError('Question is required.');
+    }
+
+    // normalize type and map text answers for non-MCQ
+    $type = $data['question_type'];
+    if (stripos($type, 'multiple') !== false || stripos($type, 'mcq') !== false) {
+        // MCQ – all four options + correct are required
+        if ($data['answer_a']==='' || $data['answer_b']==='' || $data['answer_c']==='' || $data['answer_d']==='' || $data['correct_answer']==='') {
+            FatUtility::dieJsonError('Please fill all options and the correct answer for Multiple-Choice.');
+        }
+        // ensure correct answer is one of A-D
+        if (!in_array($data['correct_answer'], ['A','B','C','D'], true)) {
+            FatUtility::dieJsonError('Correct answer must be A, B, C or D.');
+        }
+        $data['question_type'] = 'Multiple-Choice';
+    } else {
+        // Story/Short – store single text answer in answer_a
+        $textAns = trim($post['answer_text'] ?? '');
+        if ($textAns === '') {
+            FatUtility::dieJsonError('Please provide the text answer.');
+        }
+        $data['answer_a'] = $textAns;
+        $data['answer_b'] = $data['answer_c'] = $data['answer_d'] = '';
+        $data['correct_answer'] = '';
+        if (stripos($type, 'story') !== false) $data['question_type'] = 'Story-Based';
+        elseif (stripos($type, 'short') !== false) $data['question_type'] = 'Short';
+    }
+
+    // optional image
+    $imagePath = $post['existing_image'] ?? '';
+    if (!empty($_FILES['image']['tmp_name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg','jpeg','png','gif'])) {
+            FatUtility::dieJsonError('Only JPG/PNG/GIF allowed.');
+        }
+        $uploadDir = 'uploads/question_images/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        $imagePath = $uploadDir . uniqid('qimg_') . '.' . $ext;
+        if (!move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
+            FatUtility::dieJsonError('Image upload failed.');
+        }
+    }
+    if ($imagePath) $data['image'] = $imagePath;
+
+    if ($id > 0) {
+        if (!$db->updateFromArray('tbl_quaestion_bank', $data, ['smt'=>'id = ?', 'vals'=>[$id]])) {
+            FatUtility::dieJsonError($db->getError());
+        }
+    } else {
+        $data['question_added_on'] = date('Y-m-d H:i:s');
+        if (!$db->insertFromArray('tbl_quaestion_bank', $data)) {
+            FatUtility::dieJsonError($db->getError());
+        }
+    }
+    FatUtility::dieJsonSuccess(['status'=>1,'msg'=>'Saved']);
+}
+
+
+/* ---------- QUESTION DELETE ---------- */
+public function deleteQuestion(int $id)
+{
+    $this->objPrivilege->canEditCourses();
+    $db = FatApp::getDb();
+    $id = FatUtility::int($id);
+    if ($id <= 0) FatUtility::dieJsonError('Invalid request');
+
+    if(!$db->deleteRecords('tbl_quaestion_bank', ['smt'=>'id = ?', 'vals'=>[$id]])) {
+        FatUtility::dieJsonError($db->getError());
+    }
+    FatUtility::dieJsonSuccess(['status'=>1,'msg'=>'Deleted']);
+}
+
+
+
 }
 
