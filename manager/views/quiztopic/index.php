@@ -63,3 +63,14 @@ document.querySelectorAll('.js-delete').forEach(a => {
   });
 });
 </script>
+<style>
+  /* ===== White background for Quiz Topics table ===== */
+.page__body {
+  background: #fff;
+  /* border-radius: 12px; */
+  padding: 18px;
+  padding-bottom: 5%;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+</style>

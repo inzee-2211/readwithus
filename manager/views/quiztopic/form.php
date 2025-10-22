@@ -23,9 +23,9 @@
       </div>
 
       <div class="card__foot d-flex justify-content-end gap-8">
-        <button type="submit" form="frmQuizSetup" class="btn btn-primary" id="qt-submit">
+        <!-- <button type="submit" form="frmQuizSetup" class="btn btn-primary" id="qt-submit">
           <?= Label::getLabel('LBL_SAVE'); ?>
-        </button>
+        </button> -->
       </div>
     </section>
   </div>
@@ -118,14 +118,21 @@ const PRESELECT_SUBJECT_ID  = <?= (int)($data['subject_id'] ?? 0); ?>;
       })
       .then(r => r.json())
       .then(j => {
-        if (j && j.status == 1) {
-          showAlert(true, j.msg || '<?= Label::getLabel('LBL_SAVED_SUCCESSFULLY'); ?>');
-          // If you want to return to list, uncomment the next line
-          // setTimeout(() => location.href = <?= json_encode(MyUtility::makeUrl('Quiztopic','index')); ?>, 600);
-        } else {
-          showAlert(false, (j && j.msg) || '<?= Label::getLabel('LBL_INVALID_REQUEST'); ?>');
-        }
-      })
+  if (j && j.status == 1) {
+    showAlert(true, j.msg || '<?= Label::getLabel('LBL_SAVED_SUCCESSFULLY'); ?>');
+    // Redirect back after 3 seconds
+    setTimeout(() => {
+      if (document.referrer) {
+        window.location = document.referrer; // go to previous page
+      } else {
+        window.history.back(); // fallback
+      }
+    }, 2000);
+  } else {
+    showAlert(false, (j && j.msg) || '<?= Label::getLabel('LBL_INVALID_REQUEST'); ?>');
+  }
+})
+
       .catch(() => showAlert(false, 'Network error occurred'))
       .finally(() => { btn && (btn.disabled = false); });
     });

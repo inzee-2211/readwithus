@@ -58,16 +58,17 @@ class QuizsettingController extends AdminBaseController
         $row = [];
         $formConfig = $this->getFormConfig($type);
         
-        if ($id > 0) {
-           $result = $db->query($formConfig['select_query'], [$id]);
-$row = $result ? $db->fetch($result) : [];
-            if ($result && $row = $db->fetch($result)) {
-                // Data found
-            }
-        }
+    $row = [];
+if ($id > 0) {
+    $result = $db->query($formConfig['select_query'], [$id]);
+    $row = $result ? $db->fetch($result) : [];
+}
 
-        $frm = $this->buildForm($type, $id, $formConfig);
-        $frm->fill($row);
+
+        // in form()
+$frm = $this->buildForm($type, $id, $formConfig, $row);  // pass $row
+$frm->fill($row); // keep this too
+
         
         $this->set('frm', $frm);
         $this->set('type', $type);
@@ -284,33 +285,45 @@ return $result ? $db->fetchAll($result) : [];
     /**
      * Build form dynamically based on type
      */
-    private function buildForm($type, $id, $config)
-    {
-        $frm = new Form('frm' . ucfirst($type));
-        $frm->addHiddenField('', 'id', $id);
-        $frm->addHiddenField('', 'entity_type', $type);
+ // change the signature
+// change the signature stays the same:
+private function buildForm($type, $id, $config, array $defaults = [])
+{
+    $frm = new Form('frm' . ucfirst($type));
+    $frm->addHiddenField('', 'id', $id);
+    $frm->addHiddenField('', 'entity_type', $type);
 
-        $validationRules = $config['validation_rules'];
-        
-        foreach ($validationRules as $field => $rules) {
-            $label = Label::getLabel('LBL_' . strtoupper($field));
-            
-            if ($field === 'level_id') {
-                $db = FatApp::getDb();
-                $levels = $this->fetchAllSafe($db, "SELECT id, level_name FROM course_levels ORDER BY level_name ASC");
-                $levelOptions = ['' => Label::getLabel('LBL_SELECT_LEVEL')] + array_column($levels, 'level_name', 'id');
-                $frm->addSelectBox($label, $field, $levelOptions)->requirements()->setRequired();
-            } elseif ($field === 'examboard_id') {
-                $db = FatApp::getDb();
-                $boards = $this->fetchAllSafe($db, "SELECT id, name FROM course_examboards ORDER BY name ASC");
-                $boardOptions = ['' => Label::getLabel('LBL_SELECT_EXAM_BOARD')] + array_column($boards, 'name', 'id');
-                $frm->addSelectBox($label, $field, $boardOptions)->requirements()->setRequired();
-            } else {
-                $frm->addRequiredField($label, $field);
-            }
+    $validationRules = $config['validation_rules'];
+
+    foreach ($validationRules as $field => $rules) {
+        $label = Label::getLabel('LBL_' . strtoupper($field));
+        $def   = isset($defaults[$field]) ? $defaults[$field] : '';
+
+        if ($field === 'level_id') {
+            $db = FatApp::getDb();
+            $levels = $this->fetchAllSafe($db, "SELECT id, level_name FROM course_levels ORDER BY level_name ASC");
+            $levelOptions = ['' => Label::getLabel('LBL_SELECT_LEVEL')] + array_column($levels, 'level_name', 'id');
+
+            // IMPORTANT: pass default as 4th arg
+            $fld = $frm->addSelectBox($label, $field, $levelOptions, $def);
+        } elseif ($field === 'examboard_id') {
+            $db = FatApp::getDb();
+            $boards = $this->fetchAllSafe($db, "SELECT id, name FROM course_examboards ORDER BY name ASC");
+            $boardOptions = ['' => Label::getLabel('LBL_SELECT_EXAM_BOARD')] + array_column($boards, 'name', 'id');
+
+            // IMPORTANT: pass default as 4th arg
+            $fld = $frm->addSelectBox($label, $field, $boardOptions, $def);
+        } else {
+            // YoCoach Form: addRequiredField($caption, $name, $value = '')
+            $fld = $frm->addRequiredField($label, $field, $def);
         }
 
-        $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE'));
-        return $frm;
+        $fld->requirements()->setRequired();
     }
+
+    $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE'));
+    return $frm;
+}
+
+
 }

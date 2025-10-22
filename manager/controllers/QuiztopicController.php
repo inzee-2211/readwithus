@@ -36,6 +36,7 @@ class QuiztopicController extends AdminBaseController
         ]);
         $this->_template->render();
     }
+    
 
     /* FORM (ADD/EDIT) */
    // QuiztopicController::form (or wherever you build $frm)
@@ -74,27 +75,43 @@ $row = $db->fetch($db->query($sql)) ?: [];
     if ($id > 0) { $frm->addHiddenField('', 'id', $id); }
 
     // Level
-    $fld = $frm->addSelectBox(Label::getLabel('LBL_LEVEL'), 'level_id', $optLevels, $row['level_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
-    $fld->setFieldTagAttribute('id', 'level_id');
+  // --- remove this line (we'll use the footer button only) ---
+// $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE'));
 
-    // Subject (start empty; we’ll populate via AJAX)
-    $fld = $frm->addSelectBox(Label::getLabel('LBL_SUBJECT'), 'subject_id', [], $row['subject_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
-    $fld->setFieldTagAttribute('id', 'subject_id');
+// Level (required)
+$fld = $frm->addSelectBox(Label::getLabel('LBL_LEVEL'), 'level_id', $optLevels, $row['level_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+$fld->setFieldTagAttribute('id', 'level_id');
+$fld->requirements()->setRequired(true);
+$fld->setFieldTagAttribute('required', 'required');
 
-    // Type
-    $frm->addSelectBox(Label::getLabel('LBL_TYPE'), 'type_id', $optTypes, $row['type_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+// Subject (required; filled by AJAX)
+$fld = $frm->addSelectBox(Label::getLabel('LBL_SUBJECT'), 'subject_id', [], $row['subject_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+$fld->setFieldTagAttribute('id', 'subject_id');
+$fld->requirements()->setRequired(true);
+$fld->setFieldTagAttribute('required', 'required');
 
-    // Tier
-    $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'tier_id', $optTiers, $row['tier_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+// Type (required)
+$fld = $frm->addSelectBox(Label::getLabel('LBL_TYPE'), 'type_id', $optTypes, $row['type_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+$fld->requirements()->setRequired(true);
+$fld->setFieldTagAttribute('required', 'required');
 
-    // Exam board
-    $frm->addSelectBox(Label::getLabel('LBL_EXAM_BOARD'), 'examboard_id', $optBoards, $row['examboard_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+// Tier (required)
+$fld = $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'tier_id', $optTiers, $row['tier_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+$fld->requirements()->setRequired(true);
+$fld->setFieldTagAttribute('required', 'required');
 
-    // Year
-    $frm->addSelectBox(Label::getLabel('LBL_YEAR'), 'year_id', $optYears, $row['year_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+// Exam board (optional)
+$frm->addSelectBox(Label::getLabel('LBL_EXAM_BOARD') . ' (' . Label::getLabel('LBL_OPTIONAL') . ')',
+                   'examboard_id', $optBoards, $row['examboard_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
 
-    // Topic name
-    $frm->addRequiredField(Label::getLabel('LBL_TOPIC_NAME'), 'topic_name', $row['topic_name'] ?? '');
+// Year (optional)
+$frm->addSelectBox(Label::getLabel('LBL_YEAR') . ' (' . Label::getLabel('LBL_OPTIONAL') . ')',
+                   'year_id', $optYears, $row['year_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+
+// Topic name (required)
+$fld = $frm->addRequiredField(Label::getLabel('LBL_TOPIC_NAME'), 'topic_name', $row['topic_name'] ?? '');
+$fld->setFieldTagAttribute('required', 'required');
+
 
     $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE'));
 
@@ -105,46 +122,54 @@ $row = $db->fetch($db->query($sql)) ?: [];
 
 
     /* SAVE */
-    public function save()
-    {
-        $this->objPrivilege->canEditCategories();
+   public function save()
+{
+    $this->objPrivilege->canEditCategories();
 
-        $p = FatApp::getPostedData();
-        $id = FatUtility::int($p['id'] ?? 0);
+    $p  = FatApp::getPostedData();
 
-        $level_id    = FatUtility::int($p['level_id'] ?? 0);
-        $subject_id  = FatUtility::int($p['subject_id'] ?? 0);
-        $type_id     = FatUtility::int($p['type_id'] ?? 0);
-        $tier_id     = FatUtility::int($p['tier_id'] ?? 0);
-        $examboard_id= isset($p['examboard_id']) && $p['examboard_id'] !== '' ? FatUtility::int($p['examboard_id']) : null;
-        $year_id     = isset($p['year_id'])      && $p['year_id']      !== '' ? FatUtility::int($p['year_id'])      : null;
-        $topic_name  = trim($p['topic_name'] ?? '');
+    $id          = FatUtility::int($p['id'] ?? 0);
+    $level_id    = FatUtility::int($p['level_id'] ?? 0);
+    $subject_id  = FatUtility::int($p['subject_id'] ?? 0);
+    $type_id     = FatUtility::int($p['type_id'] ?? 0);
+    $tier_id     = FatUtility::int($p['tier_id'] ?? 0);
 
-        if ($level_id <= 0 || $subject_id <= 0 || $type_id <= 0 || $tier_id <= 0 || $topic_name === '') {
-            FatUtility::dieJsonError(Label::getLabel('LBL_REQUIRED_FIELDS_MISSING'));
-        }
+    // Optionals: treat "" or missing as NULL
+    $examboard_id = (array_key_exists('examboard_id', $p) && $p['examboard_id'] !== '')
+        ? FatUtility::int($p['examboard_id'])
+        : null;
 
-        $db = FatApp::getDb();
-        $data = [
-            'level_id'    => $level_id,
-            'subject_id'  => $subject_id,
-            'type_id'     => $type_id,
-            'tier_id'     => $tier_id,
-            'examboard_id'=> $examboard_id,
-            'year_id'     => $year_id,
-            'topic_name'  => $topic_name,
-        ];
+    $year_id = (array_key_exists('year_id', $p) && $p['year_id'] !== '')
+        ? FatUtility::int($p['year_id'])
+        : null;
 
-        $ok = $id > 0
-            ? $db->updateFromArray('tbl_quiz_setup', $data, ['smt' => 'id = ?', 'vals' => [$id]])
-            : $db->insertFromArray('tbl_quiz_setup', $data + ['created_at' => date('Y-m-d H:i:s')]);
+    $topic_name  = trim($p['topic_name'] ?? '');
 
-        if (!$ok) {
-            // Likely the UNIQUE key clash etc.
-            FatUtility::dieJsonError($db->getError());
-        }
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_SAVED_SUCCESSFULLY'));
+    // Required validation
+    if ($level_id <= 0 || $subject_id <= 0 || $type_id <= 0 || $tier_id <= 0 || $topic_name === '') {
+        FatUtility::dieJsonError(Label::getLabel('LBL_REQUIRED_FIELDS_MISSING'));
     }
+
+    $db = FatApp::getDb();
+    $data = [
+        'level_id'     => $level_id,
+        'subject_id'   => $subject_id,
+        'type_id'      => $type_id,
+        'tier_id'      => $tier_id,
+        'examboard_id' => $examboard_id, // will be NULL if optional left blank
+        'year_id'      => $year_id,      // will be NULL if optional left blank
+        'topic_name'   => $topic_name,
+    ];
+
+    $ok = $id > 0
+        ? $db->updateFromArray('tbl_quiz_setup', $data, ['smt' => 'id = ?', 'vals' => [$id]])
+        : $db->insertFromArray('tbl_quiz_setup', $data + ['created_at' => date('Y-m-d H:i:s')]);
+
+    if (!$ok) {
+        FatUtility::dieJsonError($db->getError());
+    }
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_SAVED_SUCCESSFULLY'));
+}
 
     /* DELETE */
     public function delete(int $id = 0)

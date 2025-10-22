@@ -1,19 +1,83 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
 <style>
-/* ---------- Page-scoped layout fix so content doesn't slide under the left sidebar ---------- */
-.rwu-qb-wrap{ padding:16px; margin-left:220px; }   /* match your sidebar width */
-@media (max-width: 1024px){ .rwu-qb-wrap{ margin-left:0; } }
+/* ---------- Layout & background fix ---------- */
+.rwu-qb-wrap {
+  padding: 20px;
+  margin-left: 220px;          /* match sidebar width */
+  background: #fff;            /* ✅ white background */
+  border-radius: 10px;         /* smooth corners like other cards */
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08); /* subtle shadow for card feel */
+}
 
-/* Table polish (optional) */
-.rwu-qb-wrap .table { width:100%; table-layout:auto; }
-.rwu-qb-wrap .table th, .rwu-qb-wrap .table td { vertical-align:top; }
+@media (max-width: 1024px){
+  .rwu-qb-wrap{ margin-left:0; }
+}
 
-/* Small label for hint */
-.rwu-hint { display:block; margin-top:4px; color:#666; font-size:12px; font-style:italic; }
+/* ---------- Table styling ---------- */
+.rwu-qb-wrap .table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
 
-/* Ensure modal content inside facebox doesn't create extra close buttons visually */
-#facebox .close { z-index: 1001; } /* stay above content */
+.rwu-qb-wrap .table th {
+  background: #f9fafb; /* light grey header */
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 10px;
+  text-align: left;
+}
+
+.rwu-qb-wrap .table td {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  color: #444;
+}
+
+.rwu-qb-wrap .table tr:hover td {
+  background: #f6f8fa;
+}
+
+/* ---------- Hint & image polish ---------- */
+.rwu-hint {
+  display: block;
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.rwu-qb-wrap img {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.1);
+}
+
+/* ---------- Button area ---------- */
+.buttons-group {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+/* .buttons-group .btn--secondary { */
+  /* background-color: #2563eb; blue tone */
+  /* color: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  transition: 0.2s;
+} */
+
+/* .buttons-group .btn--secondary:hover {
+  background-color: #1d4ed8;
+} */
+
+/* ---------- Facebox fix ---------- */
+#facebox .close { z-index: 1001; }
 </style>
+
 
 <div class="rwu-qb-wrap">
   <div class="sectionhead">
