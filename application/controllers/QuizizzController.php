@@ -13,67 +13,82 @@ class QuizizzController extends MyAppController
         parent::__construct($action);
     }
 
-    /**
-     * Course list
-     *
-     * @return void
-     */
-
-    public function index()
+   
+public function index()
 {
-    // Step 0: Get subtopic ID from URL
-    $subtopicId = isset($_GET['subtopic']) ? (int)$_GET['subtopic'] : 0;
-    if ($subtopicId <= 0) {
-        echo "Error: subtopic ID is missing or invalid in URL.";
+    // 0) Require setup_id
+    $setupId = isset($_GET['setup_id']) ? (int)$_GET['setup_id'] : 0;
+    if ($setupId <= 0) {
+        echo "Error: setup ID is missing or invalid in URL.";
         exit;
     }
 
-    // Step 1: Fetch course ID
-    $courseId = $this->getCourseIdBySubtopic($subtopicId); 
-    $this->set('courseId', $courseId); 
+    $db = FatApp::getDb();
 
-    // Step 2: Fetch subtopic name
-    $subtopicName = $this->getSubjectNameById($subtopicId);
+    // 1) Fetch setup row (one topic context)
+    $setupSql = "SELECT id, topic_name, level_id, subject_id, examboard_id, tier_id, year_id
+                 FROM tbl_quiz_setup
+                 WHERE id = " . $setupId . " LIMIT 1";
+    $setupRs  = $db->query($setupSql);
+    $setup    = $db->fetch($setupRs);
+    if (!$setup) { echo "Error: setup not found."; exit; }
 
-    // Step 3: Get examboard and year from query string
-    $examboardId = FatApp::getQueryStringData('examboard') ?? 0;
-    $yearId = FatApp::getQueryStringData('year_id') ?? 0;
+    $subjectId   = (int)$setup['subject_id'];
+    $examboardId = (int)$setup['examboard_id'];
+    $yearId      = (int)$setup['year_id'];
+    $topicTitle  = (string)($setup['topic_name'] ?? 'Topic');
+    
 
-    // Step 4: Fetch topics filtered by examboard or year
-    $alltopics = $this->getTopicnames($examboardId, $yearId);
+     $getName = function(string $table, string $nameColumn, int $id) use ($db) : string {
+        if ($id <= 0) return '';
+        $rs = $db->query("SELECT $nameColumn AS name FROM $table WHERE id = ? LIMIT 1", [$id]);
+        $row = $db->fetch($rs);
+        return $row['name'] ?? '';
+    };
 
-    // Step 5: Fetch previous papers for the course
-    $previouspapers = $this->getPreviouspapers($courseId);
+    // 2) Session values used by view header
+    $_SESSION['setupId']     = $setupId;
+    $_SESSION['subjectId']   = $subjectId;             // keep if you need elsewhere
+    $_SESSION['subjectName'] = $topicTitle;            // use topic_name in the header
 
-    // Step 6: Prepare search form data
-    $params = FatApp::getQueryStringData();
-    $data = [];
-    if (isset($params['catg']) && $params['catg'] > 0) {
-        $data['course_cate_id'] = [$params['catg']];
-    }
-    $searchSession = $_SESSION[AppConstant::SEARCH_SESSION] ?? [];
-
-    // Step 7: Set session data
-    $_SESSION['subtopicId'] = $subtopicId;
-    $_SESSION['subtopicName'] = $subtopicName;
-
-    // Step 8: Load search form
+    // 3) Search form (unchanged)
     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-    $srchFrm->fill($data + $searchSession);
+    $srchFrm->fill([]);
     unset($_SESSION[AppConstant::SEARCH_SESSION]);
 
-    // Step 9: Pass all data to template
+    
+
+    // 4) Centralized subtopic media & IDs for this setup
+    //    This is the single source of truth for: subtopic name, video url, pdf file, and the "subtopic id" (row id).
+    $mgmtSql = "SELECT id, subtopic_name, video_url, pdf_path
+                FROM tbl_quiz_management
+                WHERE quiz_setup_id = " . $setupId . "
+                ORDER BY position ASC, id ASC";
+    $mgmtRs  = $db->query($mgmtSql);
+    $subtopics = [];
+    if ($mgmtRs) {
+        foreach ($db->fetchAll($mgmtRs) as $r) {
+            $subtopics[] = [
+                'id'                 => (int)$r['id'],         // <-- pass this as subtopic id when starting quiz
+                'name'               => $r['subtopic_name'],
+                'video_url'          => $r['video_url'],
+                'previous_paper_pdf' => $r['pdf_path'],        // view expects this key for paper tab
+            ];
+        }
+    }
+
+    // 5) Pass to view
     $this->set('srchFrm', $srchFrm);
-    $this->set('subtopicId', $subtopicId);
+    $this->set('setupId', $setupId);
+    $this->set('topicTitle', $topicTitle);         // << use in the accordion header
     $this->set('examboardId', $examboardId);
     $this->set('yearId', $yearId);
-    $this->set('alltopics', $alltopics);
-    $this->set('previouspapers', $previouspapers);
+    $this->set('subtopics', $subtopics);           // one list used for Video/Quiz/Paper
     $this->set('filterTypes', Course::getFilterTypes());
 
-    // Step 10: Render template
     $this->_template->render();
 }
+
 
 
 
@@ -256,25 +271,16 @@ public function submitfindatutor()
     }
 
 
-   private function getTopicnames($examboardId = 0, $yearId = 0)
+  private function getTopicnames($examboardId = 0, $yearId = 0)
 {
     $db = FatApp::getDb();
 
-    // Agar na examboard na year select → empty
-    if ($examboardId <= 0 && $yearId <= 0) {
-        return [];
-    }
+    if ($examboardId <= 0 && $yearId <= 0) return [];
 
     $params = [];
     $sql = "SELECT id, topic FROM course_topics WHERE 1=1";
-
-    if ($examboardId > 0) {
-        $sql .= " AND examboard_id = ?";
-        $params[] = $examboardId;
-    } elseif ($yearId > 0) {
-        $sql .= " AND year_id = ?";
-        $params[] = $yearId;
-    }
+    if ($examboardId > 0) { $sql .= " AND examboard_id = ?"; $params[] = $examboardId; }
+    elseif ($yearId > 0) { $sql .= " AND year_id = ?";      $params[] = $yearId; }
 
     $sql .= " ORDER BY topic ASC";
 
@@ -282,12 +288,12 @@ public function submitfindatutor()
     if (!$res) return [];
 
     $topics = [];
-    while ($row = $db->fetchAssoc($res)) {
-        $topics[$row['id']] = $row['topic'];
+    foreach ($db->fetchAll($res) as $row) {
+        $topics[(int)$row['id']] = $row['topic'];
     }
-
     return $topics;
 }
+
 
 
 
@@ -386,46 +392,7 @@ public function submitfindatutor()
             FatUtility::dieJsonError("Invalid answer data.");
         }
 
-        // foreach ($answers as $item) {
-        //     $questionId = $item['questionId'];
-        //     $userAnswer = $item['answer'];
-
-        //     // Fetch correct answer from DB
-        //     $srch = new SearchBase('tbl_quaestion_bank');
-        //     $srch->addCondition('id', '=', $questionId);
-        //     $srch->addMultipleFields(['correct_answer']);
-        //     $rs = $srch->getResultSet();
-        //     $question = FatApp::getDb()->fetch($rs);
-
-
-        //     if (!$question) continue;
-
-        //     $correctAnswer = $question['correct_answer'];
-
-        //     // Format answers
-        //     $correctArray = explode(',', $correctAnswer);
-        //     $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-
-        //     // Sort for order-independent comparison
-        //     sort($correctArray);
-        //     sort($userArray);
-
-        //     $isCorrect = ($correctArray === $userArray);
-
-        //     if ($isCorrect) $score++;
-
-        //     $results[] = [
-        //         'questionId' => $questionId,
-        //         'userAnswer' => $userAnswer,
-        //         'correctAnswer' => $correctArray,
-        //         'isCorrect' => $isCorrect,
-        //     ];
-
-        // }
-        // echo '<pre>';print_r($results);die;
-        // ✅ Return proper JSON
-
-
+      
 
 
         $api_key = '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';

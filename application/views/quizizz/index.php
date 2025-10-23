@@ -1,9 +1,11 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
-$priceSorting = AppConstant::getSortbyArr();
 $activeTab = $_GET['tab'] ?? 'quiz';
-$subtopicId = $_GET['subtopic'] ?? ($_SESSION['subtopicId'] ?? 0);
+$setupId   = $_GET['setup_id'] ?? ($_SESSION['setupId'] ?? 0);
+$subjectId = $_SESSION['subjectId'] ?? 0;
+$subjectNm = $_SESSION['subjectName'] ?? 'Subject';
 ?>
+
 <style>
     /* Subtopic Start Quiz buttons */
     .card .btn-primary {
@@ -84,12 +86,13 @@ $subtopicId = $_GET['subtopic'] ?? ($_SESSION['subtopicId'] ?? 0);
         <div class="row mt-5 justify-content-center mb-5">
             <div class="col-md-6">
                 <div class="logo-w-head d-flex align-items-baseline">
-                    <img src="<?php echo getBaseUrl(); ?>assets/img/math.jpg">
-                    <?php echo $_SESSION['subtopicName']; ?>
-                </div>
-                <div class="">
-                    <h6 class="fw-bold brd-crumb"><?php echo $_SESSION['subtopicName']; ?></h6>
-                </div>
+    <img src="<?php echo getBaseUrl(); ?>assets/img/math.jpg">
+    <?php echo htmlspecialchars($topicTitle); ?>
+</div>
+<div class="">
+    <h6 class="fw-bold brd-crumb"><?php echo htmlspecialchars($topicTitle); ?></h6>
+</div>
+
                 <p class="mb-3">
                     The video above has been specially created to guide you through the key concepts of this course...
                 </p>
@@ -115,24 +118,16 @@ $subtopicId = $_GET['subtopic'] ?? ($_SESSION['subtopicId'] ?? 0);
                     <!-- Custom Tab Bar -->
                     <div class="tab-wrapper">
                         <div class="tabs w-75 p-1">
-                            <a href="?tab=video&subtopic=<?= $subtopicId ?>" class="tab pt-4 <?= ($activeTab == 'video') ? 'active' : '' ?>">Video Lessons</a>
-                            <a href="?tab=quiz&subtopic=<?= $subtopicId ?>" class="tab pt-4 <?= ($activeTab == 'quiz') ? 'active' : '' ?>">Quiz</a>
-                            <a href="?tab=paper&subtopic=<?= $subtopicId ?>" class="tab pt-4 <?= ($activeTab == 'paper') ? 'active' : '' ?>">Past Paper</a>
+    <a href="?tab=video&setup_id=<?= (int)$setupId ?>" class="tab pt-4 <?= ($activeTab == 'video') ? 'active' : '' ?>">Video Lessons</a>
+    <a href="?tab=quiz&setup_id=<?= (int)$setupId ?>" class="tab pt-4 <?= ($activeTab == 'quiz') ? 'active' : '' ?>">Quiz</a>
+    <a href="?tab=paper&setup_id=<?= (int)$setupId ?>" class="tab pt-4 <?= ($activeTab == 'paper') ? 'active' : '' ?>">Past Paper</a>
                         </div>
                     </div>
                 </div>
             </div>
 
             <?php
-            $subjectId = $_SESSION['subtopicId'];
-            $db = FatApp::getDb();
-
-            // Fetch topics
-            $topicQuery = "SELECT id, topic FROM course_topics WHERE subject_id = " . (int)$subjectId;
-            $topicResult = $db->query($topicQuery);
-            $topics = $db->fetchAll($topicResult);
-
-            $subtopicids = [];
+          $subtopics = $subtopics ?? [];
             if (!empty($topics)) {
                 foreach ($topics as $topic) {
                     $subtopicQuery = "SELECT id FROM course_topics WHERE parent_id = " . (int)$topic['id'];
@@ -154,169 +149,136 @@ $subtopicId = $_GET['subtopic'] ?? ($_SESSION['subtopicId'] ?? 0);
 
             <!-- Tab Contents -->
             <div class="pt-4">
-                <?php if ($activeTab === 'video'): ?>
-                <div id="video" class="tab-content active">
-                    <h4>Video Lessons</h4>
-                    <p>This section contains video lessons grouped by topic.</p>
-                    <?php
-                    if (empty($topics)) {
-                        echo '<p>No topics found.</p>';
-                    } else {
-                        foreach ($topics as $topicIndex => $topic):
-                            $topicId = (int)$topic['id'];
-                            $topicName = htmlspecialchars($topic['topic']);
-                    ?>
-                        <div class="mb-3">
-                            <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-<?php echo $topicId; ?>">
-                                <span class="dropdown-indicator">▾</span>
-                                <span class="topic-text"><?php echo 'Topic ' . ($topicIndex + 1) . ' - ' . $topicName; ?></span>
-                            </button>
-                        </div>
-                        <div class="collapse mb-4" id="topic-<?php echo $topicId; ?>">
-                            <div class="row">
-                                <?php
-                                $subtopicQuery = "SELECT id, topic AS subtopic FROM course_topics WHERE parent_id = " . $topicId;
-                                $subtopicResult = $db->query($subtopicQuery);
-                                $subtopics = $db->fetchAll($subtopicResult);
+             <?php if ($activeTab === 'video'): ?>
+<div id="video" class="tab-content active">
+    <h4>Video Lessons</h4>
+    <p>This section contains video lessons grouped by topic.</p>
 
-                                if (!empty($subtopics)):
-                                    foreach ($subtopics as $subIndex => $sub):
-                                        $subId = (int)$sub['id'];
-                                        $subName = htmlspecialchars($sub['subtopic']);
-                                        $videoQuery = "SELECT video_url FROM course_subtopics WHERE subtopic = " . $subId . " LIMIT 1";
-                                        $videoResult = $db->query($videoQuery);
-                                        $videoRow = $db->fetch($videoResult);
-                                        $videoUrl = $videoRow['video_url'] ?? '';
-                                        $embedUrl = '';
-                                        if (!empty($videoUrl) && preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $videoUrl, $matches)) {
-                                            $videoId = $matches[1];
-                                            $embedUrl = 'https://www.youtube.com/embed/' . $videoId;
-                                        }
-                                ?>
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card shadow-sm">
-                                                <div class="card-body">
-                                                    <h6 class="card-title"><?php echo ($topicIndex + 1) . '.' . ($subIndex + 1) . ' ' . $subName; ?></h6>
-                                                    <?php if (!empty($embedUrl)): ?>
-                                                        <div class="video-container" id="video-<?php echo $subId; ?>" style="display:none;">
-                                                            <div class="ratio ratio-16x9">
-                                                                <iframe src="<?php echo $embedUrl; ?>" frameborder="0" allowfullscreen></iframe>
-                                                            </div>
-                                                        </div>
-                                                        <button class="btn btn-outline-secondary mt-2 w-100 watch-video-btn" data-target="#video-<?php echo $subId; ?>">Watch Video</button>
-                                                    <?php else: ?>
-                                                        <p class="text-muted">No video found for <?php echo $subName; ?>.</p>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                <?php
-                                    endforeach;
-                                else:
-                                    echo '<div class="col-12"><p class="text-muted">No subtopics found.</p></div>';
-                                endif;
-                                ?>
-                            </div>
-                        </div>
-                    <?php endforeach; } ?>
-                </div>
-                <script>
-                document.querySelectorAll('.watch-video-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const targetId = this.getAttribute('data-target');
-                        const target = document.querySelector(targetId);
-                        if(target.style.display === 'none'){
-                            target.style.display = 'block';
-                            this.textContent = 'Hide Video';
-                        } else {
-                            target.style.display = 'none';
-                            this.textContent = 'Watch Video';
-                        }
-                    });
-                });
-                </script>
-                <?php endif; ?>
-
-                <?php if ($activeTab === 'quiz'): ?>
-                <div id="quiz" class="tab-content active">
-                    <?php
-                    if (empty($topics)) {
-                        echo '<p class="text-center">No topics found.</p>';
-                    } else {
-                        foreach ($topics as $topicIndex => $topic) {
-                            $topicId = $topic['id'];
-                            $topicName = htmlspecialchars($topic['topic']);
-                    ?>
-                        <div class="mb-3">
-                            <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-<?php echo $topicId; ?>">
-                                <span class="dropdown-indicator">▾</span>
-                                <span class="topic-text"><?php echo 'Topic ' . ($topicIndex + 1) . ' - ' . $topicName; ?></span>
-                            </button>
-                        </div>
-                        <div class="collapse mb-4" id="topic-<?php echo $topicId; ?>">
-                            <div class="row">
-                                <?php
-                                $subtopicQuery = "SELECT id, topic as subtopic FROM course_topics WHERE parent_id = " . (int)$topicId;
-                                $subtopicResult = $db->query($subtopicQuery);
-                                $subtopics = $db->fetchAll($subtopicResult);
-                                if (!empty($subtopics)) {
-                                    foreach ($subtopics as $subIndex => $sub) {
-                                ?>
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card h-100 shadow-sm">
-                                            <div class="card-body d-flex flex-column justify-content-between">
-                                                <h6 class="card-title"><?php echo ($topicIndex + 1) . '.' . ($subIndex + 1) . ' ' . htmlspecialchars($sub['subtopic']); ?></h6>
-                                                <?php if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) { ?>
-                                                    <a href="<?php echo 'quizfocus?subtopic=' . $sub['id']; ?>" class="btn btn-primary mt-2">Start Quiz</a>
-                                                <?php } else { ?>
-                                                    <button class="btn btn-primary mt-2 btn-prnt-inner" data-bs-toggle="modal" data-bs-target="#quizSignupModal" data-subtopic-id="<?php echo (int)$sub['id']; ?>">Start Quiz</button>
-                                                <?php } ?>
-                                            </div>
-                                        </div>
+    <?php if (empty($subtopics)) { ?>
+        <p>No subtopics found.</p>
+    <?php } else { ?>
+        <div class="mb-3">
+            <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-1">
+                <span class="dropdown-indicator">▾</span>
+                <span class="topic-text"><?php echo 'Topic - ' . htmlspecialchars($topicTitle); ?></span>
+            </button>
+        </div>
+        <div class="collapse mb-4" id="topic-1">
+            <div class="row">
+                <?php foreach ($subtopics as $idx => $s): 
+                    $subId   = (int)$s['id'];
+                    $subName = htmlspecialchars($s['name']);
+                    $videoUrl = trim((string)$s['video_url']);
+                    $embedUrl = '';
+                    if (!empty($videoUrl) && preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $videoUrl, $m)) {
+                        $embedUrl = 'https://www.youtube.com/embed/' . $m[1];
+                    }
+                ?>
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title"><?php echo ($idx + 1) . '. ' . $subName; ?></h6>
+                            <?php if ($embedUrl) { ?>
+                                <div class="video-container" id="video-<?php echo $subId; ?>" style="display:none;">
+                                    <div class="ratio ratio-16x9">
+                                        <iframe src="<?php echo $embedUrl; ?>" frameborder="0" allowfullscreen></iframe>
                                     </div>
-                                <?php } } else {
-                                    echo '<div class="col-12"><p class="text-muted">No subtopics found.</p></div>';
-                                } ?>
-                            </div>
+                                </div>
+                                <button class="btn btn-outline-secondary mt-2 w-100 watch-video-btn" data-target="#video-<?php echo $subId; ?>">Watch Video</button>
+                            <?php } else { ?>
+                                <p class="text-muted">No video found for <?php echo $subName; ?>.</p>
+                            <?php } ?>
                         </div>
-                    <?php } } ?>
+                    </div>
                 </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php } ?>
+</div>
+
+<script>
+document.querySelectorAll('.watch-video-btn').forEach(function(button){
+  button.addEventListener('click', function(){
+    const target = document.querySelector(this.getAttribute('data-target'));
+    if (!target) return;
+    const show = (target.style.display === 'none' || !target.style.display);
+    target.style.display = show ? 'block' : 'none';
+    this.textContent = show ? 'Hide Video' : 'Watch Video';
+  });
+});
+</script>
+<?php endif; ?>
+
+              <?php if ($activeTab === 'quiz'): ?>
+<div id="quiz" class="tab-content active">
+    <?php if (empty($subtopics)) { ?>
+        <p class="text-center">No subtopics found.</p>
+    <?php } else { ?>
+        <div class="mb-3">
+            <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-q">
+                <span class="dropdown-indicator">▾</span>
+                <span class="topic-text"><?php echo 'Topic - ' . htmlspecialchars($topicTitle); ?></span>
+            </button>
+        </div>
+        <div class="collapse mb-4" id="topic-q">
+            <div class="row">
+                <?php foreach ($subtopics as $idx => $s): ?>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <h6 class="card-title"><?php echo ($idx + 1) . '. ' . htmlspecialchars($s['name']); ?></h6>
+                            <?php if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) { ?>
+                                <a href="<?php echo 'quizfocus?subtopic=' . (int)$s['id']; ?>" class="btn btn-primary mt-2">Start Quiz</a>
+                            <?php } else { ?>
+                                <button class="btn btn-primary mt-2 btn-prnt-inner" data-bs-toggle="modal" data-bs-target="#quizSignupModal" data-subtopic-id="<?php echo (int)$s['id']; ?>">Start Quiz</button>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php } ?>
+</div>
+<?php endif; ?>
+
                  
-		<?php if ($activeTab === 'paper'): ?>
-                    <div id="paper" class="tab-content active">
-                        <div class="accordion accordian-past-paper" id="accordionExample">
-                            <div class="accordion-item mb-3">
-                                <h2 class="accordion-header" id="headingOne">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                                        Paper 2025
-                                    </button>
-                                </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne">
-                                    <div class="accordion-body">
-                                        <?php if (!empty($papers)): ?>
-                                            <?php $hasPaper = false; ?>
-                                            <?php foreach ($papers as $index => $paper): ?>
-                                                <?php if (!empty($paper['previous_paper_pdf'])): ?>
-                                                    <?php
-                                                        $hasPaper = true;
-                                                        $paperTitle = date('F') . ' 25 Paper ' . ($index + 1);
-                                                        $pdfPath = htmlspecialchars($paper['previous_paper_pdf']);
-                                                    ?>
-                                                    <div class="paper-list-download mb-2">
-                                                        <span><?= $paperTitle ?></span>
-                                                        <a href="<?= $pdfPath ?>" target="_blank" rel="noopener noreferrer">Download Question Paper</a>
-                                                    </div>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
+	<?php if ($activeTab === 'paper'): ?>
+<div id="paper" class="tab-content active">
+  <div class="accordion accordian-past-paper" id="accordionExample">
+    <div class="accordion-item mb-3">
+      <h2 class="accordion-header" id="headingOne">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+          Paper Downloads
+        </button>
+      </h2>
+      <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne">
+        <div class="accordion-body">
+          <?php
+          $hasPaper = false;
+          if (!empty($subtopics)) {
+            foreach ($subtopics as $idx => $s) {
+              $pdf = trim((string)$s['previous_paper_pdf']);
+              if (!$pdf) continue;
+              $hasPaper = true;
+              $paperTitle = htmlspecialchars($s['name']);
+              $pdfPath    = htmlspecialchars($pdf);
+              echo '<div class="paper-list-download mb-2">
+                      <span>' . $paperTitle . '</span>
+                      <a href="' . $pdfPath . '" target="_blank" rel="noopener noreferrer">Download Question Paper</a>
+                    </div>';
+            }
+          }
+          if (!$hasPaper) { echo '<p>No previous papers found.</p>'; }
+          ?>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-                                            <?php if (!$hasPaper): ?>
-                                                <p>No previous papers found.</p>
-                                            <?php endif; ?>
 
-                                        <?php else: ?>
-                                            <p>No previous papers found.</p>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

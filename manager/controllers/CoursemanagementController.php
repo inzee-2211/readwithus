@@ -115,36 +115,45 @@ private function getForm(int $id = 0): Form
     $frm = new Form('frmQuizManagement');
     $db  = FatApp::getDb();
 
-    // SUBJECTS (course_subjects)
-    $subjects = $db->fetchAll($db->query(
-        "SELECT id, subject FROM course_subjects ORDER BY subject ASC"
-    ));
-    $subjectList = ['' => 'Select Subject'];
-    if ($subjects) {
-        foreach ($subjects as $s) { $subjectList[$s['id']] = $s['subject']; }
+    // SUBJECTS (build options WITHOUT an empty '' key)
+    $subjectRows = $db->fetchAll($db->query("SELECT id, subject FROM course_subjects ORDER BY subject ASC"));
+    $subjectList = [];
+    if ($subjectRows) {
+        foreach ($subjectRows as $s) {
+            $subjectList[$s['id']] = $s['subject'];
+        }
     }
 
-    // Keep previously selected values if coming back to the form
-    $posted = FatApp::getPostedData();
-    $subjectId = FatUtility::int($posted['subject_id'] ?? 0);
+    $posted      = FatApp::getPostedData();
+    $subjectId   = FatUtility::int($posted['subject_id']   ?? 0);
+    $examboardId = FatUtility::int($posted['examboard_id'] ?? 0);
+    $tierId      = FatUtility::int($posted['tier_id']      ?? 0);
 
-    $fldSubj = $frm->addSelectBox('Subject', 'subject_id', $subjectList, $subjectId, [], '');
+    // Subject (pass placeholder in the LAST param, not inside options)
+    $fldSubj = $frm->addSelectBox('Subject', 'subject_id', $subjectList, $subjectId, [], Label::getLabel('LBL_SELECT_SUBJECT'));
     $fldSubj->setFieldTagAttribute('id', 'subject_id');
     $fldSubj->requirements()->setRequired();
 
-    // TOPICS (from tbl_quiz_setup, filtered by subject)
-    $topicList = ['' => 'Select Topic'];
+    // Examboard (empty options here; client fills via AJAX; placeholder in LAST param)
+    $fldBoard = $frm->addSelectBox('Examboard', 'examboard_id', [], $examboardId, [], Label::getLabel('LBL_SELECT_EXAMBOARD'));
+    $fldBoard->setFieldTagAttribute('id', 'examboard_id');
+
+    // Tier (same)
+    $fldTier = $frm->addSelectBox('Tier', 'tier_id', [], $tierId, [], Label::getLabel('LBL_SELECT_TIER'));
+    $fldTier->setFieldTagAttribute('id', 'tier_id');
+
+    // Topics: keep server fallback by subject (no '' in options; pass placeholder last)
+    $topicList = [];
     if ($subjectId > 0) {
         $qSid = $db->quoteVariable($subjectId);
-        $rows = $db->fetchAll(
-            $db->query("SELECT id, topic_name FROM tbl_quiz_setup WHERE subject_id = $qSid ORDER BY topic_name ASC")
-        );
+        $rows = $db->fetchAll($db->query(
+            "SELECT id, topic_name FROM tbl_quiz_setup WHERE subject_id = $qSid ORDER BY topic_name ASC"
+        ));
         if ($rows) {
             foreach ($rows as $t) { $topicList[$t['id']] = $t['topic_name']; }
         }
     }
-
-    $fldTopic = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], '');
+    $fldTopic = $frm->addSelectBox('Topic', 'quiz_setup_id', $topicList, '', [], Label::getLabel('LBL_SELECT_TOPIC'));
     $fldTopic->setFieldTagAttribute('id', 'quiz_setup_id');
     $fldTopic->requirements()->setRequired();
 
@@ -153,8 +162,8 @@ private function getForm(int $id = 0): Form
     $frm->addTextBox('Video URL (optional)', 'video_url', '');
     $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
     $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
-    
-    // ADD THESE HIDDEN FIELDS FOR EDIT MODE
+
+    // Hidden fields
     $frm->addHiddenField('', 'id', $id);
     $frm->addHiddenField('', 'existing_pdf', '');
 
@@ -162,34 +171,44 @@ private function getForm(int $id = 0): Form
     return $frm;
 }
 
+
 public function topicsBySubject()
 {
     $db  = FatApp::getDb();
+
     $sid = FatUtility::int(
         FatApp::getPostedData('subject_id', FatUtility::VAR_INT,
             FatApp::getPostedData('subjectId', FatUtility::VAR_INT, 0)
         )
     );
+    $examboardId = FatUtility::int(FatApp::getPostedData('examboard_id', FatUtility::VAR_INT, 0));
+    $tierId      = FatUtility::int(FatApp::getPostedData('tier_id', FatUtility::VAR_INT, 0));
+
     if ($sid <= 0) {
         FatUtility::dieJsonSuccess(['status' => 1, 'data' => [], 'count' => 0]);
     }
 
-    $qSid = $db->quoteVariable($sid); // ✅ quote
+    // Build WHERE with optional filters (preserve subject-only as fallback)
+    $where = ["subject_id = " . $db->quoteVariable($sid)];
+    if ($examboardId > 0) $where[] = "examboard_id = " . $db->quoteVariable($examboardId);
+    if ($tierId      > 0) $where[] = "tier_id = "      . $db->quoteVariable($tierId);
+
     $sql  = "SELECT id, topic_name
                FROM tbl_quiz_setup
-              WHERE subject_id = $qSid
+              WHERE " . implode(' AND ', $where) . "
            ORDER BY topic_name ASC";
 
-    $rs   = $db->query($sql);         // ✅ query returns result set (or false)
+    $rs   = $db->query($sql);
     if (!$rs) {
         FatUtility::dieJsonSuccess(['status' => 1, 'data' => [], 'count' => 0]);
     }
 
-    $rows = $db->fetchAll($rs);       // ✅ pass result set to fetchAll
+    $rows  = $db->fetchAll($rs);
     $pairs = $rows ? array_column($rows, 'topic_name', 'id') : [];
 
     FatUtility::dieJsonSuccess(['status' => 1, 'data' => $pairs, 'count' => count($pairs)]);
 }
+
 
 
 
@@ -359,58 +378,54 @@ public function topicsBySubject()
 
 
     public function getexamboardforsubject()
-    {
-        // Assuming the 'level_id' is passed in the request
-        $subjectId = FatApp::getPostedData('subjectId', FatUtility::VAR_INT, 0);
+{
+    // accept either subject_id or subjectId (some callers use one or the other)
+    $subjectId = FatUtility::int(
+        FatApp::getPostedData('subject_id', FatUtility::VAR_INT,
+            FatApp::getPostedData('subjectId', FatUtility::VAR_INT, 0)
+        )
+    );
 
-        // Check if level ID is valid
-        if ($subjectId <= 0) {
-            echo json_encode(['status' => 0 , 'msg' => 'Invalid level ID']);
-            return;
-        }
-
-        // Fetch subjects for the given level from the database
-        $examboard = $this->getExamboardBySubject($subjectId); // Your method to get subjects by level
-
-        if (empty($examboard)) {
-            echo json_encode(['status' => 0, 'msg' => 'No subjects found for the selected level']);
-            return;
-        }
-
-        // Add the "Add New" option
-        $examboard['add_new'] = ['id' => 'add_new', 'name' => '➕ Add New'];
-
-        // Return subjects as JSON response
-        echo json_encode(['status' => 1, 'data' => $examboard]);
+    if ($subjectId <= 0) {
+        echo json_encode(['status' => 0 , 'msg' => 'Invalid subject ID']);
+        return;
     }
 
-    private function getExamboardBySubject($subjectId)
-    {
-        // Get the database instance
-        $db = FatApp::getDb();
+    $examboard = $this->getExamboardBySubject($subjectId);
 
-        // Directly insert the levelId into the query (ensure proper escaping to prevent SQL injection)
-        $query = "SELECT id, name FROM course_examboards WHERE 	subject_id = $subjectId"; // Direct insertion
-
-        // Execute the query
-        $result = $db->query($query);
-
-        // Check if the query was successful
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-
-        // Fetch all results
-        $examboard = $db->fetchAll($result);
-
-        // If no records found, return an empty array
-        if (empty($examboard)) {
-            return [];
-        }
-
-        // Return the subjects as an associative array
-        return array_column($examboard, 'name', 'id');
+    if (empty($examboard)) {
+        // optional fallback: return all boards (or keep it empty if you prefer)
+        // $examboard = $this->pair("SELECT id, name FROM course_examboards ORDER BY name");
+        echo json_encode(['status' => 0, 'msg' => 'No exam boards found for this subject']);
+        return;
     }
+
+    // keep the “Add New” option if you use it elsewhere
+    $examboard['add_new'] = ['id' => 'add_new', 'name' => '➕ Add New'];
+
+    echo json_encode(['status' => 1, 'data' => $examboard]);
+}
+
+
+    private function getExamboardBySubject(int $subjectId): array
+{
+    $db  = FatApp::getDb();
+    $qid = $db->quoteVariable($subjectId);
+
+    // Pull distinct boards that are actually used by topics for the selected subject
+    $sql = "SELECT eb.id, eb.name
+              FROM tbl_quiz_setup qs
+        INNER JOIN course_examboards eb ON eb.id = qs.examboard_id
+             WHERE qs.subject_id = $qid
+          GROUP BY eb.id, eb.name
+          ORDER BY eb.name ASC";
+
+    $rs   = $db->query($sql);
+    if (!$rs) { return []; }
+
+    $rows = $db->fetchAll($rs);
+    return $rows ? array_column($rows, 'name', 'id') : [];
+}
 
     public function getTierforExamboard()
     {
@@ -558,10 +573,12 @@ public function uploadQuestionBank()
     unset($lines[0]); // Remove header row
 
     $insertedCount = 0;
+    $uploadDir = 'uploads/question_images/';
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
     foreach ($lines as $line) {
-        // Pad to at least 14 fields to prevent undefined offset errors
-        $line = array_pad($line, 14, '');
+        // Pad to at least 16 fields to handle all columns including explanation and image
+        $line = array_pad($line, 16, '');
 
         [
             $question_text,
@@ -577,18 +594,35 @@ public function uploadQuestionBank()
             $levelName,
             $question_type,
             $tier,
-            $hint
+            $hint,
+            $explanation,    // NEW FIELD
+            $image_url       // NEW FIELD
         ] = $line;
 
         if (empty($question_text) || empty($correct_answer)) {
             continue; // Skip incomplete rows
         }
 
-        // Resolve Examboard ID from course_examboards table
+        // Handle image upload from URL
+        $imagePath = '';
+        if (!empty($image_url)) {
+            $imageContent = @file_get_contents(trim($image_url));
+            if ($imageContent !== false) {
+                $ext = pathinfo(parse_url($image_url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                if (empty($ext)) {
+                    $ext = 'jpg'; // Default extension
+                }
+                $imageName = uniqid('qimg_') . '.' . $ext;
+                $imagePath = $uploadDir . $imageName;
+                file_put_contents($imagePath, $imageContent);
+            }
+        }
+
+        // Resolve Examboard ID
         $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
         $examboardId = $examboardRow ? $examboardRow['id'] : 0;
 
-        // Resolve Level ID from tbl_courses (or wherever levels are stored)
+        // Resolve Level ID
         $levelRow = $db->fetch("SELECT id FROM tbl_courses WHERE name = ?", [$levelName]);
         $levelId = $levelRow ? $levelRow['id'] : 0;
 
@@ -609,8 +643,10 @@ public function uploadQuestionBank()
             'tier'              => trim($tier),
             'hint'              => trim($hint),
             'question_type'     => trim($question_type),
-             'category'          => '',                  // <-- add this line
-            'subcategory'       => '', // optional
+            'category'          => '',
+            'subcategory'       => '',
+            'explanation'       => trim($explanation), // NEW FIELD
+            'image'             => $imagePath,        // NEW FIELD
             'question_added_on' => date('Y-m-d H:i:s'),
         ];
 
@@ -633,7 +669,7 @@ public function setup()
 {
     $db   = FatApp::getDb();
     $post = FatApp::getPostedData();
-    $id   = FatUtility::int($post['id'] ?? 0); // qm.id when editing
+    $id   = FatUtility::int($post['id'] ?? 0);
 
     $quizSetupId  = FatUtility::int($post['quiz_setup_id']);
     $subtopicName = trim($post['subtopic_name'] ?? '');
@@ -643,7 +679,7 @@ public function setup()
         FatUtility::dieJsonError('Topic and Subtopic name are required.');
     }
 
-    // optional PDF
+    // PDF upload logic remains the same...
     $pdfPath = '';
     if (!empty($_FILES['pdf_path']['tmp_name']) && $_FILES['pdf_path']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['pdf_path']['name'], PATHINFO_EXTENSION));
@@ -664,15 +700,15 @@ public function setup()
     ];
     if ($pdfPath) { $payload['pdf_path'] = $pdfPath; }
 
+    // Insert/Update subtopic logic remains the same...
     if ($id > 0) {
-        // UPDATE
         if (!$db->updateFromArray('tbl_quiz_management', $payload, ['smt' => 'id = ?', 'vals' => [$id]])) {
             $db->rollbackTransaction();
             FatUtility::dieJsonError('Failed to update subtopic: ' . $db->getError());
         }
         $subtopicId = $id;
 
-        // If a new CSV is uploaded on edit, replace questions
+        // Clear old questions if new CSV uploaded
         if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
             if (!$db->deleteRecords('tbl_quaestion_bank', ['smt' => 'subtopic_id = ?', 'vals' => [$subtopicId]])) {
                 $db->rollbackTransaction();
@@ -680,7 +716,6 @@ public function setup()
             }
         }
     } else {
-        // INSERT
         $payload['created_at'] = date('Y-m-d H:i:s');
         if (!$db->insertFromArray('tbl_quiz_management', $payload)) {
             $db->rollbackTransaction();
@@ -689,13 +724,34 @@ public function setup()
         $subtopicId = $db->getInsertId();
     }
 
-    // CSV (optional)
+    // UPDATED CSV PROCESSING WITH EXPLANATION AND IMAGE SUPPORT
     if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
         $csvData = array_map('str_getcsv', file($_FILES['quiz_csv']['tmp_name']));
+        $uploadDir = 'uploads/question_images/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
         foreach ($csvData as $i => $row) {
-            if ($i === 0 || count($row) < 6) continue; // skip header/short rows
-            list($question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint) =
-                array_pad($row, 9, '');
+            if ($i === 0 || count($row) < 11) continue; // Skip header and incomplete rows
+            
+            // Pad to at least 11 fields to handle optional fields
+            $row = array_pad($row, 11, '');
+            
+            list($question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint, $explanation, $image_url) = $row;
+
+            // Handle image upload from URL
+            $imagePath = '';
+            if (!empty($image_url)) {
+                $imageContent = @file_get_contents(trim($image_url));
+                if ($imageContent !== false) {
+                    $ext = pathinfo(parse_url($image_url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                    if (empty($ext)) {
+                        $ext = 'jpg'; // Default extension
+                    }
+                    $imageName = uniqid('qimg_') . '.' . $ext;
+                    $imagePath = $uploadDir . $imageName;
+                    file_put_contents($imagePath, $imageContent);
+                }
+            }
 
             $qData = [
                 'subtopic_id'       => $subtopicId,
@@ -708,8 +764,11 @@ public function setup()
                 'difficult_level'   => $difficulty !== '' ? trim($difficulty) : 'Medium',
                 'question_type'     => $question_type !== '' ? trim($question_type) : 'MCQ',
                 'hint'              => trim($hint),
+                'explanation'       => trim($explanation), // NEW FIELD
+                'image'             => $imagePath,        // NEW FIELD
                 'question_added_on' => date('Y-m-d H:i:s'),
             ];
+            
             if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
                 $db->rollbackTransaction();
                 FatUtility::dieJsonError('Error inserting question: ' . $db->getError());
@@ -720,7 +779,6 @@ public function setup()
     $db->commitTransaction();
     FatUtility::dieJsonSuccess(['msg' => '✅ Subtopic and questions saved successfully!']);
 }
-
 
 
     /**
@@ -1051,7 +1109,7 @@ public function questionBank(int $subtopicId)
     $q->addCondition('qb.subtopic_id', '=', $subtopicId);
     $q->addMultipleFields([
         'qb.id','qb.question_title','qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
-        'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on'
+        'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on', 'qb.image','qb.explanation' 
     ]);
     
     $rs = $q->getResultSet();
@@ -1072,10 +1130,10 @@ public function subtopicForm(int $id = 0)
     $row = null;
     if ($id > 0) {
         $qid = $db->quoteVariable($id);
-        $rs  = $db->query("SELECT qm.*, qs.subject_id
-                             FROM tbl_quiz_management qm
-                       INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
-                            WHERE qm.id = $qid");
+       $rs  = $db->query("SELECT qm.*, qs.subject_id, qs.examboard_id, qs.tier_id
+                     FROM tbl_quiz_management qm
+               INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+                    WHERE qm.id = $qid"); // rehan
         $row = $db->fetch($rs);
         if (!$row) {
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
@@ -1088,6 +1146,8 @@ public function subtopicForm(int $id = 0)
         $frm->fill([
             'id'            => $row['id'],
             'subject_id'    => $row['subject_id'],
+            'examboard_id'  => $row['examboard_id'] ?? 0, // NEW
+        'tier_id'       => $row['tier_id'] ?? 0,      // NEW
             'quiz_setup_id' => $row['quiz_setup_id'],
             'subtopic_name' => $row['subtopic_name'],
             'video_url'     => $row['video_url'],
@@ -1147,6 +1207,7 @@ public function questionForm(int $subtopicId, int $id = 0)
  // ---- Build form (safe defaults) ----
 $frm = new Form('frmQuestion');
 $frm->addHiddenField('', 'id', $id);
+   $frm->setFormTagAttribute('id', 'frmQuestion');// rehan
 $frm->addHiddenField('', 'subtopic_id', $subtopicId);
 
 $currType = $row['question_type'] ?? 'Multiple-Choice'; // safe default
@@ -1171,12 +1232,13 @@ $frm->addSelectBox('Correct Answer', 'correct_answer', ['A'=>'A','B'=>'B','C'=>'
 $frm->addHtml('', '', '</div>');
 
 /* Text answer for Story/Short */
-$frm->addHtml('', '', '<div class="text-answer-field">');
-$frm->addTextArea('Answer (text)', 'answer_text', ($currType === 'Multiple-Choice') ? '' : ($row['answer_a'] ?? ''), ['rows'=>3]);
-$frm->addHtml('', '', '</div>');
+// $frm->addHtml('', '', '<div class="text-answer-field">');
+// $frm->addTextArea('Answer (text)', 'answer_text', ($currType === 'Multiple-Choice') ? '' : ($row['answer_a'] ?? ''), ['rows'=>3]);
+// $frm->addHtml('', '', '</div>');
 
 $frm->addSelectBox('Difficulty', 'difficult_level', ['Easy'=>'Easy','Medium'=>'Medium','Hard'=>'Hard'], $row['difficult_level'] ?? 'Medium');
 $frm->addTextBox('Hint (optional)', 'hint', $row['hint'] ?? '');
+$frm->addTextArea('Explanation (optional)', 'explanation', $row['explanation'] ?? '', ['rows'=>3]);
 $frm->addFileUpload('Image (optional)', 'image', ['accept'=>'.jpg,.jpeg,.png,.gif']);
 $frm->addHiddenField('', 'existing_image', $row['image'] ?? '');
 $frm->addSubmitButton('', 'btn_submit', ($id>0?'Update':'Add') . ' Question');
@@ -1210,6 +1272,7 @@ public function saveQuestion()
         'difficult_level' => trim($post['difficult_level'] ?? 'Medium'),
         'question_type'   => trim($post['question_type'] ?? 'Multiple-Choice'),
         'hint'            => trim($post['hint'] ?? ''),
+        'explanation'     => trim($post['explanation'] ?? ''),
     ];
     if ($data['question_title'] === '') {
         FatUtility::dieJsonError('Question is required.');

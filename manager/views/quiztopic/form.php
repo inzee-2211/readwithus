@@ -55,11 +55,55 @@ const LBL_LOADING = <?= json_encode(Label::getLabel('LBL_LOADING')); ?>;
 const LBL_SELECT  = <?= json_encode(Label::getLabel('LBL_SELECT')); ?>;
 const URL_SUBJECTS_BY_LEVEL = <?= json_encode(MyUtility::makeUrl('Quiztopic','subjectsByLevel')); ?>;
 const PRESELECT_SUBJECT_ID  = <?= (int)($data['subject_id'] ?? 0); ?>;
+const URL_TIERS_BY_BOARD     = <?= json_encode(MyUtility::makeUrl('Quiztopic','tiersByExamboard')); ?>;
+const PRESELECT_TIER_ID      = <?= (int)($data['tier_id'] ?? 0); ?>;
+const PRESELECT_BOARD_ID     = <?= (int)($data['examboard_id'] ?? 0); ?>;
+
 
 (function () {
   // subjects-by-level
   const levelSel   = document.querySelector('#level_id');
   const subjectSel = document.querySelector('#subject_id');
+    const boardSel = document.querySelector('#examboard_id');
+  const tierSel  = document.querySelector('#tier_id');
+   function fillTiers(map, selectedId) {
+    if (!tierSel) return;
+    tierSel.innerHTML = '<option value="">' + LBL_SELECT + '</option>';
+    Object.keys(map || {}).forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = map[id];
+      if (selectedId && String(selectedId) === String(id)) opt.selected = true;
+      tierSel.appendChild(opt);
+    });
+  }
+
+  function loadTiers(boardId, selectedId) {
+    if (!boardSel || !tierSel) return;
+    if (!boardId) { fillTiers({}, 0); return; }
+    tierSel.innerHTML = '<option value="">' + LBL_LOADING + '</option>';
+    const fd = new FormData();
+    fd.append('examboard_id', boardId);
+    fetch(URL_TIERS_BY_BOARD, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(async r => { const t = await r.text(); try { return JSON.parse(t); } catch { throw new Error(t); }})
+    .then(j => fillTiers((j && j.data) || {}, selectedId))
+    .catch(() => fillTiers({}, 0));
+  }
+
+  if (boardSel && tierSel) {
+    // when the exam board changes, (re)load tiers
+    boardSel.addEventListener('change', () => loadTiers(boardSel.value, 0));
+    // initial load for edit mode
+    if (boardSel.value) {
+      loadTiers(boardSel.value, PRESELECT_TIER_ID);
+    } else if (PRESELECT_BOARD_ID) {
+      loadTiers(PRESELECT_BOARD_ID, PRESELECT_TIER_ID);
+    }
+  }
   function showAlert(ok, msg){
     const el = document.getElementById('qt-alert');
     el.className = 'alert ' + (ok ? 'alert--ok' : 'alert--err');

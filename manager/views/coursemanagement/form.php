@@ -4,8 +4,7 @@ $frm->developerTags['colClassPrefix'] = 'col-md-';
 $frm->developerTags['fld_default_col'] = 12;
 $frm->setFormTagAttribute('class', 'web_form form_horizontal');
 $frm->setFormTagAttribute('onsubmit', 'setup(this); return(false);');
-$frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ add this
-
+$frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ keep upload support
 ?>
 <style>
     .rightalign {
@@ -13,9 +12,7 @@ $frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ add this
         justify-content: flex-end;
         margin-right: 100px;
     }
-    .hidden {
-        display: none;
-    }
+    .hidden { display: none; }
     .existing-file {
         margin-top: 10px;
         padding: 10px;
@@ -24,14 +21,15 @@ $frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ add this
         border-left: 4px solid #007bff;
     }
 </style>
+
 <section class="section">
     <div class="sectionhead d-flex justify-content-between align-items-center">
         <h4 class="mb-0">
             <?php echo ($categoryId > 0) ? Label::getLabel('LBL_EDIT_QUIZ') : Label::getLabel('LBL_ADD_QUIZ'); ?>
         </h4>
-        <a href="<?php echo CONF_WEBROOT_FRONT_URL . 'public/uploads/sample_csv/questions.csv'; ?>" 
-           class="btn btn--primary btn--sm" 
-           download 
+        <a href="<?php echo CONF_WEBROOT_FRONT_URL . 'public/uploads/sample_csv/questions.csv'; ?>"
+           class="btn btn--primary btn--sm"
+           download
            title="Download sample course import file">
             <i class="ion-android-download"></i> Download Sample CSV
         </a>
@@ -44,14 +42,15 @@ $frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ add this
                     <div class="tabs_panel_wrap">
                         <div class="tabs_panel">
                             <?php echo $frm->getFormHtml(); ?>
-                            
+
                             <!-- Show existing PDF if available -->
-                            <?php 
-                            $existingPdf = $frm->getField('pdf_path')->value;
-                            if (!empty($existingPdf)): 
+                            <?php
+                            $existingPdfField = $frm->getField('pdf_path');
+                            $existingPdf = $existingPdfField ? $existingPdfField->value : '';
+                            if (!empty($existingPdf)):
                             ?>
                             <div class="existing-file">
-                                <strong>Existing PDF:</strong> 
+                                <strong>Existing PDF:</strong>
                                 <a href="<?php echo $existingPdf; ?>" target="_blank" style="margin-left: 10px; color: #007bff;">
                                     <i class="ion-document-text"></i> View Current PDF
                                 </a>
@@ -70,119 +69,203 @@ $frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ add this
 
 <script>
 (function () {
-    // Store the initial topic ID for edit mode
-    const initialTopicId = <?php echo json_encode($data['quiz_setup_id'] ?? 0); ?>;
-    
-    // Event delegation for subject change
-    document.addEventListener('change', function (e) {
-        const t = e.target;
-        if (!t) return;
+  // ======= Preselected values from PHP (edit mode friendly) =======
+  const initialData = {
+    subjectId:   <?php echo json_encode($data['subject_id']    ?? 0); ?>,
+    examboardId: <?php echo json_encode($data['examboard_id']  ?? 0); ?>,
+    tierId:      <?php echo json_encode($data['tier_id']       ?? 0); ?>,
+    topicId:     <?php echo json_encode($data['quiz_setup_id'] ?? 0); ?>
+  };
 
-        // Match the Subject select by id or name
-        const isSubject = t.id === 'subject_id' || t.name === 'subject_id';
+  // ======= Elements =======
+  const $ = (sel)=>document.querySelector(sel);
+  const subj  = $('#subject_id,[name="subject_id"]');
+  const board = $('#examboard_id,[name="examboard_id"]');
+  const tier  = $('#tier_id,[name="tier_id"]');
+  const topic = $('#quiz_setup_id,[name="quiz_setup_id"]');
 
-        if (!isSubject) return;
+  // ======= Endpoints =======
+  const URL_TOPICS    = <?= json_encode(MyUtility::makeUrl('Coursemanagement','topicsBySubject')); ?>;
+  const URL_EXAMBOARD = <?= json_encode(MyUtility::makeUrl('Coursemanagement','getexamboardforsubject')); ?>;
+  const URL_TIER      = <?= json_encode(MyUtility::makeUrl('Coursemanagement','getTierforExamboard')); ?>;
 
-        const sid = (t.value || '').trim();
-        // Find the Topic select reliably
-        const topic = document.querySelector('#quiz_setup_id,[name="quiz_setup_id"]');
-        if (!topic) { 
-            console.error('Topic <select> not found'); 
-            return; 
-        }
-
-        if (!sid) {
-            topic.innerHTML = '<option value="">Select Topic</option>';
-            return;
-        }
-
-        // Show loading and call endpoint
-        topic.innerHTML = '<option value="">Loading...</option>';
-
-        const fd = new FormData();
-        fd.append('subject_id', sid);
-
-        fetch('<?= MyUtility::makeUrl('Coursemanagement','topicsBySubject'); ?>', {
-            method: 'POST',
-            body: fd,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(async res => {
-            const text = await res.text();
-            console.log('topicsBySubject raw:', text);
-            try { 
-                return JSON.parse(text); 
-            } catch(e) { 
-                console.error('JSON parse error:', e);
-                return null; 
-            }
-        })
-        .then(json => {
-            const map = (json && json.data) || {};
-            const ids = Object.keys(map);
-
-            topic.innerHTML = '<option value="">' + (ids.length ? 'Select Topic' : 'No topics for this subject') + '</option>';
-
-            const frag = document.createDocumentFragment();
-            ids.forEach(id => {
-                const opt = document.createElement('option');
-                opt.value = id;
-                opt.textContent = map[id];
-                frag.appendChild(opt);
-            });
-            topic.appendChild(frag);
-
-            // In edit mode, try to select the initial topic
-            if (initialTopicId > 0) {
-                setTimeout(() => {
-                    const optionToSelect = topic.querySelector('option[value="' + initialTopicId + '"]');
-                    if (optionToSelect) {
-                        topic.value = initialTopicId;
-                        console.log('Auto-selected topic:', initialTopicId);
-                    } else {
-                        console.warn('Initial topic not found in options:', initialTopicId);
-                    }
-                    
-                    // Refresh any select plugins
-                    if (window.jQuery && jQuery(topic).data('select2')) {
-                        jQuery(topic).trigger('change.select2');
-                    }
-                    if (window.jQuery && jQuery.fn.selectpicker) {
-                        jQuery(topic).selectpicker('refresh');
-                    }
-                }, 100);
-            }
-
-            // Refresh any select plugins
-            if (window.jQuery && jQuery(topic).data('select2')) {
-                jQuery(topic).trigger('change.select2');
-            }
-            if (window.jQuery && jQuery.fn.selectpicker) {
-                jQuery(topic).selectpicker('refresh');
-            }
-        })
-        .catch(err => {
-            console.error('topicsBySubject failed:', err);
-            topic.innerHTML = '<option value="">Error loading topics</option>';
-        });
-    });
-
-    // Auto-trigger subject change if subject is pre-selected (for edit mode)
-    const subj = document.querySelector('#subject_id,[name="subject_id"]');
-    if (subj && subj.value) {
-        console.log('Auto-loading topics for subject:', subj.value);
-        const evt = new Event('change', { bubbles: true });
-        subj.dispatchEvent(evt);
-    } else {
-        // If no subject selected, ensure topic dropdown is reset
-        const topic = document.querySelector('#quiz_setup_id,[name="quiz_setup_id"]');
-        if (topic) {
-            topic.innerHTML = '<option value="">Select Topic</option>';
-        }
+  function refreshPlugins(el) {
+    if (!el) return;
+    if (window.jQuery && jQuery(el).data('select2')) {
+      jQuery(el).trigger('change.select2');
     }
-})();
+    if (window.jQuery && jQuery.fn.selectpicker) {
+      jQuery(el).selectpicker('refresh');
+    }
+  }
 
-// Form submission handler
+  function setOptions(selectEl, data, placeholder) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = placeholder;
+    selectEl.appendChild(opt0);
+
+    if (!data) {
+      refreshPlugins(selectEl);
+      return;
+    }
+
+    // Supports {id: name} OR [{id,name}, ...]
+    if (Array.isArray(data)) {
+      data.forEach(o => {
+        if (!o) return;
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        selectEl.appendChild(opt);
+      });
+    } else {
+      Object.keys(data).forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = data[id];
+        selectEl.appendChild(opt);
+      });
+    }
+    refreshPlugins(selectEl);
+  }
+
+  async function postJSON(url, payload) {
+    const fd = new FormData();
+    Object.keys(payload).forEach(k => {
+      const v = payload[k];
+      if (v !== undefined && v !== null) fd.append(k, v);
+    });
+    const res = await fetch(url, { method: 'POST', body: fd, headers: {'X-Requested-With':'XMLHttpRequest'} });
+    const txt = await res.text();
+    try { return JSON.parse(txt); } catch (e) { console.warn('JSON parse error:', e, txt); return null; }
+  }
+
+  // ========== Loaders ==========
+  async function loadExamboards(subjectId, preselect = 0) {
+    setOptions(board, null, <?= json_encode(Label::getLabel('LBL_LOADING')); ?> + '…');
+    setOptions(tier,  null, <?= json_encode(Label::getLabel('LBL_SELECT_TIER')); ?>);
+    setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+
+    if (!subjectId) {
+      setOptions(board, null, <?= json_encode(Label::getLabel('LBL_SELECT_EXAMBOARD')); ?>);
+      return;
+    }
+    const json = await postJSON(URL_EXAMBOARD, { subjectId: subjectId });
+    if (!json || json.status !== 1) {
+      setOptions(board, null, <?= json_encode(Label::getLabel('LBL_NO_RECORD_FOUND')); ?>);
+      return;
+    }
+    const map = json.data || {};
+    delete map.add_new; // remove the “add new” synthetic entry if your endpoint adds it
+    const hasAny = Object.keys(map).length > 0;
+    setOptions(board, map, hasAny ? <?= json_encode(Label::getLabel('LBL_SELECT_EXAMBOARD')); ?> : <?= json_encode(Label::getLabel('LBL_NO_RECORD_FOUND')); ?>);
+
+    if (preselect && map[preselect]) {
+      board.value = String(preselect);
+      refreshPlugins(board);
+    }
+  }
+
+  async function loadTiers(examboardId, preselect = 0) {
+    setOptions(tier,  null, <?= json_encode(Label::getLabel('LBL_LOADING')); ?> + '…');
+    setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+
+    if (!examboardId) {
+      setOptions(tier, null, <?= json_encode(Label::getLabel('LBL_SELECT_TIER')); ?>);
+      return;
+    }
+    const json = await postJSON(URL_TIER, { examboardId: examboardId });
+    if (!json || json.status !== 1) {
+      setOptions(tier, null, <?= json_encode(Label::getLabel('LBL_NO_RECORD_FOUND')); ?>);
+      return;
+    }
+    const map = json.data || {};
+    delete map.add_new;
+    const hasAny = Object.keys(map).length > 0;
+    setOptions(tier, map, hasAny ? <?= json_encode(Label::getLabel('LBL_SELECT_TIER')); ?> : <?= json_encode(Label::getLabel('LBL_NO_RECORD_FOUND')); ?>);
+
+    if (preselect && map[preselect]) {
+      tier.value = String(preselect);
+      refreshPlugins(tier);
+    }
+  }
+
+  async function loadTopics(subjectId, examboardId, tierId, preselectTopicId = 0) {
+    setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_LOADING')); ?> + '…');
+    if (!subjectId) {
+      setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+      return;
+    }
+    const json = await postJSON(URL_TOPICS, {
+      subject_id: subjectId,
+      examboard_id: examboardId || 0,
+      tier_id: tierId || 0
+    });
+    const map = (json && json.data) || {};
+    const hasAny = Object.keys(map).length > 0;
+    setOptions(topic, map, hasAny ? <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?> : <?= json_encode(Label::getLabel('LBL_NO_RECORD_FOUND')); ?>);
+
+    if (preselectTopicId && map[preselectTopicId]) {
+      topic.value = String(preselectTopicId);
+      refreshPlugins(topic);
+    }
+  }
+
+  // ========== Event wiring ==========
+  if (subj) {
+    subj.addEventListener('change', async () => {
+      await loadExamboards(subj.value, 0);
+      setOptions(tier,  null, <?= json_encode(Label::getLabel('LBL_SELECT_TIER')); ?>);
+      setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+    });
+  }
+  if (board) {
+    board.addEventListener('change', async () => {
+      await loadTiers(board.value, 0);
+      setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+    });
+  }
+  if (tier) {
+    tier.addEventListener('change', async () => {
+      await loadTopics(subj.value, board.value, tier.value, 0);
+    });
+  }
+
+  // ========== Boot (edit/new) ==========
+  (async function boot() {
+    // Edit mode with preselected IDs
+    if (subj && (initialData.subjectId || subj.value)) {
+      const s = String(initialData.subjectId || subj.value);
+      subj.value = s;
+      refreshPlugins(subj);
+      await loadExamboards(s, initialData.examboardId || 0);
+    } else {
+      // New form with no subject: ensure clean placeholders
+      setOptions(board, null, <?= json_encode(Label::getLabel('LBL_SELECT_EXAMBOARD')); ?>);
+      setOptions(tier,  null, <?= json_encode(Label::getLabel('LBL_SELECT_TIER')); ?>);
+      setOptions(topic, null, <?= json_encode(Label::getLabel('LBL_SELECT_TOPIC')); ?>);
+      return;
+    }
+
+    if (initialData.examboardId) {
+      await loadTiers(String(initialData.examboardId), initialData.tierId || 0);
+    }
+
+    if (initialData.tierId) {
+      await loadTopics(subj.value, board.value, tier.value, initialData.topicId || 0);
+    } else {
+      // Backward compatibility: allow topics by subject alone if board/tier not set
+      await loadTopics(subj.value, 0, 0, initialData.topicId || 0);
+    }
+  })();
+})();
+</script>
+
+<script>
+// Unchanged: AJAX submit handler
 function setup(frm) {
   const submitBtn = frm.querySelector('button[type="submit"]');
   const originalText = submitBtn ? submitBtn.innerHTML : '';
@@ -191,7 +274,7 @@ function setup(frm) {
   var fd = new FormData(frm);
 
   $.ajax({
-    url: '<?= MyUtility::makeUrl('Coursemanagement','setup'); ?>',   // ⬅️ no fcom
+    url: '<?= MyUtility::makeUrl('Coursemanagement','setup'); ?>',
     type: 'POST',
     data: fd,
     processData: false,
@@ -213,8 +296,6 @@ function setup(frm) {
     }
   });
 
-  return false; // extra safety if this is ever called directly
+  return false;
 }
-
-
 </script>

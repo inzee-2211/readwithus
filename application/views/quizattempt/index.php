@@ -119,6 +119,14 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
     font-weight: bold;
     color: red;
 }
+.quiz-media img{
+  max-width: 60%;
+  height: 60%;
+  border-radius: 12px;
+  display: block;
+  margin: 12px auto 16px;
+}
+
 
     </style>
 <section class="section section--gray section--listing">
@@ -145,7 +153,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
     <div class="quiz-question">
         <h3 id="question-text"></h3>
     </div>
- 
+ <div id="question-media" class="quiz-media"></div>
     <div id="hint-btn"></div>
 
     <!-- Answer Options -->
@@ -221,437 +229,330 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 
 <!-- Then load the jQuery Validation plugin -->
 <script src="https://cdn.jsdelivr.net/jquery.validation/1.19.3/jquery.validate.min.js"></script>
-
 <script>
-    var _body = $('body');
-    var _toggle = $('.js-filter-toggle');
-    _toggle.each(function() {
-        var _this = $(this),
-            _target = $(_this.attr('href'));
-
-        _this.on('click', function(e) {
-            e.preventDefault();
-            _target.toggleClass('is-filter-visible');
-            _this.toggleClass('is-active');
-            _body.toggleClass('is-filter-show');
-        });
-    }); 
-
-
-
-
-  
+/* ------------------ CONFIG/STATE ------------------ */
+var questions = <?php echo json_encode($questionData ?? []); ?>; // initial (will be replaced by AJAX)
 let currentQuestion = 0;
-let timerDuration = 10 * 60; 
+const CONF_WEBROOT_FRONT_URL = <?= json_encode(CONF_WEBROOT_FRONT_URL); ?>;
+let timerDuration = 10 * 60;  // seconds
 let timerInterval = null;
-let userAnswers = {};
-
-
+let userAnswers = {};         // always store as: { [index]: { questionId, answer } }
 var userSessionId = "<?php echo $_SESSION['subtopicId']; ?>";
-function fetchQuestions() {
-  document.getElementById('next-btn').style.display = 'none';
-$('#next-btn').hide();
-    
-    $.ajax({
-        url: fcom.makeUrl('Quizattempt', 'getQuestions'),  
-        type: "POST",
-        data: { pageno: 1 , subtopicid:userSessionId},  
-        dataType: "json",
-        success: function (response) {
-            
-            if (response.success) {
-                 $('#next-btn').show();
-                console.log(response.data);
-                  questions = response.data;  
-                  loadQuestion(0);  
-                  startTimer();  
-            } else {
-               
-                alert("No questions found.Please try some other");
-               
-                window.history.back();
-             // window.location.href = '/quizizz?subtopic=' + encodeURIComponent(userSessionId);
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error("Error fetching questions:", error);
-        }
-    });
+
+/* ------------------ UTILITIES ------------------ */
+// Normalize questions coming from the API to predictable fields
+function normalizeQuestions(rows) {
+  return (rows || []).map(function (q) {
+    var opts = Array.isArray(q.options) ? q.options.filter(Boolean) : [];
+    var ans  = Array.isArray(q.answer) ? q.answer
+               : (typeof q.answer === 'string' && q.answer.trim().length
+                  ? q.answer.split(',').map(function (s) { return s.trim().toUpperCase(); })
+                  : []);
+    return {
+      id: q.id,
+      text: q.text,
+      hint: q.hint || '',
+      options: opts,                                 // [] if none
+      correct: ans, 
+      image: q.image || '' ,                                 // [] if unknown
+      type: (q.type || '').toLowerCase()             // 'single-choice','multiple-choice','story-based','short', etc.
+    };
+  });
 }
 
-// Function to start the timer (ensuring only one instance runs)
+function hasOptions(q) {
+  return Array.isArray(q.options) && q.options.length > 0;
+}
+
+function isMultiAnswer(q) {
+  // Prefer explicit type; fallback to number of correct keys if provided
+  if (q.type === 'multiple-choice') return true;
+  if (Array.isArray(q.correct) && q.correct.length > 1) return true;
+  return false;
+}
+
+/* ------------------ TIMER ------------------ */
 function startTimer() {
-    if (timerInterval !== null) return;  
-
-    timerInterval = setInterval(() => {
-        if (timerDuration <= 0) {
-            clearInterval(timerInterval);
-            alert("Time is up! Submitting quiz...");
-            exitQuiz();
-        }
-
-        let minutes = Math.floor(timerDuration / 60);
-        let seconds = timerDuration % 60;
-        document.getElementById("timer").innerText = `Time Left: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-
-        timerDuration--;
-    }, 1000);
+  if (timerInterval !== null) return; // already running
+  timerInterval = setInterval(function () {
+    if (timerDuration <= 0) {
+      clearInterval(timerInterval);
+      alert("Time is up! Submitting quiz...");
+      exitQuiz();
+      return;
+    }
+    var minutes = Math.floor(timerDuration / 60);
+    var seconds = timerDuration % 60;
+    var el = document.getElementById("timer");
+    if (el) el.innerText = "Time Left: " + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    timerDuration--;
+  }, 1000);
 }
 
+/* ------------------ FETCH QUESTIONS ------------------ */
+function fetchQuestions() {
+  // Hide NEXT until data arrives
+  var nextBtn = document.getElementById('next-btn');
+  if (nextBtn) nextBtn.style.display = 'none';
 
- 
+  $.ajax({
+    url: fcom.makeUrl('Quizattempt', 'getQuestions'),
+    type: "POST",
+    data: { pageno: 1, subtopicid: userSessionId },
+    dataType: "json",
+    success: function (response) {
+      if (response && response.success) {
+        questions = normalizeQuestions(response.data);
+        if (nextBtn) nextBtn.style.display = ''; // show again
+        currentQuestion = 0;
+        loadQuestion(0);
+        startTimer();
+      } else {
+        alert("No questions found. Please try another quiz.");
+        window.history.back();
+      }
+    },
+    error: function (xhr, status, error) {
+      console.error("Error fetching questions:", error);
+      alert("Failed to load questions. Please try again.");
+      window.history.back();
+    }
+  });
+}
+
+/* ------------------ RENDER ------------------ */
+function renderHint(container, q) {
+  if (!q.hint) return;
+  var hintDiv = document.createElement("div");
+  hintDiv.className = "quiz-hint";
+  hintDiv.innerHTML = "💡 Hint: " + q.hint;
+  container.appendChild(hintDiv);
+}
+function resolveUrl(u) {
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;  // already absolute
+  const base = CONF_WEBROOT_FRONT_URL.replace(/\/+$/, '');  // remove trailing slash
+  if (u.charAt(0) === '/') return base + u;
+  return base + '/' + u;
+}
 
 function loadQuestion(index) {
-    if (!questions || !questions[index]) {
-        console.error("❌ Invalid question index:", index);
-        return;
-    }
- 
-    const questionData = questions[index];
-    const optionsContainer = document.getElementById("quiz-options");
-    optionsContainer.innerHTML = "";
+  if (!questions || !questions[index]) return;
 
-    document.getElementById("question-text").innerText = `Question ${index + 1}: ${questionData.text}`;
-    
-    // === SINGLE & MULTI CHOICE ===
-    if (questionData.type === "Single-Choice" || questionData.type === "Multiple-Choice") {
-        if (questionData.hint) {
-    const hintDiv = document.createElement("div");
-    hintDiv.id = "hint-text";
-    hintDiv.className = "quiz-hint";   
-    hintDiv.innerHTML = "💡 Hint: " + questionData.hint;
+  var q = questions[index];
+  var optionsContainer = document.getElementById("quiz-options");
+  var media = document.getElementById("question-media");
+  if (!optionsContainer) return;
+  optionsContainer.innerHTML = "";
+    media.innerHTML = "";      //rehan
 
-    optionsContainer.appendChild(hintDiv);
-}
-        questionData.options.forEach((option, i) => {
-            const optionId = `q${index}_opt${i}`;
-            const wrapper = document.createElement("div");
-            wrapper.className = "quiz-option";
+  var qText = document.getElementById("question-text");
+  if (qText) qText.innerText = "Question " + (index + 1) + ": " + q.text;
 
-            const input = document.createElement("input");
-            input.type = questionData.type === "Single-Choice" ? "radio" : "checkbox";
-            input.name = `question-${index}`;
-            input.id = optionId;
-            input.value = String.fromCharCode(65 + i); // A, B, C...
+  // 👇 render image if provided
+   if (q.image && q.image.trim().length) {
+    var img = document.createElement('img');
+    img.src = resolveUrl(q.image.trim());
+    img.alt = q.text ? ("Image: " + q.text.substring(0, 80)) : "Question image";
+    img.loading = 'lazy';
+    media.appendChild(img);
+  }
 
-            const savedAnswer = userAnswers[index];
+  // Previously saved value (we *always* store {questionId, answer})
+  var saved = (userAnswers[index] && userAnswers[index].answer) ? userAnswers[index].answer : null;
 
-            // restore answer
-            if (questionData.type === "Single-Choice" && savedAnswer === input.value) {
-                input.checked = true;
-            }
-            if (questionData.type === "Multiple-Choice" && Array.isArray(savedAnswer) && savedAnswer.includes(input.value)) {
-                input.checked = true;
-            }
+  if (hasOptions(q)) {
+    // Options present → render radio/checkbox depending on single/multi
+    renderHint(optionsContainer, q);
+    var multi = isMultiAnswer(q);
 
-            input.addEventListener("change", () => {
-                if (questionData.type === "Single-Choice") {
-                    userAnswers[index] = input.value;
-                } else {
-                    const selected = Array.from(optionsContainer.querySelectorAll("input[type='checkbox']:checked"))
-                        .map(el => el.value);
-                    userAnswers[index] = selected;
-                }
-                console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
-            });
+    q.options.forEach(function (opt, i) {
+      var letter = String.fromCharCode(65 + i); // A,B,C,D...
+      var id = "q" + index + "_" + letter;
 
-            const label = document.createElement("label");
-            label.setAttribute("for", optionId);
-            label.textContent = `${input.value}) ${option}`;
+      var label = document.createElement("label");
+      label.className = "quiz-option";
+      label.setAttribute("for", id);
 
-            wrapper.appendChild(input);
-            wrapper.appendChild(label);
-            optionsContainer.appendChild(wrapper);
-        });
-        
-    }
+      var input = document.createElement("input");
+      input.type = multi ? "checkbox" : "radio";
+      input.name = "question-" + index;
+      input.id = id;
+      input.value = letter;
 
-    // === STORY-BASED / TEXT ===
-    // if (questionData.type === "Story-Based") {
-    //     const input = document.createElement("input");
-    //     input.type = "text";
-    //     input.id = "text-answer";
-    //     input.placeholder = "Type your answer here...";
-    //     input.value = userAnswers[index] || "";
+      // Restore selection
+      if (multi && Array.isArray(saved) && saved.indexOf(letter) > -1) {
+        input.checked = true;
+      }
+      if (!multi && saved === letter) {
+        input.checked = true;
+      }
 
-    //     input.addEventListener("input", function () {
-    //         userAnswers[index] = this.value;
-    //         console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
-    //     });
+      input.addEventListener("change", function () {
+        if (multi) {
+          var selected = Array.prototype.slice.call(
+            optionsContainer.querySelectorAll("input[name='question-" + index + "']:checked")
+          ).map(function (el) { return el.value; });
+          userAnswers[index] = { questionId: q.id, answer: selected };
+        } else {
+          userAnswers[index] = { questionId: q.id, answer: input.value };
+        }
+      });
 
-    //     optionsContainer.appendChild(input);
-    // }
-
-    if (questionData.type === "Story-Based") {
-    const textarea = document.createElement("textarea");
-    textarea.id = "text-answer";
-    textarea.placeholder = "Type your answer here...";
-    textarea.value = userAnswers[index] || "";
-
-    textarea.addEventListener("input", function () {
-        userAnswers[index] = this.value;
-        console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + letter + ") " + opt));
+      optionsContainer.appendChild(label);
     });
 
-
-    // Optional: Add styling directly or via CSS class
+  } else {
+    // No options → textarea (short/story)
+    renderHint(optionsContainer, q);
+    var textarea = document.createElement("textarea");
+    textarea.id = "text-answer";
+    textarea.placeholder = "Type your answer here...";
+    textarea.value = (typeof saved === "string") ? saved : "";
     textarea.style.width = "100%";
     textarea.style.height = "180px";
     textarea.style.padding = "12px";
     textarea.style.fontSize = "16px";
     textarea.style.borderRadius = "8px";
     textarea.style.boxSizing = "border-box";
-
-    if (questionData.hint) {
-    const hintDiv = document.createElement("div");
-    hintDiv.id = "hint-text";
-    hintDiv.className = "quiz-hint";   
-    hintDiv.innerHTML = "💡 Hint: " + questionData.hint;
-
-    optionsContainer.appendChild(hintDiv);
-}
-
+    textarea.addEventListener("input", function () {
+      userAnswers[index] = { questionId: q.id, answer: this.value };
+    });
     optionsContainer.appendChild(textarea);
+  }
+
+  // Prev/Next controls
+  var prevBtn = document.getElementById("prev-btn");
+  if (prevBtn) prevBtn.disabled = (index === 0);
+
+  var nextBtn2 = document.getElementById("next-btn");
+  if (nextBtn2) nextBtn2.innerText = (index === questions.length - 1) ? "Submit" : "Next";
 }
 
-
-    // Hint & Explanation UI
-    // document.getElementById("hint-text").innerText = questionData.hint || "";
-    // document.getElementById("explanation-text").innerText = questionData.explanation || "";
-    // document.getElementById("hint-btn").classList.toggle("hidden", !questionData.hint);
-
-    // Buttons
-    document.getElementById("prev-btn").disabled = index === 0;
-    document.getElementById("next-btn").innerText = index === questions.length - 1 ? "Submit" : "Next";
-}
- 
-
-document.addEventListener("DOMContentLoaded", function () {
-    const quizOptions = document.getElementById("quiz-options");
-    if (quizOptions) {
-        quizOptions.addEventListener("change", function (event) {
-            const answer = event.target.value;
-            const questionIndex = parseInt(event.target.getAttribute("data-index"));
-
-            if (questionData.type === "Multiple-Choice") {
-                if (!userAnswers[questionIndex]) {
-                    userAnswers[questionIndex] = [];
-                }
-                if (!userAnswers[questionIndex].includes(answer)) {
-                    userAnswers[questionIndex].push(answer);
-                }
-            } else {
-                userAnswers[questionIndex] = answer;
-            }
-        });
-    } else {
-        console.warn("Element with ID 'quiz-options' not found.");
-    }
-});
-
- 
-
-
-// Show Hint
-document.getElementById("hint-btn").addEventListener("click", function () {
-    document.getElementById("hint-text").classList.toggle("hidden");
-});
-
-// Show Explanation when an answer is selected
-document.getElementById("quiz-options").addEventListener("change", function () {
-    document.getElementById("explanation-text").classList.remove("hidden");
-});
-
-// Submit Quiz Function
-// function submitQuiz() {
-//     clearInterval(timerInterval); // Stop timer on submit
-//     alert("Quiz Submitted!");
-//     window.location.href = "quizresults"; // Redirect to results page
-// }
-
-
-
-
-function exitQuiz() {
-
-    clearInterval(timerInterval);
-     window.history.back();
-}
-
-
-
-
-
-function submitQuiz() {
-
-    clearInterval(timerInterval);
-    saveAnswer(currentQuestion);  
-    console.log("User Answers:", userAnswers); 
-   //  document.getElementById("next-btn").innerText="Processing...":
-    $.ajax({
-        url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
-        type: "POST",
-        data: {
-            answers: JSON.stringify(userAnswers),
-            subtopicid: userSessionId
-        },
-        dataType: "json",
-        success: function (response) {
-            console.log("✅ Server Response:", response);
-
-            if (response.success) {
-                
-    const resultStatus = response.status;  
-     const attemptid = response.attemptid;  
-    const marks = response.marksObtained; // assuming `marks` is returned
-    const userName = response.userName || 'User';
-    
-     var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
-        window.location.href = url;
-
-    if (resultStatus === 'pass') {
-
-       var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
-        window.location.href = url;
- 
-        
-
-    } else {
- 
-    }
-} else {
-    Swal.fire({
-        icon: 'error',
-        title: 'Submission Failed',
-        text: '❌ Failed to submit quiz. Try again.',
-    });
-}
-
-        },
-        error: function (xhr, status, error) {
-            console.error("🚨 Error submitting quiz:", error);
-            console.warn("📦 Raw Response:", xhr.responseText);
-            alert("An error occurred while submitting the quiz.");
-        }
-    });
-}
-
-
-function calculateGrade(score) {
-    const percentage = (score / questions.length) * 100;
-    if (percentage >= 90) return "A";
-    if (percentage >= 80) return "B";
-    if (percentage >= 70) return "C";
-    if (percentage >= 60) return "D";
-    return "F";
-}
-
- 
-
+/* ------------------ SAVE & VALIDATE ------------------ */
 function saveAnswer(index) {
-    const question = questions[index];
-    let answer = null;
+  var q = questions[index];
 
-    if (question.type === "Single-Choice") {
-        const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
-        if (selectedOption) {
-            answer = selectedOption.value;
-        }
-    }
-
-    if (question.type === "Multiple-Choice") {
-        const selectedOptions = document.querySelectorAll(`input[name="question-${index}"]:checked`);
-        answer = Array.from(selectedOptions).map(opt => opt.value);
-    }
-
-    if (question.type === "Story-Based") {
-        const textInput = document.getElementById("text-answer");
-        if (textInput) {
-            answer = textInput.value.trim();
-        }
-    }
-
-    // Save as object: questionId + answer
-    userAnswers[index] = {
-        questionId: question.id,
-        answer: answer
-    };
-
-    console.log("✅ Updated userAnswers:", userAnswers);
-}
-
-
-
- 
-
-document.getElementById("next-btn").addEventListener("click", function () {
-    const isValid = validateAnswer(currentQuestion);
-    if (!isValid) {
-        alert("Please answer the question before proceeding.");
-        return;
-    }
-
-    saveAnswer(currentQuestion);
-
-    if (currentQuestion < questions.length - 1) {
-        currentQuestion++;  // 👈 increment it here!
-        loadQuestion(currentQuestion);
+  if (hasOptions(q)) {
+    var multi = isMultiAnswer(q);
+    if (multi) {
+      var selected = Array.prototype.slice.call(
+        document.querySelectorAll("input[name='question-" + index + "']:checked")
+      ).map(function (el) { return el.value; });
+      userAnswers[index] = { questionId: q.id, answer: selected };
     } else {
-        const nextBtn = document.getElementById("next-btn");
-    nextBtn.disabled = true;                     
-    nextBtn.innerText = "Processing...";
-        submitQuiz();
+      var selected = document.querySelector("input[name='question-" + index + "']:checked");
+      userAnswers[index] = { questionId: q.id, answer: selected ? selected.value : null };
     }
-});
-
-
+  } else {
+    var txt = document.getElementById("text-answer");
+    userAnswers[index] = { questionId: q.id, answer: txt ? txt.value.trim() : "" };
+  }
+}
 
 function validateAnswer(index) {
-    const question = questions[index];
-    console.log("🔍 Validating Q#", index, "Type:", question.type);
-
-    if (question.type === "Single-Choice") {
-        const selected = document.querySelector(`input[name="question-${index}"]:checked`);
-        console.log("Selected single option:", selected);
-        return !!selected;
+  var q = questions[index];
+  if (hasOptions(q)) {
+    var multi = isMultiAnswer(q);
+    if (multi) {
+      return document.querySelectorAll("input[name='question-" + index + "']:checked").length > 0;
     }
-
-    if (question.type === "Multiple-Choice") {
-        const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
-        console.log("Selected multiple options:", selected.length);
-        return selected.length > 0;
-    }
-
-    if (question.type === "Story-Based") {
-        const input = document.getElementById("text-answer");
-        console.log("Story input value:", input?.value);
-        return input && input.value.trim().length > 0;
-    }
-
-    return false;
+    return !!document.querySelector("input[name='question-" + index + "']:checked");
+  } else {
+    var txt = document.getElementById("text-answer");
+    return !!(txt && txt.value.trim().length > 0);
+  }
 }
 
+/* ------------------ SUBMISSION ------------------ */
+function submitQuiz() {
+  clearInterval(timerInterval);
+  saveAnswer(currentQuestion);
 
-
-
-document.getElementById("prev-btn").addEventListener("click", function () {
-    saveAnswer(currentQuestion);
-    if (currentQuestion > 0) {
-        currentQuestion--;
-        loadQuestion(currentQuestion);
+  $.ajax({
+    url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
+    type: "POST",
+    data: {
+      answers: JSON.stringify(userAnswers),
+      subtopicid: userSessionId
+    },
+    dataType: "json",
+    success: function (response) {
+      if (response && response.success) {
+        var attemptid = response.attemptid;
+        var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
+        window.location.href = url;
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Submission Failed',
+          text: '❌ Failed to submit quiz. Try again.'
+        });
+      }
+    },
+    error: function (xhr, status, error) {
+      console.error("Error submitting quiz:", error, xhr.responseText);
+      alert("An error occurred while submitting the quiz.");
     }
+  });
+}
+
+function exitQuiz() {
+  clearInterval(timerInterval);
+  window.history.back();
+}
+
+/* ------------------ EVENTS ------------------ */
+document.getElementById("next-btn").addEventListener("click", function () {
+  if (!validateAnswer(currentQuestion)) {
+    alert("Please answer the question before proceeding.");
+    return;
+  }
+  saveAnswer(currentQuestion);
+
+  if (currentQuestion < questions.length - 1) {
+    currentQuestion++;
+    loadQuestion(currentQuestion);
+  } else {
+    var btn = document.getElementById("next-btn");
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+    submitQuiz();
+  }
 });
 
+document.getElementById("prev-btn").addEventListener("click", function () {
+  saveAnswer(currentQuestion);
+  if (currentQuestion > 0) {
+    currentQuestion--;
+    loadQuestion(currentQuestion);
+  }
+});
 
-
-
-
-// Load the first question and start the timer (only once)
+/* ------------------ INIT ------------------ */
 window.onload = function () {
+  // Render placeholder (if any) then fetch real questions
+  if (Array.isArray(questions) && questions.length) {
+    questions = normalizeQuestions(questions);
     loadQuestion(0);
+  }
+  startTimer();
+  fetchQuestions();
 };
-startTimer();
-fetchQuestions();
 
-
+/* ------------------ (Optional) UI toggles you had ------------------ */
+var _body = $('body');
+var _toggle = $('.js-filter-toggle');
+_toggle.each(function () {
+  var _this = $(this), _target = $(_this.attr('href'));
+  _this.on('click', function (e) {
+    e.preventDefault();
+    _target.toggleClass('is-filter-visible');
+    _this.toggleClass('is-active');
+    _body.toggleClass('is-filter-show');
+  });
+});
 </script>
+

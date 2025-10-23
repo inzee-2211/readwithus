@@ -103,6 +103,7 @@
         <th><?php echo Label::getLabel('LBL_DIFFICULTY'); ?></th>
         <th><?php echo Label::getLabel('LBL_TYPE'); ?></th>
         <th><?php echo Label::getLabel('LBL_IMAGE'); ?></th>
+        <th><?php echo Label::getLabel('LBL_EXPLANATION'); ?></th>
         <th><?php echo Label::getLabel('LBL_ACTION'); ?></th>
       </tr>
     </thead>
@@ -111,6 +112,9 @@
   // normalize to be safe against “MCQ”, “Multiple-Choice”, “multiple choice”, etc.
   $type = trim((string)$q['question_type']);
   $isMcq = (stripos($type, 'mcq') !== false) || (stripos($type, 'multiple') !== false);
+      // Handle explanation display
+        $explanation = $q['explanation'] ?? '';
+        $shortExplanation = strlen($explanation) > 100 ? substr($explanation, 0, 100) . '...' : $explanation;
 ?>
   <tr>
     <td><?= $i+1; ?></td>
@@ -123,24 +127,45 @@
         </small>
       <?php } ?>
     </td>
-    <td>
-      <?php if ($isMcq) { ?>
-        A. <?= $q['answer_a']; ?><br>
-        B. <?= $q['answer_b']; ?><br>
-        C. <?= $q['answer_c']; ?><br>
-        D. <?= $q['answer_d']; ?>
-      <?php } else { ?>
-        <em><?= htmlspecialchars($q['answer_a']); ?></em>
-      <?php } ?>
-    </td>
-    <td><?= $isMcq ? $q['correct_answer'] : '-'; ?></td>
+ <td>
+  A. <?= $q['answer_a']; ?><br>
+  B. <?= $q['answer_b']; ?><br>
+  C. <?= $q['answer_c']; ?><br>
+  D. <?= $q['answer_d']; ?>
+</td>
+<td><?= $q['correct_answer']; ?></td>
+
     <td><?= $q['difficult_level']; ?></td>
     <td><?= $q['question_type']; ?></td>
-    <td>
-      <?php if (!empty($q['image'])) { ?>
-        <img src="/<?= $q['image']; ?>" style="max-width:100px;height:auto;border:1px solid #ddd;padding:2px;border-radius:4px">
+  <td>
+  <?php if (!empty($q['image'])) { ?>
+    <img src="/<?= $q['image']; ?>" style="max-width:100px;height:auto;border:1px solid #ddd;padding:2px;border-radius:4px"><br>
+    <small class="rwu-hint"><?= htmlspecialchars($q['image']); ?></small> <!-- 👈 path text -->
+  <?php } else { ?>
+    <em>-</em>
+  <?php } ?>
+</td>
+
+<td class="explanation-cell">
+  <?php if (!empty($q['explanation'])) {
+         $explanation = (string)$q['explanation'];
+         $short = mb_strlen($explanation) > 120 ? mb_substr($explanation,0,120).'…' : $explanation;
+  ?>
+    <div class="short-explanation">
+      <?= nl2br(htmlspecialchars($short)); ?>
+      <?php if (mb_strlen($explanation) > 120) { ?>
+        <br><a href="javascript:void(0)" onclick="document.getElementById('full-expl-<?= $i; ?>').style.display='block'; this.parentNode.style.display='none';">
+          <?= Label::getLabel('LBL_VIEW_FULL'); ?>
+        </a>
       <?php } ?>
-    </td>
+    </div>
+    <div id="full-expl-<?= $i; ?>" style="display:none;">
+      <?= nl2br(htmlspecialchars($explanation)); ?>
+    </div>
+  <?php } else { ?>
+    <em>-</em>
+  <?php } ?>
+</td>
     <td>
       <a href="javascript:void(0);" onclick="questionForm(<?= (int)$subtopic['id']; ?>, <?= (int)$q['id']; ?>)">Edit</a>
       &nbsp;|&nbsp;
@@ -154,6 +179,7 @@
   <?php } else { ?>
   <p><?php echo Label::getLabel('LBL_NO_QUESTIONS_FOUND'); ?></p>
   <?php } ?>
+  
 </div>
 
 <script>
@@ -215,4 +241,5 @@ function deleteQuestion(id){
     error: function(){ alert('Network error'); }
   });
 }
+
 </script>

@@ -143,64 +143,7 @@ if (!empty($popularLanguages)) {
     </div>
 </section>
 <?php }
- /*   if ($topRatedTeachers) { ?>
-<section class="section padding-bottom-5">
-    <div class="container container--narrow">
-        <div class="section__head">
-            <h2><?php echo Label::getLabel('LBL_TOP_RATED_TEACHERS', $siteLangId); ?></h2>
-        </div>
-        <div class="section__body">
-            <div class="teacher-wrapper">
-                <div class="row">
-                    <?php foreach ($topRatedTeachers as $teacher) { ?>
-                    <div class="col-auto col-sm-6 col-md-6 col-lg-4 col-xl-3">
-                        <div class="tile">
-                            <div class="tile__head">
-                                <div class="tile__media ratio ratio--1by1">
-                                    <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $teacher['user_id'], Afile::SIZE_MEDIUM]), CONF_IMG_CACHE_TIME, '.jpg') ?>"
-                                        alt="<?php echo $teacher['full_name']; ?>">
-                                </div>
-                            </div>
-                            <div class="tile__body">
-                                <a class="tile__title"
-                                    href="<?php echo MyUtility::makeUrl('Teachers', 'view', [$teacher['user_username']]); ?>">
-                                    <h4><?php echo CommonHelper::truncateCharacters($teacher['full_name'], 60); ?></h4>
-                                </a>
-                                <div class="info-wrapper">
-                                    <div class="info-tag location">
-                                        <svg class="icon icon--location">
-                                            <use
-                                                xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#location'; ?>">
-                                            </use>
-                                        </svg>
-                                        <span
-                                            class="lacation__name"><?php echo $teacher['country_name']['name'] ?? ''; ?></span>
-                                    </div>
-                                    <div class="info-tag ratings">
-                                        <svg class="icon icon--rating">
-                                            <use
-                                                xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#rating' ?>">
-                                            </use>
-                                        </svg>
-                                        <span class="value"><?php echo $teacher['testat_ratings']; ?></span>
-                                        <span class="count">(<?php echo $teacher['testat_reviewes']; ?>)</span>
-                                    </div>
-                                </div>
-                                <div class="card__row--action ">
-                                    <a href="<?php echo MyUtility::makeUrl('Teachers', 'view', [$teacher['user_username']]); ?>"
-                                        class="btn btn--primary btn--block"><?php echo Label::getLabel('LBL_VIEW_DETAILS', $siteLangId); ?></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-<?php
-}*/
+ 
 if (!empty($browseTutorPage)) {
 ?>
 <?php echo html_entity_decode($browseTutorPage); ?>
@@ -423,34 +366,48 @@ const openBtn = document.getElementById('openSelector');
 function fetchOptionsForStepWithParam(stepIndex, params) {
   return new Promise((resolve) => {
     const step = steps[stepIndex];
-    if (!step.url) {
-      resolve();
-      return;
-    }
-      const rel = step.url.replace(/^\//, ''); // strip leading slash ADDED BY REHAN
-     const url = new URL(rel, baseUrl);       
-    
+    if (!step.url) { resolve(); return; }
+
+    const rel = step.url.replace(/^\//, '');
+    const url = new URL(rel, baseUrl);
+
+    // Primary param (your existing logic)
     if (step.paramKey && params[step.paramKey]) {
       url.searchParams.append(step.paramKey, params[step.paramKey]);
     }
-     console.log(`[Step ${stepIndex}] → ${step.title}`, url.toString(), 'params:', params);
+
+    // 👇 Extra: when hitting exam boards, also pass levelId
+    if (rel.includes('getExamboards')) {
+      if (params.levelId) url.searchParams.append('levelId', params.levelId);
+    }
+
+    // When hitting years, pass whatever we have (subjectId, levelId, examboardId, tierId)
+    if (rel.includes('getYears')) {
+      if (params.levelId)     url.searchParams.append('levelId', params.levelId);
+      if (params.subjectId)   url.searchParams.append('subjectId', params.subjectId);
+      if (params.examboardId) url.searchParams.append('examboardId', params.examboardId);
+      if (params.tierId)      url.searchParams.append('tierId', params.tierId);
+    }
 
     fetch(url.toString())
       .then(res => res.json())
       .then(json => {
-        if (json.status === 1 && Array.isArray(json.data)) {
-          step.options = json.data.map(item => ({ id: item.id, name: item.name }));
-        } else {
-          step.options = [{ id: "error", name: "Error loading options" }];
-        }
+        step.options = (json.status === 1 && Array.isArray(json.data))
+          ? json.data.map(item => ({ id: item.id, name: item.name }))
+          : [{ id: "error", name: "Error loading options" }];
         resolve();
       })
-      .catch(() => {
-        step.options = [{ id: "error", name: "Error loading options" }];
-        resolve();
-      });
+      .catch(() => { step.options = [{ id: "error", name: "Error loading options" }]; resolve(); });
   });
 }
+function buildQueryString(params) {
+  const keys = Object.keys(params)
+    .filter(k => params[k] && params[k] !== "error")
+    .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`);
+  return keys.length ? "&" + keys.join("&") : "";
+}
+
+
 
 function renderStep(stepIndex) {
   const step = steps[stepIndex];
@@ -546,10 +503,11 @@ function renderStep(stepIndex) {
         if (displayName === "GCSE") {
           // GCSE → Examboard + Tier
           steps = [
-            { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
-            { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
-            { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
-            { title: "Select Tier", options: [], url: "api.php?url=getTiers", paramKey: "examboardId" },
+                { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
+                { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
+                { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
+                { title: "Select Tier", options: [], url: "api.php?url=getTiers", paramKey: "examboardId" },
+                 { title: "Select Year", options: [], url: "api.php?url=getYears",       paramKey: "subjectId" },
           ];
         } else {
           // Non-GCSE → Year
@@ -577,8 +535,18 @@ function renderStep(stepIndex) {
       } else {
         container.style.display = 'none';
         currentStep = 0;
-        var subtopic = selectedValues.subjectId;
-        var url = fcom.makeUrl('quizizz') + '?subtopic=' + encodeURIComponent(subtopic);
+     // instead of subtopic, redirect with setup_id
+fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
+  .then(r => r.json())
+  .then(j => {
+      if (j.status === 1 && j.data?.setup_id) {
+          const url = fcom.makeUrl('quizizz') + '?setup_id=' + j.data.setup_id;
+          window.location.href = url;
+      } else {
+          alert("Unable to load quiz. Please try again.");
+      }
+  });
+
         window.location.href = url;
       }
     };

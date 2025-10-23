@@ -398,7 +398,7 @@ $quizAttemptData = [
 ];
 
 if (!$db->insertFromArray('tbl_quiz_attempts', $quizAttemptData)) {
-    dieWithError('Failed to insert quiz attempt');
+    FatUtility::dieJsonError('Failed to insert quiz attempt');
 }
 
 $attemptId = $db->getInsertId(); // You’ll need this to link answers
@@ -414,7 +414,7 @@ foreach ($results as $res) {
     ];
 
     if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
-        dieWithError('Failed to insert answer for question ID: ' . $res['questionId']);
+        FatUtility::dieJsonError('Failed to insert answer for question ID: ' . $res['questionId']);
     }
 }
 
@@ -462,7 +462,8 @@ foreach ($results as $res) {
                     ])),  
                     "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
                     "hint" => $quiz['hint'],
-                    "explanation" => $quiz['explanation']
+                    "explanation" => $quiz['explanation'],
+                    "image" => $quiz['image'] ?? '' //$quiz['image_path'] if that’s your column
                 ];
             }
      

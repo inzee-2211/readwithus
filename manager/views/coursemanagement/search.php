@@ -41,12 +41,12 @@ foreach ($arrListing as $row) {
     $innerUl  = $innerDiv->appendElement('ul', ['class' => 'linksvertical']);
 
     // View (simple: go to questionBank page as the detail)
-    $innerUl->appendElement('li')->appendElement(
-        'a',
-        ['href' => MyUtility::makeUrl('Coursemanagement', 'questionBank', [$row['qid']])],
-        Label::getLabel('LBL_VIEW'),
-        true
-    );
+    // $innerUl->appendElement('li')->appendElement(
+    //     'a',
+    //     ['href' => MyUtility::makeUrl('Coursemanagement', 'questionBank', [$row['qid']])],
+    //     Label::getLabel('LBL_VIEW'),
+    //     true
+    // );
 
     // Edit (open form, pass id)
     $innerUl->appendElement('li')->appendElement(

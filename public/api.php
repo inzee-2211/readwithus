@@ -26,85 +26,149 @@ if ($url === 'getCourses') {
     exit;
 }
 
-// Get Years (Non-GCSE flow)
-if ($url === 'getYears') {
-    try {
-        $subjectId = $_GET['subjectId'] ?? null; 
-        $levelId   = $_GET['levelId'] ?? null;
-
-        if ($subjectId) {
-            $stmt = $pdo->prepare("SELECT id, name FROM course_year WHERE subject_id = ? ORDER BY name");
-            $stmt->execute([$subjectId]);
-        } elseif ($levelId) {
-            $stmt = $pdo->prepare("SELECT id, name FROM course_year WHERE level_id = ? ORDER BY name");
-            $stmt->execute([$levelId]);
-        } else {
-            $stmt = $pdo->query("SELECT id, name FROM course_year ORDER BY name");
-        }
-
-        $years = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['status' => 1, 'data' => $years]);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
-    }
-    exit;
+// ---------- helpers ----------
+function rowsOrEmpty(PDOStatement $stmt) {
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['status' => 1, 'data' => $rows ?: []];
 }
 
-// Get Exam Boards
-if ($url === 'getExamboards') {
-    try {
-        $subjectId = $_GET['subjectId'] ?? '';
-        if (!$subjectId) {
-            echo json_encode(['status' => 0, 'error' => 'Missing subjectId']);
-            exit;
-        }
-
-        $stmt = $pdo->prepare("SELECT id, name FROM course_examboards WHERE subject_id = ? ORDER BY name");
-        $stmt->execute([$subjectId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['status' => 1, 'data' => $rows]);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
-    }
-    exit;
-}
-
-// Get Tiers
-if ($url === 'getTiers') {
-    try {
-        $examboardId = $_GET['examboardId'] ?? '';
-        if (!$examboardId) {
-            echo json_encode(['status' => 0, 'error' => 'Missing examboardId']);
-            exit;
-        }
-
-        $stmt = $pdo->prepare("SELECT id, name FROM course_tier WHERE examboard_id = ? ORDER BY name");
-        $stmt->execute([$examboardId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['status' => 1, 'data' => $rows]); 
-    } catch (Exception $e) {
-        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
-    }
-    exit;
-}
-
-// Get Subjects
+// ---------- SUBJECTS (by level) ----------
 if ($url === 'getSubjects') {
     try {
-        $levelId = $_GET['levelId'] ?? '';
-        if (!$levelId) {
-            echo json_encode(['status' => 0, 'error' => 'Missing levelId']);
-            exit;
-        }
-        $stmt = $pdo->prepare("SELECT id, subject as name FROM course_subjects WHERE level_id = ? ORDER BY subject");
+        $levelId = (int)($_GET['levelId'] ?? 0);
+        if ($levelId < 1) { echo json_encode(['status'=>0,'error'=>'Missing levelId']); exit; }
+
+        $sql = "
+            SELECT DISTINCT s.id, s.subject AS name
+            FROM tbl_quiz_setup q
+            JOIN course_subjects s ON s.id = q.subject_id
+            WHERE q.level_id = ?
+            ORDER BY s.subject ASC
+        ";
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([$levelId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['status' => 1, 'data' => $rows]);
+        echo json_encode(rowsOrEmpty($stmt));
     } catch (Exception $e) {
-        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
+        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
     }
     exit;
 }
+
+// ---------- EXAM BOARDS (by level+subject) ----------
+if ($url === 'getExamboards') {
+    try {
+        $levelId   = (int)($_GET['levelId'] ?? 0);     // GC(S)E will send this too
+        $subjectId = (int)($_GET['subjectId'] ?? 0);
+        if ($subjectId < 1) { echo json_encode(['status'=>0,'error'=>'Missing subjectId']); exit; }
+
+        $params = [$subjectId];
+        $where  = "q.subject_id = ?";
+        if ($levelId > 0) { $where .= " AND q.level_id = ?"; $params[] = $levelId; }
+
+        $sql = "
+            SELECT DISTINCT e.id, e.name
+            FROM tbl_quiz_setup q
+            JOIN course_examboards e ON e.id = q.examboard_id
+            WHERE $where
+            ORDER BY e.name ASC
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        echo json_encode(rowsOrEmpty($stmt));
+    } catch (Exception $e) {
+        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+// ---------- TIERS (by examboard) ----------
+if ($url === 'getTiers') {
+    try {
+        $examboardId = (int)($_GET['examboardId'] ?? 0);
+        if ($examboardId < 1) { echo json_encode(['status'=>0,'error'=>'Missing examboardId']); exit; }
+
+        $sql = "
+            SELECT DISTINCT t.id, t.name
+            FROM tbl_quiz_setup q
+            JOIN course_tier t ON t.id = q.tier_id
+            WHERE q.examboard_id = ?
+            ORDER BY t.name ASC
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$examboardId]);
+        echo json_encode(rowsOrEmpty($stmt));
+    } catch (Exception $e) {
+        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+// ---------- YEARS (works for both GCSE and non-GCSE) ----------
+if ($url === 'getYears') {
+    try {
+        $subjectId   = (int)($_GET['subjectId'] ?? 0);
+        $levelId     = (int)($_GET['levelId'] ?? 0);
+        $examboardId = (int)($_GET['examboardId'] ?? 0); // may be 0 for non-GCSE
+        $tierId      = (int)($_GET['tierId'] ?? 0);      // may be 0 for non-GCSE
+
+        $where  = [];
+        $params = [];
+        if ($subjectId > 0)   { $where[] = "q.subject_id = ?";   $params[] = $subjectId; }
+        if ($levelId > 0)     { $where[] = "q.level_id = ?";     $params[] = $levelId; }
+        if ($examboardId > 0) { $where[] = "q.examboard_id = ?"; $params[] = $examboardId; }
+        if ($tierId > 0)      { $where[] = "q.tier_id = ?";      $params[] = $tierId; }
+
+        $whereSql = $where ? ("WHERE " . implode(' AND ', $where)) : "";
+
+        $sql = "
+            SELECT DISTINCT y.id, y.name
+            FROM tbl_quiz_setup q
+            JOIN course_year y ON y.id = q.year_id
+            $whereSql
+            ORDER BY y.name ASC
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        echo json_encode(rowsOrEmpty($stmt));
+    } catch (Exception $e) {
+        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+// ---------- RESOLVE a setup row id ----------
+if ($url === 'resolveSetup') {
+    try {
+        $levelId     = (int)($_GET['levelId'] ?? 0);
+        $subjectId   = (int)($_GET['subjectId'] ?? 0);
+        $examboardId = (int)($_GET['examboardId'] ?? 0); // 0 for non-GCSE
+        $tierId      = (int)($_GET['tierId'] ?? 0);      // 0 for non-GCSE
+        $yearId      = (int)($_GET['yearId'] ?? 0);
+
+        if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
+            echo json_encode(['status'=>0,'msg'=>'Missing required selections']); exit;
+        }
+
+        $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
+        $params = [$levelId, $subjectId, $yearId];
+
+        // Only constrain examboard/tier when provided (GCSE)
+        if ($examboardId > 0) { $where[] = "examboard_id = ?"; $params[] = $examboardId; }
+        if ($tierId > 0)      { $where[] = "tier_id = ?";      $params[] = $tierId; }
+
+        $sql = "SELECT id FROM tbl_quiz_setup WHERE " . implode(' AND ', $where) . " LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        echo json_encode(['status'=>1, 'data'=>['setup_id' => (int)($row['id'] ?? 0)]]);
+    } catch (Exception $e) {
+        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+
 
 if ($url === 'getQuizzesBySubtopic') {
     try {

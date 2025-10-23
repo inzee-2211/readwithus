@@ -96,13 +96,36 @@ $fld->requirements()->setRequired(true);
 $fld->setFieldTagAttribute('required', 'required');
 
 // Tier (required)
-$fld = $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'tier_id', $optTiers, $row['tier_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
-$fld->requirements()->setRequired(true);
+// $fld = $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'tier_id', $optTiers, $row['tier_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+// $fld->requirements()->setRequired(true);
+
+
 $fld->setFieldTagAttribute('required', 'required');
 
-// Exam board (optional)
-$frm->addSelectBox(Label::getLabel('LBL_EXAM_BOARD') . ' (' . Label::getLabel('LBL_OPTIONAL') . ')',
-                   'examboard_id', $optBoards, $row['examboard_id'] ?? '', [], Label::getLabel('LBL_SELECT'));
+$optTiers = []; // 👈 important: start empty, let JS fill by exam board
+$fldTier = $frm->addSelectBox(
+    Label::getLabel('LBL_TIER'),
+    'tier_id',
+    $optTiers,
+    $row['tier_id'] ?? '',
+    [],
+    Label::getLabel('LBL_SELECT')
+);
+$fldBoard = $frm->addSelectBox(
+    Label::getLabel('LBL_EXAM_BOARD') . ' (' . Label::getLabel('LBL_OPTIONAL') . ')',
+    'examboard_id',
+    $optBoards,
+    $row['examboard_id'] ?? '',
+    [],
+    Label::getLabel('LBL_SELECT')
+);
+$fldBoard->setFieldTagAttribute('id', 'examboard_id');
+$fldTier->requirements()->setRequired(true);
+$fldTier->setFieldTagAttribute('required', 'required');
+$fldTier->setFieldTagAttribute('id', 'tier_id');
+
+// Tier (required, JS will populate based on examboard)
+$optTiers = []; // 👈 important: start empty, let JS fill by exam board
 
 // Year (optional)
 $frm->addSelectBox(Label::getLabel('LBL_YEAR') . ' (' . Label::getLabel('LBL_OPTIONAL') . ')',
@@ -118,6 +141,21 @@ $fld->setFieldTagAttribute('required', 'required');
     $this->set('frm', $frm);
     $this->set('data', $row);
     $this->_template->render();
+}
+/* AJAX: tiers by examboard */
+public function tiersByExamboard()
+{
+    // allow examboard_id OR examboardId
+    $ebId = FatUtility::int(
+        FatApp::getPostedData('examboard_id', FatUtility::VAR_INT,
+            FatApp::getPostedData('examboardId', FatUtility::VAR_INT, 0)
+        )
+    );
+    if ($ebId <= 0) {
+        FatUtility::dieJsonSuccess(['data' => []]); // empty set (not an error)
+    }
+    $opts = $this->pair("SELECT id, name FROM course_tier WHERE examboard_id = {$ebId} ORDER BY name ASC");
+    FatUtility::dieJsonSuccess(['data' => $opts]);
 }
 
 
