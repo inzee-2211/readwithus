@@ -445,25 +445,37 @@ class MyUtility extends FatUtility
      * @param string $root
      * @return string
      */
-    public static function makeUrl($controller = '', $action = '', $queryData = [], $root = CONF_WEBROOT_URL): string
-    {
-        
-        $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
-        if (in_array($controller, SeoUrl::staticControllers()) || !defined('SYSTEM_FRONT')) {
-            return $url;
+public static function makeUrl($controller = '', $action = '', $queryData = [], $root = ''): string
+{
+    // Decide base root by area if caller didn’t pass it
+    if ($root === '' || $root === null) {
+        if (defined('SYSTEM_ADMIN')) {
+            $root = CONF_WEBROOT_BACKEND;          // admin
+        } elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard/') !== false) {
+            $root = CONF_WEBROOT_DASHBOARD;        // learner/teacher dashboard
+        } elseif (defined('SYSTEM_FRONT')) {
+            $root = CONF_WEBROOT_FRONT_URL;        // public site
+        } else {
+            $root = CONF_WEBROOT_URL;              // fallback
         }
-      //  echo $url;
+    }
+
+    $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
+
+    // Only front site needs language/SEO decoration
+    $isFront = ($root === CONF_WEBROOT_FRONT_URL);
+    if ($isFront && !in_array($controller, SeoUrl::staticControllers())) {
         $langCode = '';
         if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
             $langCode = '/' . Language::getCodes(self::$siteLangId);
         }
-        $row = SeoUrl::getCustomUrl(self::$siteLangId, trim($url, "/"));
-       
-        if (!empty($row['seourl_custom'])) {
-            $url = '/' . $row['seourl_custom'];
-        }
+        $row = SeoUrl::getCustomUrl(self::$siteLangId, trim($url, '/'));
+        if (!empty($row['seourl_custom'])) { $url = '/' . $row['seourl_custom']; }
         return urldecode($langCode . $url);
     }
+    return $url;
+}
+
 
     /**
      * Make Full URL
@@ -474,13 +486,39 @@ class MyUtility extends FatUtility
      * @param string $rootUrl
      * @return string
      */
-    public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
-    {
-        $url = static::generateUrl($controller, $action, $queryData, $rootUrl, CONF_URL_REWRITING_ENABLED);
-        $protocol = (FatApp::getConfig('CONF_USE_SSL')) ? 'https://' : 'http://';
-        return $protocol . $_SERVER['SERVER_NAME'] . urldecode($url);
+    // public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
+    // {
+    //     $url = static::generateUrl($controller, $action, $queryData, $rootUrl, CONF_URL_REWRITING_ENABLED);
+    //     $protocol = (FatApp::getConfig('CONF_USE_SSL')) ? 'https://' : 'http://';
+    //     return $protocol . $_SERVER['SERVER_NAME'] . urldecode($url);
+    // }
+
+public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
+{
+    // Build the path first (front/back aware)
+    $path = static::makeUrl($controller, $action, $queryData, $rootUrl);
+
+    // If it’s already absolute, return as-is
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
     }
 
+    // Scheme + host (port included if present)
+    $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || FatApp::getConfig('CONF_USE_SSL');
+    $scheme = $https ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+
+    // Ensure leading slash
+    if ($path === '' || $path[0] !== '/') { $path = '/' . $path; }
+
+    // Avoid double-prefix: if CONF_WEBROOT_FRONT_URL is already in $path, don’t add it again
+    $frontPrefix = rtrim(CONF_WEBROOT_FRONT_URL ?: '', '/');
+    if ($frontPrefix && strpos($path, $frontPrefix) !== 0) {
+        $path = $frontPrefix . $path;
+    }
+
+    return $scheme . '://' . $host . $path;
+}
     /**
      * Format money
      * 

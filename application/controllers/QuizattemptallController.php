@@ -462,7 +462,8 @@ foreach ($results as $res) {
                     ])),  
                     "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
                     "hint" => $quiz['hint'],
-                    "explanation" => $quiz['explanation']
+                    "explanation" => $quiz['explanation'],
+                    "image" => $quiz['image'] ?? ''
                 ];
             }
      

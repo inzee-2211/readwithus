@@ -210,20 +210,24 @@ $(function () {
     });
     //lines added by rehan for quiz-lecture starts here
  getQuiz = function() {
-    if (currentLectureId > 0) {
-        fcom.ajax(fcom.makeUrl('Tutorials', 'getQuiz'), { 
-            'lecture_id': currentLectureId,
-            'course_id': courseId,
-            'progress_id': $('#progressId').val()
-        }, function(res) {
-            $('.lectureDetailJs, .notesJs, .reviewsJs, .tutorInfoJs, .quizJs').hide();
-            $('.sidebarPanelJs').css({ 'display': '' });
-            $('.quizJs').html(res).show();
-            $('.tabsPanelJs').show();
-        });
-    } else {
-        alert('Please select a lecture first');
-    }
+  if (currentLectureId > 0) {
+    fcom.ajax(
+      fcom.makeUrl('Tutorials', 'getQuizStart'),
+      {
+        'lecture_id': currentLectureId,
+        'course_id': courseId,
+        'progress_id': $('#progressId').val()
+      },
+      function (res) {
+        $('.lectureDetailJs, .notesJs, .reviewsJs, .tutorInfoJs, .quizJs').hide();
+        $('.sidebarPanelJs').css({ 'display': '' });
+        $('.quizJs').html(res).show();
+        $('.tabsPanelJs').show();
+      }
+    );
+  } else {
+    alert('Please select a lecture first');
+  }
 };
 //lines added by rehan end here for quiz-lecture
     setupNotes = function (frm) {
@@ -255,4 +259,91 @@ $(function () {
         });
         loadLecture(lectureId);
     };
+    getAI = function () {
+  fcom.ajax(
+    fcom.makeUrl('Tutorials', 'getAI'),
+    {},
+    function (res) {
+      $('.lectureDetailJs, .notesJs, .reviewsJs, .tutorInfoJs, .quizJs').hide();
+      $('.sidebarPanelJs').css({ 'display': '' });
+      $('.quizJs').html(res).show();   // reuse quiz pane area for AI UI
+      $('.tabsPanelJs').show();
+      bindAiTutorUi();
+    }
+  );
+};
+
+function bindAiTutorUi(){
+  const $box = $('.quizJs'); // container we just filled
+  const $messages = $box.find('#aiMessages');
+  const $input = $box.find('#aiInput');
+  const $send = $box.find('#aiSendBtn');
+
+  // Suggestions -> click to fill
+  $box.find('.ai-suggestion').off('click').on('click', function(){
+    $input.val($(this).text());
+    $input.focus();
+  });
+
+  // Clear
+  $box.find('#aiClearBtn').off('click').on('click', function(){
+    $messages.html('');
+  });
+
+  // Fake “Connect” (for now just tooltip)
+  $box.find('#aiConnectBtn').off('click').on('click', function(){
+    alert('API wiring will be added here once available.');
+  });
+
+  // Send
+  function postUserMessage(txt){
+    if (!txt.trim()) return;
+    $messages.append(renderUser(txt));
+    $input.val('');
+    $messages.scrollTop($messages[0].scrollHeight);
+
+    // MOCK reply (replace with real API later)
+    setTimeout(function(){
+      const mock = buildMockAnswer(txt);
+      $messages.append(renderBot(mock));
+      $messages.scrollTop($messages[0].scrollHeight);
+    }, 500);
+  }
+
+  $send.off('click').on('click', function(){ postUserMessage($input.val()); });
+  $input.off('keydown').on('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      postUserMessage($input.val());
+    }
+  });
+
+  // Helpers
+  function renderUser(text){
+    return `
+      <div class="ai-msg ai-msg--user">
+        <div class="ai-msg__avatar">You</div>
+        <div class="ai-msg__bubble">${escapeHtml(text)}</div>
+      </div>`;
+  }
+  function renderBot(text){
+    return `
+      <div class="ai-msg ai-msg--bot">
+        <div class="ai-msg__avatar">AI</div>
+        <div class="ai-msg__bubble">${escapeHtml(text)}</div>
+      </div>`;
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // Very small mock so the UI “feels real”
+  function buildMockAnswer(q){
+    q = q.toLowerCase();
+    if (q.includes('summarize')) return 'Here’s a short summary of the lecture’s key ideas. (This is a placeholder response.)';
+    if (q.includes('practice') || q.includes('question')) return '1) Sample practice Q1\n2) Sample practice Q2\n3) Sample practice Q3';
+    if (q.includes('formula') || q.includes('equation')) return 'Key formulas:\n• a² + b² = c²\n• F = m·a\n(placeholder content)';
+    if (q.includes('explain') && q.includes('12')) return 'Imagine you’re 12: here’s the simple version… (placeholder).';
+    return 'This is a mock reply. Once the API is wired, you’ll get real answers here.';
+  }
+}
+
 });

@@ -236,6 +236,8 @@ let currentQuestion = 0;
 const CONF_WEBROOT_FRONT_URL = <?= json_encode(CONF_WEBROOT_FRONT_URL); ?>;
 let timerDuration = 10 * 60;  // seconds
 let timerInterval = null;
+const ENFORCE_SINGLE_CHOICE = true; // 🔒 force single-choice for any question that has options
+
 let userAnswers = {};         // always store as: { [index]: { questionId, answer } }
 var userSessionId = "<?php echo $_SESSION['subtopicId']; ?>";
 
@@ -265,7 +267,10 @@ function hasOptions(q) {
 }
 
 function isMultiAnswer(q) {
-  // Prefer explicit type; fallback to number of correct keys if provided
+  // If the page must be single-choice, never treat as multiple when options exist
+  if (ENFORCE_SINGLE_CHOICE && hasOptions(q)) return false;
+
+  // Original logic (kept for completeness if you ever turn the flag off)
   if (q.type === 'multiple-choice') return true;
   if (Array.isArray(q.correct) && q.correct.length > 1) return true;
   return false;

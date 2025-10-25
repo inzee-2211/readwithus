@@ -111,25 +111,37 @@ $LEC_ID = (int)$lecture['lecture_id'];
   let currentStep = 0;
 
   function fetchOptionsForStepWithParam(stepIndex, params) {
-    return new Promise((resolve) => {
-      const step = steps[stepIndex];
-      if (!step || !step.url) { resolve(); return; }
-      const rel = step.url.replace(/^\//, '');
-      const url = new URL(rel, apiBase);
-      if (step.paramKey && params[step.paramKey]) {
-        url.searchParams.append(step.paramKey, params[step.paramKey]);
+  return new Promise((resolve) => {
+    const step = steps[stepIndex];
+    if (!step || !step.url) { resolve(); return; }
+
+    const rel = step.url.replace(/^\//, '');
+    const url = new URL(rel, apiBase);
+
+    // Support multiple param keys
+    const keys = Array.isArray(step.paramKeys) ? step.paramKeys : (step.paramKey ? [step.paramKey] : []);
+    keys.forEach(k => {
+      if (!k) return;
+      // special mapping: getSubtopics expects setupId (we store it in selectedValues.topicId)
+      if (k === 'setupId') {
+        if (params.topicId) url.searchParams.append('setupId', params.topicId);
+      } else if (params[k] !== null && params[k] !== undefined && params[k] !== '') {
+        url.searchParams.append(k, params[k]);
       }
-      fetch(url.toString())
-        .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(json => {
-          step.options = (json.status === 1 && Array.isArray(json.data))
-                       ? json.data.map(i => ({ id:i.id, name:i.name }))
-                       : [];
-          resolve();
-        })
-        .catch(() => { step.options = []; resolve(); });
     });
-  }
+
+    fetch(url.toString())
+      .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      .then(json => {
+        step.options = (json.status === 1 && Array.isArray(json.data))
+                     ? json.data.map(i => ({ id: i.id, name: i.name }))
+                     : [];
+        resolve();
+      })
+      .catch((err) => { console.error('Fetch step error:', step.title, err); step.options = []; resolve(); });
+  });
+}
+
 
   function renderButtons(title, options, onSelect, emptyText = 'No options') {
     container.innerHTML = '';
@@ -178,25 +190,30 @@ $LEC_ID = (int)$lecture['lecture_id'];
 
       // Build complete flow depending on level name
       if (opt.name === 'GCSE') {
-        steps = [
-          { title:"Select Level",     options:[], url:"api.php?url=getCourses",    paramKey:null },
-          { title:"Select Subject",   options:[], url:"api.php?url=getSubjects",   paramKey:"levelId" },
-          { title:"Select Examboard", options:[], url:"api.php?url=getExamboards", paramKey:"subjectId" },
-          { title:"Select Tier",      options:[], url:"api.php?url=getTiers",      paramKey:"examboardId" },
-          { title:"Select Topic",     options:[], url:"api.php?url=getTopics",     paramKey:"subjectId" },
-          { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",  paramKey:"topicId" },
-          { title:"Select Quiz",      options:[], url:"api.php?url=getQuizzesBySubtopic", paramKey:"subtopicId" } // optional
-        ];
-      } else {
-        steps = [
-          { title:"Select Level",     options:[], url:"api.php?url=getCourses",  paramKey:null },
-          { title:"Select Subject",   options:[], url:"api.php?url=getSubjects", paramKey:"levelId" },
-          { title:"Select Year",      options:[], url:"api.php?url=getYears",    paramKey:"subjectId" },
-          { title:"Select Topic",     options:[], url:"api.php?url=getTopics",   paramKey:"subjectId" },
-          { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",paramKey:"topicId" },
-          { title:"Select Quiz",      options:[], url:"api.php?url=getQuizzesBySubtopic", paramKey:"subtopicId" } // optional
-        ];
-      }
+  steps = [
+    { title:"Select Level",     options:[], url:"api.php?url=getCourses" },
+    { title:"Select Subject",   options:[], url:"api.php?url=getSubjects",   paramKeys:["levelId"] },
+    { title:"Select Examboard", options:[], url:"api.php?url=getExamboards", paramKeys:["subjectId","levelId"] },
+    { title:"Select Tier",      options:[], url:"api.php?url=getTiers",      paramKeys:["examboardId"] },
+    { title:"Select Year",      options:[], url:"api.php?url=getYears",      paramKeys:["subjectId","levelId","examboardId","tierId"] },
+
+    // IMPORTANT: topics come from tbl_quiz_setup with the full path
+    { title:"Select Topic",     options:[], url:"api.php?url=getTopics",     paramKeys:["levelId","subjectId","examboardId","tierId","yearId"] },
+
+    // subtopics now come from tbl_quiz_management via setupId (= topicId)
+    { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",  paramKeys:["setupId"] },
+  ];
+} else {
+  steps = [
+    { title:"Select Level",     options:[], url:"api.php?url=getCourses" },
+    { title:"Select Subject",   options:[], url:"api.php?url=getSubjects",   paramKeys:["levelId"] },
+    { title:"Select Year",      options:[], url:"api.php?url=getYears",      paramKeys:["subjectId","levelId"] },
+
+    { title:"Select Topic",     options:[], url:"api.php?url=getTopics",     paramKeys:["levelId","subjectId","yearId"] },
+    { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",  paramKeys:["setupId"] },
+  ];
+}
+
 
     } else if (title === 'Select Subject')   { selectedValues.subjectId   = opt.id; }
       else if (title === 'Select Examboard'){ selectedValues.examboardId = opt.id; }

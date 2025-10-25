@@ -47,96 +47,14 @@ if ($lecture) {
     </div>
     <div class="page-directions border-top">
         <div class="row justify-content-between">
-            <div class="col-sm-4">
-                <?php if (empty($video['lecsrc_link'])) {
-                    
-                 //  echo '<pre>';print_r($lecture);die;
-                    ?>
-                    <a href="javascript:void(0);" id="btnComplete<?php echo $lecture['lecture_id']; ?>" onclick="markComplete('<?php echo $lecture['lecture_id']; ?>', '<?php echo AppConstant::YES; ?>')" class="btn btn--primary btn--sm-block  <?php echo (!in_array($lecture['lecture_id'], $lectures)) ? '' : 'btn--disabled' ?>">
-                        <?php echo Label::getLabel('LBL_MARK_LECTURE_COMPLETE'); ?>
-                    </a>
-                <?php } ?>
-            </div>
-            <!-- <div class="col-sm-3">
-                <?php if (isset($lecture['section_quiz_id']) && $lecture['section_quiz_id'] != 0) {
-                if(isset($QuizAttemptData[0]) && !empty($QuizAttemptData[0]))
-                {
-                 if($QuizAttemptData[0]['status']==0)
-                 {
-                  echo 'Exam submitted for evaluation';
-                 }
-                 if($QuizAttemptData[0]['status']==1)
-                 {
-                    echo $QuizAttemptData[0]['quiz_fail_message'];
-
-                    ?>
-
-<a href="javascript:void(0);" id="btnComplete<?php echo $lecture['section_quiz_id']; ?>" onclick="AttampQuiz('<?php echo $lecture['section_quiz_id']; ?>', '<?php echo $lecture['lecture_course_id']; ?>', '<?php echo $lecture['lecture_id']; ?>')" class="btn btn--primary btn--sm-block  ">
-                        <?php echo Label::getLabel('LBL_ATTEMPT_QUIZ'); ?>
-                    </a>
-<?php
-                 }
-                 if($QuizAttemptData[0]['status']==2)
-                 {
-                    echo $QuizAttemptData[0]['quiz_pass_message'];
-                 }
-
-                }
-                else
-                {
-                 ?>
-                    <a href="javascript:void(0);" id="btnComplete<?php echo $lecture['section_quiz_id']; ?>" onclick="AttampQuiz('<?php echo $lecture['section_quiz_id']; ?>', '<?php echo $lecture['lecture_course_id']; ?>', '<?php echo $lecture['lecture_id']; ?>')" class="btn btn--primary btn--sm-block  ">
-                        <?php echo Label::getLabel('LBL_ATTEMPT_EXAM'); ?>
-                    </a>
-                <?php } 
-                } ?>
-            </div>
-             -->
+           
+          
 
 
 
 
 
-             <div class="col-sm-4">
-    <?php 
-    
-    
-    if (!empty($lecture['section_quiz_id'])): ?>
-        <?php   if (!empty($QuizAttemptData[0])): ?>
-            <?php 
-            $status = $QuizAttemptData[0]['status'];
-            switch ($status) {
-                case 0:
-                    echo '<span class="alert1 alert-info" style="padding: 10px; background-color: #e0f7fa; border: 1px solid #00acc1; color: #00796b; border-radius: 5px;">Exam Submitted for Evaluation</span>';
-                    break;
-                case 1:
-                    echo '<span class="alert1 alert-danger" style="color:red;">' . $QuizAttemptData[0]['quiz_fail_message'] . '</span>';
-                    ?>
-                    <a href="javascript:void(0);" 
-                       id="btnComplete<?php echo $lecture['section_quiz_id']; ?>" 
-                       onclick="AttampQuiz('<?php echo $lecture['section_quiz_id']; ?>', '<?php echo $lecture['lecture_course_id']; ?>', '<?php echo $lecture['lecture_id']; ?>')" 
-                       class="btn btn--primary btn--sm-block"
-                       style="margin-top:10px; padding: 8px 15px; background-color: #00796b; color: white; border-radius: 5px; text-decoration: none;">
-                        <?php echo Label::getLabel('LBL_ATTEMPT_EXAM_AGAIN'); ?>
-                    </a>
-                    <?php break;
-                case 2:
-                    echo '<span class="alert1 alert-success" style="color:green;">' . $QuizAttemptData[0]['quiz_pass_message'] . '</span>';
-                 //   echo '<span class="alert1 alert-success" style="padding: 10px; background-color: #c8e6c9; border: 1px solid #66bb6a; color: #388e3c; border-radius: 5px;">' . $QuizAttemptData[0]['quiz_pass_message'] . '</span>';
-                    break;
-            }
-            ?>
-        <?php else:  ?>
-            <a href="javascript:void(0);" 
-               id="btnComplete<?php echo $lecture['section_quiz_id']; ?>" 
-               onclick="AttampQuiz('<?php echo $lecture['section_quiz_id']; ?>', '<?php echo $lecture['lecture_course_id']; ?>', '<?php echo $lecture['lecture_id']; ?>')" 
-               class="btn btn--primary btn--sm-block"
-               style="padding: 8px 15px; background-color: #00796b; color: white; border-radius: 5px; text-decoration: none;">
-                <?php echo Label::getLabel('LBL_ATTEMPT_EXAM'); ?>
-            </a>
-        <?php  endif; ?>
-    <?php endif; ?>
-</div>
+          
 
             <div class="col-sm-auto">
                 <div class="btn-actions">

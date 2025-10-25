@@ -195,40 +195,57 @@ if ($url === 'getQuizzesBySubtopic') {
     exit;
 }
 // NEW: Get Topics for a Subject (top level topics only)
+// TOPICS (actually the "setup" rows filtered by the chosen path)
 if ($url === 'getTopics') {
     try {
-        $subjectId = (int)($_GET['subjectId'] ?? 0);
-        if ($subjectId < 1) { echo json_encode(['status'=>0,'error'=>'Missing subjectId']); exit; }
+        $levelId     = (int)($_GET['levelId'] ?? 0);
+        $subjectId   = (int)($_GET['subjectId'] ?? 0);
+        $examboardId = (int)($_GET['examboardId'] ?? 0); // optional for non-GCSE
+        $tierId      = (int)($_GET['tierId'] ?? 0);      // optional for non-GCSE
+        $yearId      = (int)($_GET['yearId'] ?? 0);
 
-        // parent_id IS NULL or 0 = top-level topic
-        $stmt = $pdo->prepare("
-            SELECT id, topic AS name
-            FROM course_topics
-            WHERE subject_id = ? AND (parent_id IS NULL OR parent_id = 0)
-            ORDER BY topic ASC
-        ");
-        $stmt->execute([$subjectId]);
-        echo json_encode(['status'=>1, 'data'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
+            echo json_encode(['status'=>0,'msg'=>'Missing levelId/subjectId/yearId']); exit;
+        }
+
+        $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
+        $params = [$levelId, $subjectId, $yearId];
+        if ($examboardId > 0) { $where[] = "examboard_id = ?"; $params[] = $examboardId; }
+        if ($tierId > 0)      { $where[] = "tier_id = ?";      $params[] = $tierId; }
+
+        // Each setup row = a topic. We return setup.id as the topic id.
+        $sql = "SELECT id, topic_name AS name
+                FROM tbl_quiz_setup
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY topic_name ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['status'=>1,'data'=>$rows ?: []]);
     } catch (Exception $e) {
         echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
     }
     exit;
 }
 
-// NEW: Get Subtopics for a Topic
+// SUBTOPICS under a chosen setup/topic
 if ($url === 'getSubtopics') {
     try {
-        $topicId = (int)($_GET['topicId'] ?? 0);
-        if ($topicId < 1) { echo json_encode(['status'=>0,'error'=>'Missing topicId']); exit; }
+        // we will pass setupId from the client as "setupId"
+        $setupId = (int)($_GET['setupId'] ?? 0);
+        if ($setupId < 1) { echo json_encode(['status'=>0,'msg'=>'Missing setupId']); exit; }
 
         $stmt = $pdo->prepare("
-            SELECT id, topic AS name
-            FROM course_topics
-            WHERE parent_id = ?
-            ORDER BY topic ASC
+            SELECT id, subtopic_name AS name
+            FROM tbl_quiz_management
+            WHERE quiz_setup_id = ?
+            ORDER BY position ASC, subtopic_name ASC
         ");
-        $stmt->execute([$topicId]);
-        echo json_encode(['status'=>1, 'data'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        $stmt->execute([$setupId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['status'=>1,'data'=>$rows ?: []]);
     } catch (Exception $e) {
         echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
     }

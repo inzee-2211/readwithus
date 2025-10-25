@@ -83,94 +83,68 @@ class TutorialsController extends DashboardController
         if (!$sections = $srch->fetchAndFormat()) {
             FatUtility::exitWithErrorCode(404);
         }
+$db = FatApp::getDb();
 
+/**
+ * Build lecture/section state with these rules:
+ * - Lecture can be marked complete only if its quiz (if any) is passed.
+ * - Section Exam can be attempted only if ALL lectures in that section are completed (with their quizzes passed).
+ * - We only “lock” the Exam button, not the ability to view lectures.
+ */
 
-      /*  $db = FatApp::getDb();
-        foreach ($sections as $sectionKey => $section) {
-            // Check if this section has a quiz
-            if ($section['section_quiz_id'] != 0) {
-                // Get the quiz attempt data for this section
-                $srch = new SearchBase('tbl_quiz_attempt', 'qa');
-                $srch->addCondition('qa.quiz_learner_id', '=', $this->siteUserId);
-                $srch->addCondition('qa.quiz_lecture_id', '=', $section['section_quiz_id']);
-                $srch->addCondition('qa.status', 'IN', [0, 1]);  // Status could be: 0 = submitted, 1 = failed, 2 = passed
-                $srch->addFld('qa.status'); // Fetching only the status
-                $rs = $srch->getResultSet();
-        
-                $quizData = $db->fetch($rs);
-        
-                // If quiz data exists, add the quiz attempt status under lectures
-                if ($quizData) {
-                    // Iterate over the lectures and add the quiz attempt status
-                    foreach ($section['lectures'] as $lectureKey => $lecture) {
-                        $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = $quizData['status'];
-                    }
+foreach ($sections as $sKey => $section) {
+    // annotate each lecture with quiz info (has_quiz / quiz_passed / can_complete)
+    foreach ($section['lectures'] as $lKey => $lecture) {
+
+        $lectureObj = new Lecture($lecture['lecture_id']);
+        $resources  = $lectureObj->getResources();
+
+        $hasQuiz    = false;
+        $quizPassed = true; // default-true if no quiz attached
+        $subtopicId = 0;
+
+        foreach ($resources as $resource) {
+            if ((int)$resource['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+                $hasQuiz = true;
+                $meta = @json_decode($resource['lecsrc_meta'], true);
+                $subtopicId = (int)($meta['subtopic'] ?? 0);
+                if ($subtopicId > 0) {
+                    $attempt = $this->getLectureQuizAttempt($this->siteUserId, (int)$lecture['lecture_id'], $subtopicId);
+                    $quizPassed = (!empty($attempt) && (int)$attempt['status'] === 2);
                 } else {
-                    // If no attempt made, set 'not attempted'
-                    foreach ($section['lectures'] as $lectureKey => $lecture) {
-                        $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = '0';
-                    }
+                    $quizPassed = false; // malformed meta blocks completion
                 }
-            } else {
-                
-                // foreach ($section['lectures'] as $lectureKey => $lecture) {
-                //     $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = '2';
-                // }
-            }
-        }*/
-        $db = FatApp::getDb();
-        $lockLectures = false; // Flag to lock subsequent sections if a quiz is unattempted or failed
- 
-foreach ($sections as $sectionKey => $section) {
-    if ($lockLectures) {
-        // Lock all lectures in this section
-        foreach ($section['lectures'] as $lectureKey => $lecture) {
-            $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = 'locked';
-        }
-        continue; // Skip further processing for this section
-    }
-
-    // Check if this section has a quiz
-    if ($section['section_quiz_id'] != 0) {
-        // Get the quiz attempt data for this section
-        $srch = new SearchBase('tbl_quiz_attempt', 'qa');
-        $srch->addCondition('qa.quiz_learner_id', '=', $this->siteUserId);
-        $srch->addCondition('qa.quiz_lecture_id', '=', $section['section_quiz_id']);
-        $srch->addCondition('qa.status', 'IN', [0, 1]); // Status: 0 = submitted, 1 = failed
-        $srch->addFld('qa.status');
-        $rs = $srch->getResultSet();
-
-        $quizData = $db->fetch($rs);
-
-        // If no quiz attempt or failed, mark current lectures as accessible, lock subsequent sections
-        if (!$quizData || $quizData['status'] == 1) {
-            foreach ($section['lectures'] as $lectureKey => $lecture) {
-                $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = 'accessible'; // Keep current section open
-            }
-            $lockLectures = true; // Lock subsequent sections
-        } else {
-            // Quiz passed or in evaluation, mark appropriately
-            foreach ($section['lectures'] as $lectureKey => $lecture) {
-                $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = $quizData['status'];
+                break;
             }
         }
-    } else {
-        // No quiz in this section, mark lectures as accessible
-        foreach ($section['lectures'] as $lectureKey => $lecture) {
-            $sections[$sectionKey]['lectures'][$lectureKey]['quiz_attempt_status'] = 'accessible';
-        }
+
+        $sections[$sKey]['lectures'][$lKey]['has_quiz']     = $hasQuiz;
+        $sections[$sKey]['lectures'][$lKey]['quiz_passed']  = $quizPassed;
+        $sections[$sKey]['lectures'][$lKey]['can_complete'] = (!$hasQuiz || $quizPassed);
     }
 }
 
-        
+// compute covered stats using existing helper
+$progress = new CourseProgress($progressId);
+$lectureStats = $progress->getLectureStats($sections);
 
+// add section-level "can_attempt_exam"
+foreach ($sections as $sKey => $section) {
+    $allLecturesComplete = true;
 
+    foreach ($section['lectures'] as $lecture) {
+        $coveredOK = $this->lectureIsCovered($lectureStats, (int)$section['section_id'], (int)$lecture['lecture_id']);
+        $completeOK = !empty($lecture['can_complete']); // would only be true if quiz (if any) is passed
 
+        if (!($coveredOK && $completeOK)) {
+            $allLecturesComplete = false;
+            break;
+        }
+    }
 
+    $sections[$sKey]['can_attempt_exam'] = ($allLecturesComplete === true);
+}
 
-
-
-        /* format lectures stats */
         $progress = new CourseProgress($progressId);
         $lectureStats = $progress->getLectureStats($sections);
         
@@ -271,6 +245,20 @@ foreach ($sections as $sectionKey => $section) {
         /* get lecture video */
         $resource = new Lecture($lectureId);
         $video = $resource->getMedia(Lecture::TYPE_RESOURCE_EXTERNAL_URL);
+// — find attached lecture-quiz subtopic
+$attachedSubtopicId = 0;
+foreach ($resources as $r) {
+    if ((int)$r['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ && !empty($r['lecsrc_meta'])) {
+        $m = @json_decode($r['lecsrc_meta'], true);
+        $attachedSubtopicId = (int)($m['subtopic'] ?? 0);
+        break;
+    }
+}
+
+$prevLectureQuizAttempt = null;
+if ($attachedSubtopicId > 0) {
+    $prevLectureQuizAttempt = $this->getLectureQuizAttempt($this->siteUserId, (int)$lectureId, $attachedSubtopicId);
+}
 
 
 
@@ -425,24 +413,120 @@ $QuizAttemptData = $db->fetchAll($rs);
      *
      * @return json
      */
-    public function markComplete()
-    {
-        $lectureId = FatApp::getPostedData('lecture_id', FAtUtility::VAR_INT, 0);
-        $status = (int)FatApp::getPostedData('status');
-        $progressId = FatApp::getPostedData('progress_id', FAtUtility::VAR_INT, 0);
-        if ($lectureId < 1 || $progressId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $progress = new CourseProgress($progressId);
-        if (!$progress->setCompletedLectures($lectureId, $status)) {
-            FatUtility::dieJsonError($progress->getError());
-        }
-        if (!empty($status)) {
-            FatUtility::dieJsonSuccess(Label::getLabel('LBL_LECTURE_MARKED_COVERED'));
-        } else {
-            FatUtility::dieJsonSuccess(Label::getLabel('LBL_LECTURE_MARKED_UNCOVERED'));
+public function markComplete()
+{
+    $lectureId = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+    $status = (int)FatApp::getPostedData('status');
+    $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
+    
+    if ($lectureId < 1 || $progressId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $progress = new CourseProgress($progressId);
+    
+    // If trying to mark complete, check if lecture has quiz that needs to be passed
+    if ((int)$status === 1) {
+        $lecture = new Lecture($lectureId);
+        $resources = $lecture->getResources();
+
+        foreach ($resources as $resource) {
+            if ((int)$resource['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+                $meta = @json_decode($resource['lecsrc_meta'], true);
+                $subtopicId = (int)($meta['subtopic'] ?? 0);
+
+                if ($subtopicId > 0) {
+                    $quizAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+                    if (empty($quizAttempt) || (int)$quizAttempt['status'] !== 2) {
+                        FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_PASS_THE_QUIZ_BEFORE_MARKING_COMPLETE'));
+                    }
+                }
+                break;
+            }
         }
     }
+
+    if (!$progress->setCompletedLectures($lectureId, $status)) {
+        FatUtility::dieJsonError($progress->getError());
+    }
+
+    if (!empty($status)) {
+        FatUtility::dieJsonSuccess(Label::getLabel('LBL_LECTURE_MARKED_COVERED'));
+    } else {
+        FatUtility::dieJsonSuccess(Label::getLabel('LBL_LECTURE_MARKED_UNCOVERED'));
+    }
+}
+
+public function getAI()
+{
+    // Pure frontend partial; no data required yet.
+    $this->_template->render(false, false, 'tutorials/ai-tutor.php');
+}
+
+
+// Add this method to TutorialsController
+private function canAttemptExam(int $sectionId, int $courseId, int $userId): bool
+{
+    // All lectures in section must be both:
+    //  (1) completed (covered in progress)
+    //  (2) if they have a quiz, that quiz must be PASSED in tbl_lecture_quiz_attempts
+
+    // get lectures in section
+    $srch = new SearchBase('tbl_lectures', 'l');
+    $srch->addCondition('l.lecture_section_id', '=', $sectionId);
+    $srch->addCondition('l.lecture_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+    $srch->addMultipleFields(['l.lecture_id']);
+    $lectures = FatApp::getDb()->fetchAll($srch->getResultSet());
+
+    if (empty($lectures)) return false;
+
+    // get progress id for this user/course
+    $proSrch = new SearchBase('tbl_course_progress', 'cp');
+    $proSrch->addCondition('cp.crspro_ordcrs_id', 'IN', function () use ($userId, $courseId) {
+        $s = new SearchBase('tbl_order_courses', 'oc');
+        $s->addCondition('oc.ordcrs_user_id', '=', $userId);
+        $s->addCondition('oc.ordcrs_course_id', '=', $courseId);
+        $s->addMultipleFields(['oc.ordcrs_id']);
+        return $s;
+    });
+    $proSrch->addMultipleFields(['cp.crspro_id']);
+    $proSrch->setPageSize(1);
+    $progressRow = FatApp::getDb()->fetch($proSrch->getResultSet());
+    if (!$progressRow) return false;
+
+    $progress = new CourseProgress((int)$progressRow['crspro_id']);
+    // Build fake minimal sections array to reuse getLectureStats
+    $tmpSections = [
+        $sectionId => [
+            'section_id' => $sectionId,
+            'lectures'   => $lectures
+        ]
+    ];
+    $stats = $progress->getLectureStats($tmpSections);
+
+    foreach ($lectures as $lec) {
+        $lectureId = (int)$lec['lecture_id'];
+
+        // Covered?
+      $covered = in_array($lectureId, $stats[$sectionId] ?? []);
+
+        if (!$covered) return false;
+
+        // If quiz attached -> must be passed
+        $lectureObj = new Lecture($lectureId);
+        $resources = $lectureObj->getResources();
+        foreach ($resources as $res) {
+            if ((int)$res['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+                $meta = @json_decode($res['lecsrc_meta'], true);
+                $subtopicId = (int)($meta['subtopic'] ?? 0);
+                if ($subtopicId < 1) return false;
+                $attempt = $this->getLectureQuizAttempt($userId, $lectureId, $subtopicId);
+                if (empty($attempt) || (int)$attempt['status'] !== 2) return false;
+            }
+        }
+    }
+    return true;
+}
 
     /**
      * Update Course Progress & Completed Status
@@ -678,133 +762,218 @@ $QuizAttemptData = $db->fetchAll($rs);
 private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
 {
     $db = FatApp::getDb();
-    
-    // First, get the subtopic name from course_topics
+
+    // 1) Get subtopic name
     $topicSrch = new SearchBase('course_topics', 'ct');
-    $topicSrch->addCondition('ct.id', '=', $subtopicId);
+    $topicSrch->addCondition('ct.id', '=', (int)$subtopicId);
     $topicSrch->addMultipleFields(['topic']);
     $topicSrch->doNotCalculateRecords();
     $subtopic = $db->fetch($topicSrch->getResultSet());
-    
     if (!$subtopic) {
         return false;
     }
-    
     $subtopicName = $subtopic['topic'];
-    
-    // Create quiz details structure
-    $quizDetails = [
-        'quiz_id' => $subtopicId,
-        'quiz_title' => $subtopicName . ' Quiz',
-        'quiz_description' => 'Quiz for: ' . $subtopicName,
-        'quiz_pass_percentage' => 60, // Default pass percentage
-        'quiz_duration' => 0, // No time limit by default
-        'quiz_user_id' => 0
-    ];
-    
-    // Fetch questions from tbl_quaestion_bank (note the table name spelling)
-   // Fetch questions related to the quiz
-        $questionSrch = new SearchBase('tbl_quiz_questions', 'qq');
-        $questionSrch->joinTable('tbl_questions', 'INNER JOIN', 'qq.question_id = q.question_id', 'q');
-        // $quizID->joinTable('tbl_lecture_resources', 'INNER JOIN', 'qq.quiz_id = quiz.quiz_id', 'quiz');
-        // $questionSrch->addCondition('qq.quiz_id', '=', $quizId);
-        $questionSrch->addMultipleFields([
-            // 'qq.quiz_id',
-            'qq.question_id',
-            'q.question_title',
-            'q.question_math_equation',
-            'q.question_type',
-            'q.question_desc',
-            'q.question_cat',
-            'q.question_subcat',
-            'q.question_marks',
-            'q.question_hint',
-            'q.question_option_1',
-            'q.question_option_2',
-            'q.question_option_3',
-            'q.question_option_4',
-            'q.question_other',
-            'q.question_answers',
-            'q.question_image',
-        ]);
-        $questionSrch->doNotCalculateRecords();
-        $questions = $db->fetchAll($questionSrch->getResultSet());
-    
-    // If no questions found in tbl_quaestion_bank, try alternative table names
-    if (empty($questions)) {
-        // Try tbl_question_bank (correct spelling)
-        $altQuestionSrch = new SearchBase('tbl_question_bank', 'qb');
-        $altQuestionSrch->addCondition('qb.subtopic', '=', $subtopicName);
-        $altQuestionSrch->addCondition('qb.question_active', '=', 1);
-        $altQuestionSrch->addOrder('RAND()');
-        $altQuestionSrch->addMultipleFields([
-            'qb.id as question_id',
-            'qb.question_title',
-            'qb.question_math_equation',
-            'qb.question_type',
-            'qb.question_desc',
-            'qb.question_cat',
-            'qb.question_subcat',
-            'qb.question_marks',
-            'qb.question_hint',
-            'qb.question_option_1',
-            'qb.question_option_2',
-            'qb.question_option_3',
-            'qb.question_option_4',
-            'qb.question_other',
-            'qb.question_answers',
-            'qb.question_image',
-        ]);
-        $questions = $db->fetchAll($altQuestionSrch->getResultSet());
+
+    // 2) Pull 10 random questions from tbl_quaestion_bank by subtopic_id
+    //    NOTE: no inline SQL comments; subtopicId is inlined; no question_active filter unless you have that column
+    $qSql = "
+        SELECT 
+            id AS question_id,
+            question_title,
+            question_type,
+            COALESCE(hint, '')         AS question_hint,
+            COALESCE(explanation, '')  AS question_explanation,
+            COALESCE(answer_a, '')     AS answer_a,
+            COALESCE(answer_b, '')     AS answer_b,
+            COALESCE(answer_c, '')     AS answer_c,
+            COALESCE(answer_d, '')     AS answer_d,
+            COALESCE(correct_answer,'')AS question_answers,
+            COALESCE(image, '')        AS question_image
+        FROM tbl_quaestion_bank
+        WHERE subtopic_id = " . (int)$subtopicId . "
+        ORDER BY RAND()
+        LIMIT 10
+    ";
+
+    $rs = $db->query($qSql);
+    if ($rs === false) {
+        // Surface the DB error during dev; swap to a generic message in prod
+        FatUtility::dieJsonError('DB error loading questions: ' . $db->getError());
     }
-    
-    // Randomize options for each question
-    foreach ($questions as &$question) {
-        if (in_array($question['question_type'], ['1', '2'])) { // MCQ or Checkbox
-            $options = [];
-            for ($i = 1; $i <= 4; $i++) {
-                $optionKey = "question_option_$i";
-                if (!empty($question[$optionKey])) {
-                    $options[] = [
-                        'id' => $i,
-                        'text' => $question[$optionKey]
-                    ];
-                }
-            }
-            shuffle($options); // Randomize options
-            $question['randomized_options'] = $options;
+
+    $rows = $db->fetchAll($rs);
+    if (empty($rows)) {
+        return false;
+    }
+
+    // 3) Normalize types and build randomized_options with letter values
+    $mapType = function ($raw) {
+        $s = strtolower(trim((string)$raw));
+        if ($s === '1' || strpos($s, 'single') !== false || strpos($s, 'mcq') !== false || strpos($s, 'multiple-choice') !== false) return '1';
+        if ($s === '2' || strpos($s, 'checkbox') !== false || strpos($s, 'multiple select') !== false) return '2';
+        if ($s === '3' || strpos($s, 'story') !== false || strpos($s, 'text') !== false) return '3';
+        return '1';
+    };
+
+    foreach ($rows as &$q) {
+        $q['question_type'] = $mapType($q['question_type']);
+
+        $opts = [];
+        if (!empty($q['answer_a'])) $opts[] = ['id' => 'A', 'text' => $q['answer_a']];
+        if (!empty($q['answer_b'])) $opts[] = ['id' => 'B', 'text' => $q['answer_b']];
+        if (!empty($q['answer_c'])) $opts[] = ['id' => 'C', 'text' => $q['answer_c']];
+        if (!empty($q['answer_d'])) $opts[] = ['id' => 'D', 'text' => $q['answer_d']];
+
+        if (in_array($q['question_type'], ['1', '2']) && count($opts) > 0) {
+            shuffle($opts);
+            $q['randomized_options'] = $opts;
+        } else {
+            $q['randomized_options'] = [];
+        }
+
+        if (!isset($q['question_marks']) || (int)$q['question_marks'] <= 0) {
+            $q['question_marks'] = 2;
         }
     }
-    
-    $quizDetails['questions'] = $questions;
-    return $quizDetails;
+
+    return [
+        'quiz_id'              => (int)$subtopicId,
+        'quiz_title'       => $subtopicName . ' Quiz',          // <-- THIS
+    'quiz_description' => 'Quiz for: ' . $subtopicName,      // <-- AND THIS
+        'quiz_title'           => $subtopicName . ' Quiz',
+        'quiz_description'     => 'Quiz for: ' . $subtopicName,
+        'quiz_pass_percentage' => 60,
+        'quiz_duration'        => 0,
+        'quiz_user_id'         => 0,
+        'questions'            => $rows,
+    ];
 }
-/**
- * Get user quiz attempt - UPDATED VERSION
- */
-private function getUserQuizAttemptLecture($userId, $subtopicId, $lectureId)
+/* ============================
+ * 1) Render the start screen
+ * ============================ */
+public function getQuizStart()
 {
-    $srch = new SearchBase('tbl_quiz_attempt', 'qa');
-    $srch->addCondition('qa.quiz_learner_id', '=', $userId);
-    $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
-    // We use subtopic ID as the identifier since we don't have quiz_id in tbl_quizzes
-    $srch->addCondition('qa.quiz_id', '=', $subtopicId);
-    $srch->addOrder('qa.attempt', 'DESC');
+    $lectureId  = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+    $courseId   = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
+    $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
+
+    if ($lectureId < 1) { FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST')); }
+
+    // Prefer a heading from resource meta -> lecture title -> fallback
+    $lectureRow = Lecture::getAttributesById($lectureId, ['lecture_title']);
+    $lecture    = new Lecture($lectureId);
+    $res        = $lecture->getResources();
+    $title      = $lectureRow['lecture_title'] ?? 'Quiz';
+
+    foreach ($res as $r) {
+        if ((int)$r['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ && !empty($r['lecsrc_meta'])) {
+            $meta = @json_decode($r['lecsrc_meta'], true);
+            if (!empty($meta['title'])) { $title = (string)$meta['title']; }
+            break;
+        }
+    }
+
+    $this->sets([
+        'courseId'   => $courseId,
+        'lectureId'  => $lectureId,
+        'progressId' => $progressId,
+        'title'      => $title,
+        'duration'   => 8 * 60, // 8 minutes in seconds
+    ]);
+
+    $this->_template->render(false, false, 'tutorials/get-quiz-start.php');
+}
+
+/* ============================
+ * 2) Begin quiz handler
+ *    (renders your existing get-quiz-new.php)
+ * ============================ */
+public function beginLectureQuiz()
+{
+    // we just proxy to existing getQuiz()
+    return $this->getQuiz();
+}
+//lines added by rehan for quiz-lecture starts here
+/** =============================
+ *  Lecture-Quiz attempts (NEW)
+ *  ============================= */
+private function getLectureQuizAttempt(int $userId, int $lectureId, int $subtopicId)
+{
+    $srch = new SearchBase('tbl_lecture_quiz_attempts', 'lqa');
+    $srch->addCondition('lqa.user_id', '=', $userId);
+    $srch->addCondition('lqa.lecture_id', '=', $lectureId);
+    $srch->addCondition('lqa.subtopic_id', '=', $subtopicId);
     $srch->setPageSize(1);
+    $srch->addOrder('lqa.attempt_no', 'DESC');
     $srch->doNotCalculateRecords();
-    
     return FatApp::getDb()->fetch($srch->getResultSet());
 }
+
+private function upsertLectureQuizAttempt(
+    int $userId,
+    int $lectureId,
+    int $subtopicId,
+    array $result // ['score','totalMarks','percentage','passed']
+){
+    $db = FatApp::getDb();
+
+    $existing = $this->getLectureQuizAttempt($userId, $lectureId, $subtopicId);
+    $attemptNo = empty($existing) ? 1 : ((int)$existing['attempt_no'] + 1);
+    $status = !empty($result['passed']) ? 2 : 1;
+
+    $data = [
+        'user_id'      => $userId,
+        'lecture_id'   => $lectureId,
+        'subtopic_id'  => $subtopicId,
+        'attempt_no'   => $attemptNo,
+        'status'       => $status,
+        'score'        => (float)$result['score'],
+        'total_marks'  => (float)$result['totalMarks'],
+        'percentage'   => (float)$result['percentage'],
+        'updated_on'   => date('Y-m-d H:i:s'),
+    ];
+
+    if (empty($existing)) {
+        $data['created_on'] = date('Y-m-d H:i:s');
+        if (!$db->insertFromArray('tbl_lecture_quiz_attempts', $data)) {
+            FatUtility::dieJsonError($db->getError());
+        }
+    } else {
+        if (!$db->updateFromArray('tbl_lecture_quiz_attempts', $data, [
+            'smt'  => 'id = ?',
+            'vals' => [$existing['id']]
+        ])) {
+            FatUtility::dieJsonError($db->getError());
+        }
+    }
+}
+
+private function lectureIsCovered(array $lectureStats, int $sectionId, int $lectureId): bool
+{
+    $covered = $lectureStats[$sectionId] ?? [];
+    // non-strict: stats often contain string IDs, while $lectureId is int
+    return in_array($lectureId, $covered);
+}
+
+
+private function getUserQuizAttemptLecture($userId, $subtopicId, $lectureId)
+{
+    // now reads from the new lecture-quiz attempts table
+    return $this->getLectureQuizAttempt((int)$userId, (int)$lectureId, (int)$subtopicId);
+}
+
 //lines end here
 /**
  * Get user quiz attempt
  */
-private function getUserQuizAttempt($userId, $quizId, $lectureId)
+private function getUserQuizAttempt($userId, $quizId, $lectureId = 0)
 {
     $srch = new SearchBase('tbl_quiz_attempt', 'qa');
     $srch->addCondition('qa.quiz_learner_id', '=', $userId);
     $srch->addCondition('qa.quiz_id', '=', $quizId);
-    $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
+    if ($lectureId > 0) {
+        $srch->addCondition('qa.quiz_lecture_id', '=', $lectureId);
+    }
     $srch->addOrder('qa.attempt', 'DESC');
     $srch->setPageSize(1);
     $srch->doNotCalculateRecords();
@@ -821,77 +990,73 @@ private function getUserQuizAttempt($userId, $quizId, $lectureId)
 /**
  * Get quiz for lecture - UPDATED VERSION
  */
+/* ============================
+ * In getQuiz(), remove the echo/print_r and keep this flow
+ * ============================ */
 public function getQuiz()
 {
-    $lectureId = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
-    $courseId = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
+    $lectureId  = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+    $courseId   = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
     $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
-    
+
     if ($lectureId < 1) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
-    // Get lecture details
-    $lectureData = Lecture::getAttributesById($lectureId);
-    
-    if (!$lectureData) {
-        FatUtility::dieJsonError(Label::getLabel('LBL_LECTURE_NOT_FOUND'));
-    }
-
-
-    // Get quiz resources for this lecture
-    $lecture = new Lecture($lectureId);
+    // Lecture + resources
+    $lecture   = new Lecture($lectureId);
     $resources = $lecture->getResources();
-    // DEBUG: Let's see what's in the resources array
-echo "<pre>Resources for lecture $lectureId: ";
-print_r($resources);
-echo "</pre>";
+
     $quizResource = null;
-    
     foreach ($resources as $resource) {
-        if ($resource['lecsrc_type'] == Lecture::TYPE_RESOURCE_QUIZ) {
+        if ((int)$resource['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
             $quizResource = $resource;
             break;
         }
     }
-    
+
     if (!$quizResource) {
-        // No quiz found for this lecture
         $this->set('msg', Label::getLabel('LBL_NO_QUIZ_AVAILABLE_FOR_THIS_LECTURE'));
         $this->_template->render(false, false, 'tutorials/no-quiz.php');
         return;
     }
-    
-    // Parse quiz metadata
-    $quizMeta = json_decode($quizResource['lecsrc_meta'], true);
-    $subtopicId = $quizMeta['subtopic'] ?? 0;
-    
+
+    // Read subtopic id from meta
+    $quizMeta   = @json_decode($quizResource['lecsrc_meta'], true);
+    $subtopicId = (int)($quizMeta['subtopic'] ?? 0);
     if ($subtopicId < 1) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_QUIZ_SUBTOPIC'));
     }
-    
-    // Get quiz details using subtopic ID
+$previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+if (!empty($previousAttempt) && (int)$previousAttempt['status'] === 2) {
+    // Already passed -> show a friendly message instead of the quiz UI
+    $this->set('msg', Label::getLabel('LBL_QUIZ_ALREADY_PASSED'));
+    $this->_template->render(false, false, 'tutorials/no-quiz.php');
+    return;
+}
+
+    // Build quiz payload from tbl_quaestion_bank
     $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
-    
     if (!$quizDetails || empty($quizDetails['questions'])) {
         FatUtility::dieJsonError(Label::getLabel('LBL_NO_QUESTIONS_FOUND_FOR_THIS_QUIZ'));
     }
-    
-    // Check if user has already attempted this quiz
+
+    // Has user tried this lecture-quiz?
     $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
-    
+
     $this->sets([
-        'quizDetails' => $quizDetails,
-        'quizResource' => $quizResource,
-        'previousAttempt' => $previousAttempt,
-        'courseId' => $courseId,
-        'lectureId' => $lectureId,
-        'progressId' => $progressId,
-        'siteLangId' => $this->siteLangId
+        'quizDetails'    => $quizDetails,
+        'quizResource'   => $quizResource,
+        'previousAttempt'=> $previousAttempt,
+        'courseId'       => $courseId,
+        'lectureId'      => $lectureId,
+        'progressId'     => $progressId,
+        'siteLangId'     => $this->siteLangId
     ]);
-    
+
     $this->_template->render(false, false, 'tutorials/get-quiz-new.php');
 }
+
 //lines added by rehan for quiz-lecture ends here
 
     public function getQuizinfo()
@@ -1027,6 +1192,11 @@ public function submitLectureQuiz()
     if ($subtopicId < 1 || $lectureId < 1) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
+// Hard block retakes if already passed
+$prev = $this->getUserQuizAttemptLecture($this->siteUserId, (int)$subtopicId, (int)$lectureId);
+if (!empty($prev) && (int)$prev['status'] === 2) {
+    FatUtility::dieJsonError(Label::getLabel('LBL_QUIZ_ALREADY_PASSED'));
+}
 
     // Get quiz questions to evaluate
     $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
@@ -1046,7 +1216,8 @@ public function submitLectureQuiz()
         }
 
         // Save attempt record
-        $this->saveQuizAttempt($subtopicId, $lectureId, $progressId, $result);
+        $this->upsertLectureQuizAttempt($this->siteUserId, (int)$lectureId, (int)$subtopicId, $result);
+
 
         FatUtility::dieJsonSuccess([
             'status' => 'success',
@@ -1068,58 +1239,49 @@ private function evaluateQuizAnswers($answers, $questions)
     $autoCheckedQuestions = [];
 
     foreach ($questions as $question) {
-        $questionId = $question['question_id'];
-        $marks = $question['question_marks'];
-        $totalMarks += $marks;
+        $questionId      = $question['question_id'];
+        $marks           = (int)$question['question_marks'];
+        $totalMarks     += $marks;
 
         $submittedAnswer = $answers[$questionId] ?? '';
-        $correctAnswer = $question['question_answers'];
-        
-        // Simple evaluation logic - you can enhance this
-        if ($question['question_type'] == '1') { // Single choice
-            if ($submittedAnswer == $correctAnswer) {
-                $score += $marks;
-                $status = 'correct';
-            } else {
-                $status = 'incorrect';
-            }
-        } elseif ($question['question_type'] == '2') { // Multiple choice
-            // You'll need more complex logic for multiple choice
+        $correctAnswer   = trim((string)$question['question_answers']);        // letters (e.g. "A" or "B,C")
+        $explanation     = (string)($question['question_explanation'] ?? '');  // <- from DB
+
+        // scoring (as you had it)
+        if ($question['question_type'] == '1') { // single
+            $status = ($submittedAnswer == $correctAnswer) ? 'correct' : 'incorrect';
+            if ($status === 'correct') $score += $marks;
+        } elseif ($question['question_type'] == '2') { // multi
             $submittedArray = is_array($submittedAnswer) ? $submittedAnswer : [$submittedAnswer];
-            $correctArray = explode(',', $correctAnswer);
+            $correctArray   = array_filter(array_map('trim', explode(',', $correctAnswer)));
             sort($submittedArray);
             sort($correctArray);
-            
-            if ($submittedArray == $correctArray) {
-                $score += $marks;
-                $status = 'correct';
-            } else {
-                $status = 'incorrect';
-            }
-        } else { // Text answer
-            // For text answers, you might want to always mark as correct or implement AI grading
+            $status = ($submittedArray == $correctArray) ? 'correct' : 'incorrect';
+            if ($status === 'correct') $score += $marks;
+        } else { // text
+            $status = 'correct'; // your default rule
             $score += $marks;
-            $status = 'correct';
         }
 
         $autoCheckedQuestions[$questionId] = [
-            'status' => $status,
-            'marks' => $status == 'correct' ? $marks : 0,
-            'question_title' => $question['question_title'],
-            'submitted_answer' => $submittedAnswer,
-            'correctanswer' => $correctAnswer,
+            'status'            => $status,
+            'marks'             => ($status == 'correct' ? $marks : 0),
+            'question_title'    => $question['question_title'],
+            'submitted_answer'  => $submittedAnswer,
+            'correctanswer'     => $correctAnswer,     // letters
+            'explanation'       => $explanation,       // <- add this
         ];
     }
 
-    $percentage = ($score / $totalMarks) * 100;
-    $passed = $percentage >= 60; // Using default 60% pass rate
+    $percentage = ($score / max(1, $totalMarks)) * 100;
+    $passed     = $percentage >= 60;
 
     return [
-        'score' => $score,
-        'totalMarks' => $totalMarks,
-        'percentage' => $percentage,
-        'passed' => $passed,
-        'autoCheckedQuestions' => $autoCheckedQuestions
+        'score'                => $score,
+        'totalMarks'           => $totalMarks,
+        'percentage'           => $percentage,
+        'passed'               => $passed,
+        'autoCheckedQuestions' => $autoCheckedQuestions,
     ];
 }
 
