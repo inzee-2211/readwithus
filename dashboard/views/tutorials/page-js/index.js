@@ -274,51 +274,65 @@ $(function () {
 };
 
 function bindAiTutorUi(){
-  const $box = $('.quizJs'); // container we just filled
+  const $box = $('.quizJs');
   const $messages = $box.find('#aiMessages');
   const $input = $box.find('#aiInput');
   const $send = $box.find('#aiSendBtn');
 
-  // Suggestions -> click to fill
+  // simple client-side history (not saved to DB)
+  const history = []; // {role:'user'|'assistant', content:string}
+
   $box.find('.ai-suggestion').off('click').on('click', function(){
     $input.val($(this).text());
     $input.focus();
   });
 
-  // Clear
   $box.find('#aiClearBtn').off('click').on('click', function(){
     $messages.html('');
+    history.length = 0;
   });
 
-  // Fake “Connect” (for now just tooltip)
   $box.find('#aiConnectBtn').off('click').on('click', function(){
-    alert('API wiring will be added here once available.');
+    alert('AI is already wired to your course context.');
   });
 
-  // Send
   function postUserMessage(txt){
     if (!txt.trim()) return;
-    $messages.append(renderUser(txt));
+    appendUser(txt);
     $input.val('');
-    $messages.scrollTop($messages[0].scrollHeight);
+    // Compose a brief “recent history” string (not stored server-side)
+    const lastTurns = history.slice(-6).map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+    const messageToSend = (lastTurns ? lastTurns + '\n' : '') + `USER: ${txt}`;
 
-    // MOCK reply (replace with real API later)
-    setTimeout(function(){
-      const mock = buildMockAnswer(txt);
-      $messages.append(renderBot(mock));
-      $messages.scrollTop($messages[0].scrollHeight);
-    }, 500);
+    fcom.updateWithAjax(
+      fcom.makeUrl('Tutorials', 'aiChat'),
+      {
+        'lecture_id': currentLectureId,
+        'progress_id': $('#progressId').val(),
+        'message': messageToSend
+      },
+      function (res) {
+        if (res && res.reply) {
+          appendBot(res.reply);
+        } else {
+          appendBot('Hmm, I could not generate a response.');
+        }
+      },
+      {'process': false}
+    );
   }
 
-  $send.off('click').on('click', function(){ postUserMessage($input.val()); });
-  $input.off('keydown').on('keydown', function(e){
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      postUserMessage($input.val());
-    }
-  });
+  function appendUser(text){
+    history.push({role:'user', content:text});
+    $messages.append(renderUser(text));
+    $messages.scrollTop($messages[0].scrollHeight);
+  }
+  function appendBot(text){
+    history.push({role:'assistant', content:text});
+    $messages.append(renderBot(text));
+    $messages.scrollTop($messages[0].scrollHeight);
+  }
 
-  // Helpers
   function renderUser(text){
     return `
       <div class="ai-msg ai-msg--user">
@@ -330,20 +344,20 @@ function bindAiTutorUi(){
     return `
       <div class="ai-msg ai-msg--bot">
         <div class="ai-msg__avatar">AI</div>
-        <div class="ai-msg__bubble">${escapeHtml(text)}</div>
+        <div class="ai-msg__bubble">${escapeHtml(text).replace(/\n/g,'<br>')}</div>
       </div>`;
   }
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  // Very small mock so the UI “feels real”
-  function buildMockAnswer(q){
-    q = q.toLowerCase();
-    if (q.includes('summarize')) return 'Here’s a short summary of the lecture’s key ideas. (This is a placeholder response.)';
-    if (q.includes('practice') || q.includes('question')) return '1) Sample practice Q1\n2) Sample practice Q2\n3) Sample practice Q3';
-    if (q.includes('formula') || q.includes('equation')) return 'Key formulas:\n• a² + b² = c²\n• F = m·a\n(placeholder content)';
-    if (q.includes('explain') && q.includes('12')) return 'Imagine you’re 12: here’s the simple version… (placeholder).';
-    return 'This is a mock reply. Once the API is wired, you’ll get real answers here.';
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
+
+  $send.off('click').on('click', function(){ postUserMessage($input.val()); });
+  $input.off('keydown').on('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      postUserMessage($input.val());
+    }
+  });
 }
 
 });
