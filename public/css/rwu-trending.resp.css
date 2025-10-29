@@ -1,0 +1,11 @@
+/* ===== Responsive ===== */
+@media (max-width:1280px){
+  .rwu-trending .grid{
+    grid-template-columns:repeat(2, minmax(300px, 410px));
+    gap:28px 36px;
+  }
+}
+@media (max-width:740px){
+  .rwu-trending .wrap{ max-width:calc(100% - 24px); }
+  .rwu-trending .grid{ grid-template-columns:1fr; gap:22px; }
+}

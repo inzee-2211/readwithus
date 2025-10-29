@@ -1,0 +1,120 @@
+/* ===== Revise-Topic modal polish ===== */
+.rw-modal .modal-content{
+  border-radius: 16px;
+  border: 1px solid #eaf2f8;
+  background: linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+}
+.rw-modal .modal-title{ font-size: 20px; color:#0A033C; }
+.rtm-body{
+  min-height: 260px;
+  max-height: 65vh;
+  overflow: auto;
+  padding: 8px 2px 6px;
+}
+
+/* breadcrumb + step label rendered by your JS */
+.rtm-body .breadcrumb-nav span{ padding:4px 8px; border-radius:6px; }
+.rtm-body h5{ font-weight:700; color:#0A033C; }
+
+/* option buttons your JS creates (.loop-wrap-btn > button) */
+.loop-wrap-btn{ display:flex; justify-content:center; margin:8px 0; }
+.loop-wrap-btn > button{
+  width:100%; max-width:720px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px;
+  border-radius:12px;
+  border:1.5px solid #CDEAFF;
+  background:#fff;
+  font-weight:600; color:#0A033C;
+  transition: box-shadow .18s ease, transform .06s ease;
+}
+/* ===== About/Features (Figma-style) ===== */
+.rw-about {
+  background:#F5FAFE;
+}
+.rw-about__wrap{
+  max-width:1480px; margin:0 auto; padding:64px 16px;
+  display:grid; grid-template-columns: 1.05fr 0.95fr; gap:60px; align-items:center;
+}
+@media (max-width: 1024px){ .rw-about__wrap{ grid-template-columns:1fr; padding:48px 16px; }}
+
+/* left block */
+.rw-chip{
+  display:inline-flex; align-items:center; gap:10px;
+  background:#C2E6FF; color:#14A3FF; border-radius:20px; padding:8px 14px;
+  font-weight:600; margin-bottom:16px;
+}
+.rw-about h2{
+  font-family:"Poppins", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  font-size:clamp(26px, 3.2vw, 36px); line-height:1.4; font-weight:600; color:#000; margin:0 0 10px;
+}
+.rw-sublead{ color:#5F6C76; font-weight:500; font-size:clamp(16px,2vw,20px); margin:10px 0 16px; }
+.rw-quote{
+  display:flex; gap:14px; border-left:4px solid #D7EAFE; padding:12px 14px; background:#fff; border-radius:10px;
+  box-shadow:0 10px 30px rgba(95,45,237,0.06); color:#5F6C76; line-height:1.8;
+}
+.rw-cta{ margin-top:18px; }
+.rw-cta .btn{
+  background:#2DADFF; border:1px solid #2DADFF; color:#fff; font-weight:600; border-radius:8px; padding:10px 16px;
+}
+
+/* right grid of feature cards */
+.rw-features{
+    margin-left: 50px;
+  position:relative;
+  display:grid; grid-template-columns:1fr; gap:20px;
+}
+@media (min-width: 720px){
+  .rw-features{ grid-template-columns:1fr 1fr; gap:24px; }
+}
+.rw-card{
+  position:relative; background:#fff; border-radius:12px; padding:22px 22px 18px;
+  box-shadow:0 0 50px 10px rgba(95,45,237,0.10);
+  min-height:240px; display:flex; flex-direction:column; gap:10px;
+}
+.rw-card__icon{
+  width:58px; height:58px; display:grid; place-items:center; border-radius:12px;
+  background:#EFF6FE; margin-bottom:6px;
+}
+.rw-card h4{ font-family:"Actor", Inter, system-ui; font-size:22px; font-weight:400; color:#000; margin:0 0 4px; }
+.rw-card p{ color:#5F6C76; font-size:14px; line-height:1.7; margin:0 0 10px; }
+.rw-link{
+  display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#000; text-decoration:none;
+}
+.rw-link:hover{ text-decoration:underline; }
+
+/* subtle center cross divider (optional) */
+@media (min-width: 720px){
+  .rw-features::before, .rw-features::after{
+    content:""; position:absolute; background:linear-gradient(#EAF2FF, #EAF2FF);
+    opacity:.7; border-radius:999px;
+  }
+  .rw-features::before{ width:2px; top:8px; bottom:8px; left:50%; transform:translateX(-1px); }
+  .rw-features::after{ height:2px; left:8px; right:8px; top:49%; transform:translateY(-1px); }
+}
+
+
+.loop-wrap-btn > button:hover{ box-shadow:0 10px 30px rgba(29,156,253,.15); transform: translateY(-1px); }
+.loop-wrap-btn .arrow{ width:18px; height:18px; }
+
+.rw-badge--top    { top: 18px;  right: 8%; }
+.rw-badge--left   { top: 34%;   left: 2%; }
+.rw-badge--midR   { top: 40%;   right: 16%; }
+.rw-badge img { width: 56px; height: 56px; }
+.rw-hero .course-drop-select { margin-top: 10px; }
+/* Raise the left-side cards slightly for a staggered layout */
+@media (min-width: 720px){
+  .rw-card--raised {
+    transform: translateY(-18px);
+  }
+
+  /* Add a gentle shadow lift effect */
+  .rw-card--raised:hover {
+    transform: translateY(-24px);
+    box-shadow: 0 16px 40px rgba(95,45,237,0.15);
+  }
+   .rw-card:hover {
+    transform: translateY(-24px);
+    box-shadow: 0 16px 40px rgba(95,45,237,0.15);
+  }
+}

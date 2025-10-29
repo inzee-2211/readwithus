@@ -1,0 +1,162 @@
+.rwu-trending{background:#fff;padding:64px 0 24px;}
+.rwu-trending .wrap{
+  max-width:1569px; /* matches Figma container */
+  width:calc(100% - 48px);
+  margin:0 auto;
+  position:relative;
+}
+
+/* ---------- Header ---------- */
+.rwu-trending .pill{
+  display:flex;                 /* was inline-flex */
+  width:max-content;            /* shrink to content */
+  align-items:center;justify-content:center;
+  height:46px;padding:0 22px;border-radius:20px;
+  background:#C2E6FF;color:#14A3FF;
+  font:600 20px/21px Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  margin:0 auto 18px;           /* centers now */
+  letter-spacing:.1px;
+}
+.rwu-trending .title{
+  text-align:center;color:#0A033C;
+  font:600 clamp(28px,3.6vw,50px)/1.15 Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  margin:0 0 12px;
+}
+.rwu-trending .sub{
+  max-width:1654px;margin:0 auto 26px;
+  text-align:center;color:#5F6C76;
+  font:500 clamp(14px,1.35vw,24px)/1.7 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+
+
+/* ---------- Grid ---------- */
+.rwu-trending .grid {
+  width:1534px; max-width:100%;
+  margin:0 auto;
+  display:grid; grid-template-columns:repeat(3, 410px); gap:40px 121px; /* gap matches figma (121 horiz, 40 vert) */
+  justify-content:center;
+}
+@media (max-width: 1280px){
+  .rwu-trending .grid{ grid-template-columns:repeat(2, minmax(300px, 410px)); gap:28px 36px; }
+}
+@media (max-width: 740px){
+  .rwu-trending .grid{ grid-template-columns:1fr; }
+}
+
+/* ---------- Card ---------- */
+.rwu-course {
+  width:410px; height:474px;
+  border:1px solid #EAEAEA; border-radius:20px; background:#fff;
+  display:flex; flex-direction:column; overflow:hidden;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.rwu-course.is-featured{ box-shadow:0 4px 20px rgba(0,0,0,.10); }
+.rwu-course:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,.12); }
+
+/* media */
+.rwu-course .media { position:relative; height:250px; isolation:isolate; }
+.rwu-course .media img{
+  width:100%; height:100%; object-fit:cover; display:block; border-top-left-radius:20px; border-top-right-radius:20px;
+}
+.rwu-course .chip {
+  position:absolute; left:20px; top:20px; z-index:1;
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  height:40px; padding:8px 12px; border-radius:8px; background:#000; color:#fff;
+  font:500 16px/24px 'Jost', Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* body */
+.rwu-course .body { padding:20px; display:flex; flex-direction:column; gap:16px; height:229px; }
+.rwu-course .by   { color:#555; font:400 16px/24px 'Jost', Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+.rwu-course .name { 
+  font:600 20px/1.2 'Exo', Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+  color:#000; text-transform:capitalize; 
+  display:-webkit-box;  -webkit-box-orient:vertical; overflow:hidden;
+}
+.rwu-course .name.link { color:#2DADFF; }
+
+/* meta (weeks + students) */
+.rwu-course .meta { display:flex; align-items:center; gap:24px; color:#555; font:400 16px/24px 'Jost', Inter, system-ui; }
+
+/* divider */
+.rwu-course .line { height:1px; background:#EAEAEA; }
+
+/* footer rows */
+.rwu-course .footer { display:flex; align-items:center; justify-content:space-between; height:27px; }
+.rwu-course .price { display:flex; align-items:center; gap:8px; }
+.rwu-course .price .was {
+  color:#9D9D9D; text-decoration:line-through; font:400 18px/27px 'Jost', Inter, system-ui;
+}
+.rwu-course .price .now-blue { color:#2DADFF; font:500 18px/27px 'Jost', Inter, system-ui; }
+.rwu-course .price .now-green{ color:#55BE24; font:500 18px/27px 'Jost', Inter, system-ui; }
+.rwu-course .more { color:#000; font:500 18px/27px 'Jost', Inter, system-ui; text-decoration:none; }
+
+/* ---------- All courses button ---------- */
+.rwu-trending .all-btn{
+  display:flex;                /* was inline-flex */
+  align-items:center;justify-content:center;gap:10px;
+  width:165px;height:49px;margin:40px auto 0;border-radius:4px;  /* centers now */
+  background:#2DADFF;border:1px solid #2DADFF;color:#fff;font:400 15px/27px Inter,system-ui;text-decoration:none;
+}
+.rwu-trending .all-btn svg{width:15px;height:15px;transform:scaleX(-1);fill:#fff;}
+.rwu-trending .all-btn svg{ width:15px; height:15px; transform:scaleX(-1); fill:#fff; }
+/* ---------- Header spacing adjustments to match Figma ---------- */
+.rwu-trending .wrap { position: relative; }
+.rwu-trending .pill { margin-top: 0; }
+.rwu-trending .title { margin-bottom: 10px; }
+.rwu-trending .sub { margin-bottom: 26px; }
+
+/* ---------- Center Filter Bar (All | GCSE | KS1 | KS2 | KS3) ---------- */
+.rwu-trending__filters{
+  display:flex; align-items:center; justify-content:center;
+  gap:18px; margin: 6px auto 30px; position:relative;
+  width:730px; max-width:calc(100% - 48px);
+}
+.rwu-trending__filters .filter{
+  appearance:none; border:0; background:transparent; cursor:pointer;
+  padding:8px 16px; border-radius:6px; font:600 26px/39px Poppins, system-ui, -apple-system;
+  color:#000; transition: background .15s ease, color .15s ease, transform .06s ease;
+}
+.rwu-trending__filters .filter.is-active{
+  background:#2DADFF; color:#fff; border-radius:4px;
+}
+.rwu-trending__filters .filter:active{ transform:translateY(1px); }
+
+/* thin vertical separators matching figma lines */
+.rwu-trending__filters .sep{
+  width:1px; height:33px; background:#000; opacity:.18;
+}
+
+/* mobile: horizontal scroll for pills */
+@media (max-width: 720px){
+  .rwu-trending__filters{
+    width:auto; gap:10px; margin: 6px 16px 24px;
+    justify-content:flex-start; overflow-x:auto; padding-bottom:4px;
+  }
+  .rwu-trending__filters .sep{ display:none; }
+  .rwu-trending__filters .filter{ font-size:18px; line-height:28px; padding:6px 12px; white-space:nowrap; }
+}
+
+/* ---------- Card minor polish to mirror figma ---------- */
+/* ensure the “featured” middle card shadow matches figma emphasis */
+.rwu-course.is-featured{ box-shadow:0 4px 20px rgba(0,0,0,.10); }
+
+/* chip contrast and radius from figma */
+.rwu-course .chip{
+  background:#000; color:#fff; border-radius:8px;
+  font-weight:500; font-size:16px; line-height:24px;
+}
+
+/* divider spacing */
+.rwu-course .line{ margin: 2px 0; }
+
+/* tiny hover state on card title when it’s a link */
+.rwu-course .name.link:hover{ text-decoration: underline; }
+
+/* tighten grid gaps a hair at xl so 3x410 fits comfortably */
+@media (min-width: 1281px){
+  .rwu-trending .grid{ gap:40px 100px; } /* was 121px; adjust if needed */
+}
+
+/* ---------- All Courses button spacing ---------- */
+.rwu-trending .all-btn{ margin-top: 40px; }

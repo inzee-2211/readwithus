@@ -1,0 +1,149 @@
+/* ===========================
+   HERO LAYOUT
+=========================== */
+.rw-hero{
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg,#F5FAFF 0%,#FFFFFF 100%);
+}
+
+.rw-hero__inner{
+  --gap: 32px;
+  --content-max: 1480px;
+  --art-max: 500px;           /* desktop art width cap */
+  --art-min: 420px;           /* min art width on small desktops */
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 72px 16px 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--gap);
+  align-items: center;
+}
+
+.rw-hero__left{ grid-column: 1; z-index: 2; }
+.rw-hero__art { grid-column: 2; z-index: 1; display:flex; justify-content:flex-end; }
+
+/* Keep 2 columns on desktop; stack only below 960px */
+@media (max-width: 960px){
+  .rw-hero__inner{ grid-template-columns: 1fr; padding: 56px 16px 40px; }
+  .rw-hero__art{ justify-content:center; margin-top: 28px; }
+}
+
+/* ===========================
+   LEFT SIDE TYPOGRAPHY
+=========================== */
+.rw-hero__eyebrow{
+  display:inline-flex; align-items:center; gap:8px;
+  font-weight:600; color:#1f2937; background:#E8F5FF;
+  border-radius:999px; padding:6px 12px; margin-bottom:16px;
+}
+.rw-hero__title{
+  font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans";
+  font-weight:700; font-size:clamp(32px,4.5vw,56px); line-height:1.1;
+  color:#0A033C; margin:0 0 14px;
+}
+.rw-hero__title .accent{ color:#1D9CFD; }
+.rw-hero__sub{
+  color:#0A033C;font-weight: medium; font-size:clamp(16px,2vw,20px); line-height:1.7;
+  max-width:56ch; margin:0 0 18px;
+}
+
+/* Search rail */
+.rw-hero__search{
+  margin-top: 6%;
+  display:grid; grid-template-columns:240px 1fr 160px; gap:12px;
+  background:rgba(227,244,255,.6); padding:10px; border-radius:12px; align-items:center;
+  width:100%; max-width:820px;
+}
+@media (max-width: 720px){ .rw-hero__search{ grid-template-columns:1fr; gap:8px; } }
+.rw-pill{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  padding:12px 14px; border-radius:10px; border:1.5px solid #CDEAFF; background:#fff;
+  color:#0A033C; font-weight:600; width:100%; cursor:pointer;
+}
+.rw-pill .arrow{ width:18px; height:18px; }
+.rw-input{
+  width:100%; height:48px; border-radius:10px; border:1.5px solid #CDEAFF;
+  background:#fff; padding:0 14px; font-size:16px; color:#3b3b3b;
+}
+.rw-searchbtn{
+  width:100%; height:48px; border:0; border-radius:10px; background:#2DADFF; color:#fff; font-weight:700; cursor:pointer;
+}
+
+/* ===========================
+   RIGHT SIDE (GIRL + BADGES)
+=========================== */
+.rw-hero__art-inner{
+  position:relative;
+  width: clamp(var(--art-min), 46vw, var(--art-max));  /* scale with viewport */
+  aspect-ratio: 612 / 825;                             /* Figma image ratio */
+}
+
+/* Girl image fills the art box */
+.rw-hero__img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  filter: drop-shadow(0 25px 70px rgba(10,3,60,.15));
+}
+
+/* Generic card style for each badge */
+.rw-badge{
+  position:absolute;
+  width: 100px; height: 85px;
+  background:#fff; border-radius:12px;
+  box-shadow:0 25px 70px rgba(10,3,60,.15);
+  padding:12px; display:grid; place-items:center;
+  transition: transform .25s ease;
+}
+.rw-badge img{ width:63px; height:53px; object-fit:contain; }
+.rw-badge:hover{ transform:scale(1.05); }
+
+/* ------- Positions (percentages relative to the art box) -------
+   Tuned to visually match your Figma screenshot.                */
+.rw-badge--book{         top:  2%;  left:  -6%; }   /* top-left outside */
+.rw-badge--presentation{ top: -4%;  right: 18%; }   /* above near head  */
+.rw-badge--person{       top: 34%;  left:  -4%; }   /* mid-left outside */
+.rw-badge--blocks{       bottom: -3%; right: -3%; } /* bottom-right out */
+/* === Connector SVG styling === */
+.rw-connectors {
+  position: absolute;
+  inset: 0; 
+color: #0A033C;             /* fill the same area as the art box */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;  /* don’t block badge hover clicks */
+  z-index: 0;            /* keep behind badges and girl */
+}
+
+
+/* Responsiveness: slightly shrink cards at smaller widths */
+@media (max-width: 1200px){
+  .rw-badge{ width:92px; height:78px; }
+  .rw-badge img{ width:56px; height:48px; }
+}
+@media (max-width: 960px){
+  .rw-hero__art-inner{ width: clamp(420px, 64vw, 560px); }
+  .rw-badge--book{ top: 0%; left: -7%; }
+  .rw-badge--presentation{ top: -6%; right: 14%; }
+  .rw-badge--person{ top: 36%; left: -6%; }
+  .rw-badge--blocks{ bottom: -5%; right: -5%; }
+}
+@media (max-width: 560px){
+  .rw-hero__art-inner{ width: clamp(320px, 78vw, 420px); }
+  .rw-badge{ width:80px; height:68px; }
+  .rw-badge img{ width:46px; height:40px; }
+}
+
+/* Reverse hero layout order on mobile */
+@media (max-width: 960px){
+  .rw-hero__inner{
+    display: flex;
+    flex-direction: column;         /* stack vertically */
+  }
+  .rw-hero__left{
+    order: 1;                       /* text first */
+  }
+  .rw-hero__art{
+    order: 2;                       /* image second (below text) */
+  }
+}

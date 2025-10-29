@@ -1,190 +1,508 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
-<style>
- input,select{font-size:16px;cursor:pointer}.containernew{display:flex;gap:15px;align-items:center;justify-content:center;padding:20px;background-color:#f4f4f4;border-radius:8px}input,select{border:1px solid #ed6852;border-radius:6px;background-color:#fff;color:#333;transition:.3s}input:hover,select:hover{border-color:#ed6852}input:focus,select:focus{outline:0;box-shadow:0 0 5px rgba(0,123,255,.5)}.menu-item{border-radius:5px;transition:.3s}.menu-item:hover{background:#e3e3e3}select{width:100%;border:1px solid #ed6852;border-radius:6px;background:url('data:image/svg+xml;utf8,<svg fill="%23333" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') right 10px center/16px no-repeat #fff;appearance:none;-webkit-appearance:none;-moz-appearance:none;text-align:center}.menu,.submenu{background:#fff;box-shadow:0 4px 8px rgba(0,0,0,.2);border-radius:5px}.menu-item:hover,select:hover{border-color:#ed6852;background-color:#fafafa}.menu{display:none;position:absolute;top:100%;left:0;width:220px;padding:5px;z-index:1000}.menu-item{padding:12px 16px;cursor:pointer;font-size:15px;position:relative;display:flex;justify-content:space-between;align-items:center}.menu-item::after{content:'▶';font-size:12px;color:#999;transition:transform .3s}.menu-item:hover::after{transform:rotate(90deg);color:#ed6852}.submenu{display:none;position:absolute;left:100%;top:0;width:200px;padding:10px 0}.menu-item:hover>.submenu{display:block}.popup-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:1000}.popup-content{background:#fff;padding:25px;border-radius:12px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.2);width:300px;max-width:90%;animation:.3s ease-in-out fadeIn}.start-button,.start-button:hover{background:#3589c2}.popup-content h2{margin:0 0 10px;font-size:22px;color:#333}.popup-content p{font-size:16px;color:#666;margin-bottom:20px}.button-container{display:flex;justify-content:space-between;gap:10px}.popup-content button{padding:10px 18px;border:none;font-size:14px;cursor:pointer;border-radius:6px;transition:.2s ease-in-out}.start-button{color:#fff}.cancel-button{background:#f44336;color:#fff}.cancel-button:hover{background:#d32f2f}@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 
-
-.back-btn  
-{
-    margin-top:3px;
-    margin-bottom:3px;
+<?php
+function asset_css($file){
+  $abs = CONF_APPLICATION_PATH . 'public/' . ltrim($file,'/');
+  return CONF_WEBROOT_URL . $file . '?v=' . (@filemtime($abs) ?: time());
 }
-
-  .subtopic-btn
-{
-    margin-top:3px;
-    margin-bottom:3px;
+?>
+<?php
+function asset_js($file){
+  $abs = CONF_APPLICATION_PATH . 'public/' . ltrim($file,'/');
+  return CONF_WEBROOT_URL . $file . '?v=' . (@filemtime($abs) ?: time());
 }
-</style>
+$heroBase = CONF_WEBROOT_URL . 'images/hero/';
+?>
+<link rel="stylesheet" href="<?= asset_css('css/rwu-hero.section.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/rwu-trending.cards.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/rwu-trending.resp.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.secondsection.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.thirdsection.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.requesttutor.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.pricing.css') ?>">
 
-<div class="hero-section">
 
-   <div class="floating-background">
-    <div class="float-item">📚</div> <!-- Book -->
-    <div class="float-item">📐</div> <!-- Geometry set -->
-    <div class="float-item">🔬</div> <!-- Microscope -->
-    <div class="float-item">🧮</div> <!-- Abacus -->
-    <div class="float-item">📝</div> <!-- Notebook -->
-    <div class="float-item">📊</div> <!-- Bar chart -->
-    <div class="float-item">📏</div> <!-- Ruler -->
-    <div class="float-item">➗</div> <!-- Division -->
-    <div class="float-item">➕</div> <!-- Plus -->
-    <div class="float-item">➖</div> <!-- Minus -->
-    <div class="float-item">✖️</div> <!-- Multiplication -->
-    <div class="float-item">📎</div> <!-- Paperclip -->
-    <div class="float-item">📅</div> <!-- Calendar -->
-    <div class="float-item">📓</div> <!-- Closed notebook -->
-    <div class="float-item">🎓</div> <!-- Graduation cap -->
+<section class="rw-hero">
+  <div class="rw-hero__inner">
+    <!-- LEFT -->
+    <div class="rw-hero__left">
+      <div class="rw-hero__eyebrow">
+        <span>🎓</span><span>Learn. Practice. Achieve.</span>
+      </div>
+
+      <h1 class="rw-hero__title">
+        Your All-in-One Online <span class="accent">Learning Platform</span>
+      </h1>
+
+      <p class="rw-hero__sub">
+        Learn from trusted tutors and smart digital tools designed for students across the UK to study anywhere, anytime.
+        
+      </p>
+      <p class="sub-heading">
+        Welcome to readwithus.uk. UK's most adaptive platform for student of all ages .Access expert human tutoring, interactive video lessons, AI-assisted practice quizzes, and live exam preparation — all in one place.
+      </p>
+
+      <!-- Search rail -->
+      <div class="rw-hero__search">
+        <button id="openSelector" class="rw-pill" type="button" data-bs-toggle="modal" data-bs-target="#reviseTopicModal">
+          <span>Revise Your Topic</span>
+          <img src="<?php echo getBaseUrl(); ?>/assets/img/arrow-2.svg" class="arrow" alt="">
+        </button>
+
+        <input id="rwCourseQuery" class="rw-input" type="text" placeholder="Class/Course e.g. GCSE Maths, Algebra, English…"/>
+        <button id="rwSearchBtn" class="rw-searchbtn">Search</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Art -->
+    <div class="rw-hero__art">
+      <div class="rw-hero__art-inner">
+        <img class="rw-hero__img" src="<?= $heroBase ?>hero-girl.svg" alt="Student with laptop">
+<!-- Connector lines (SVG) -->
+<svg class="rw-connectors" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <!-- top-left to girl -->
+  <path d="M100,140 C760,80 300,60 430,200" stroke="#ECECEC" stroke-width="2" fill="none"/>
+  <!-- left-middle to girl -->
+  <path d="M80,380 C220,400 360,360 460,420" stroke="#ECECEC" stroke-width="2" fill="none"/>
+  <!-- bottom-right to girl -->
+  <path d="M540,520 C620,580 700,620 760,700" stroke="#ECECEC" stroke-width="2" fill="none"/>
+</svg>
+
+        <!-- Floating cards -->
+        <div class="rw-badge rw-badge--book">
+          <img src="<?= $heroBase ?>book.svg" alt="Book">
+        </div>
+        <div class="rw-badge rw-badge--presentation">
+          <img src="<?= $heroBase ?>light-bulb.svg" alt="Light Bulb">
+        </div>
+        <div class="rw-badge rw-badge--person">
+          <img src="<?= $heroBase ?>light.svg" alt="icon">
+        </div>
+        <div class="rw-badge rw-badge--blocks">
+          <img src="<?= $heroBase ?>dice.svg" alt="Blocks">
+        </div>
+      </div>
+    </div>
   </div>
-  <p class="tagline">🎓 Learn. Practice. Achieve.</p>
-  <h1 class="main-heading">
-    Your All-in-One Online <span>Learning Platform</span>
-  </h1>
-  <p class="description ft-gothic">
-    Join interactive <b class="ft-book">courses</b>, connect with expert <b class="ft-book">tutors</b>, attend
-    <b class="ft-book">live group classes</b>, and sharpen your skills with <b class="ft-book">topic-based quizzes</b>.
-    <br>Earn <b class="ft-book">certificates</b> as you level up — all in one place at <b class="ft-book">ReadWithUs.org.uk</b>.
-  </p>
-<br>
-<br>
-  <button class="cta-primary" id="openSelector">
-  Revise Your Topic
-<img src="<?php echo getBaseUrl(); ?>public/assets/img/arrow-2.svg" alt="Arrow icon" class="arrow">
-</button>
-<br>
-<div class="course-drop-select" id="dropDownOptions">
-  
+
+  <!-- ✅ Modal placed OUTSIDE grid for proper Bootstrap layering -->
+  <div class="modal fade rw-modal" id="reviseTopicModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold">Revise your Topic</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-2">
+          <div id="dropDownOptions" class="rtm-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rw-about">
+  <div class="rw-about__wrap">
+    <!-- LEFT: text -->
+    <div>
+      <div class="rw-chip">About Us</div>
+      <h2>Empowering Minds Through Technology, Innovation &amp; Learning with Human Tutoring</h2>
+      <p class="rw-sublead">
+        Empowering Minds Through Technology, Innovation &amp; Learning with Human Tutoring
+      </p>
+
+      <div class="rw-quote">
+        <p class="mb-0">
+          A unified learning experience built for students and educators across the United Kingdom.
+          At <strong>ReadWithUs.org.uk</strong>, we combine human expertise, AI-driven learning analytics,
+          and interactive study tools to make education personal, measurable, and effective.
+          Our goal is to deliver structured, high-quality learning that supports every learner’s pace, style, and ambition.
+        </p>
+      </div>
+
+      <div class="rw-cta">
+        <a class="btn" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">
+          Explore More
+        </a>
+      </div>
+    </div>
+
+    <!-- RIGHT: 2×2 cards -->
+    <div class="rw-features">
+      <!-- Card 1 -->
+      <article class="rw-card rw-card--raised">
+        <div class="rw-card__icon">
+          <img src="<?php echo $secBase; ?>icon-analytics.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+        </div>
+        <h4>AI Tutoring &amp; Smart Learning</h4>
+        <p>Learn smarter with personalized AI tutors that adapt to your pace and style.</p>
+        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="rw-card">
+        <div class="rw-card__icon">
+          <img src="<?php echo $secBase; ?>icon-quiz.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+        </div>
+        <h4>Quizzes &amp; Lectures</h4>
+        <p>Practice with instant-feedback quizzes and access structured lecture content.</p>
+        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="rw-card rw-card--raised">
+        <div class="rw-card__icon">
+          <img src="<?php echo $secBase; ?>icon-video.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+        </div>
+        <h4>Interactive Video Lessons</h4>
+        <p>Visual, story-driven lessons that make complex topics easy to understand.</p>
+        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+      </article>
+
+      <!-- Card 4 -->
+      <article class="rw-card">
+        <div class="rw-card__icon">
+          <img src="<?php echo $secBase; ?>icon-live.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+        </div>
+        <h4>Live Exams</h4>
+        <p>Experience real-time exam sessions to prepare for the real world with confidence.</p>
+        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('group-classes'); ?>">View Course →</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<?php
+// Prepare the data BEFORE rendering the section
+if (empty($trendingCourses)) {
+    if (!empty($courses) && is_array($courses)) {
+        // Fallback to your existing $courses list
+        $trendingCourses = array_slice($courses, 0, 6);
+    } else {
+        $trendingCourses = []; // no data
+    }
+}
+?>
+<section class="rwu-trending">
+  <div class="wrap">
+    <div class="pill">Trending Courses</div>
+    <h2 class="title">Perfect <span style="color:#1D9CFD">Online Courses</span> for your career</h2>
+    <div class="sub">
+      Explore career-focused online courses built by expert tutors and powered by intelligent learning tools.
+      Every course integrates video lessons, guided projects, and AI-supported feedback, making learning measurable,
+      flexible, and outcome-driven.
+    </div>
+    <!-- FILTER BAR -->
+<div class="rwu-trending__filters" id="courseFilters">
+  <button class="filter is-active" data-level="all">All</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="filter" data-level="gcse">GCSE</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="filter" data-level="ks1">KS1</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="filter" data-level="ks2">KS2</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="filter" data-level="ks3">KS3</button>
 </div>
-<br>
-  <div class="secondary-buttons">
-    <a href="<?php echo MyUtility::makeFullUrl('courses'); ?>">
-      <button class="secondary-btn">Explore Courses</button>
-    </a>
-    <button class="secondary-btn" data-bs-toggle="modal" data-bs-target="#quizSignupModal">Find a Tutor</button>
-    <a href="<?php echo MyUtility::makeFullUrl('teachers'); ?>">
-      <button class="secondary-btn">Join Group Classes</button>
+
+
+      <div class="grid">
+        <?php foreach ($trendingCourses as $idx => $c): ?>
+          <?php
+            // Try to resolve a course image via your Image controller; fallback to a generic.
+            $imgUrl = FatCache::getCachedUrl(
+              MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $c['course_id'] ?? 0, Afile::SIZE_MEDIUM]),
+              CONF_DEF_CACHE_TIME,
+              '.jpg'
+            );
+            if (empty($imgUrl)) { $imgUrl = CONF_WEBROOT_URL . 'images/defaults/course-4by3.jpg'; }
+            // Little helpers (adjust to your data keys if different)
+            $teacherName = $c['teacher_name'] ?? 'by Determined-Poitras';
+            $title       = $c['course_title'] ?? 'Create an LMS Website with LearnPress';
+            $weeks       = $c['duration_weeks'] ?? '2 Weeks';
+            $students    = ($c['enrolled'] ?? 156) . ' Students';
+            $oldPrice    = $c['old_price'] ?? null;       // e.g., 59.0
+            $price       = $c['price']     ?? 0;          // 0 => Free
+            $viewLink    = MyUtility::makeUrl('Courses'); // safe: listing link (replace with detail if you have it)
+          ?>
+          <article class="rwu-course <?= $idx === 1 ? 'is-featured' : '' ?>">
+            <div class="media">
+              <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($title) ?>">
+              <div class="chip">Photography</div>
+            </div>
+
+            <div class="body">
+              <div class="by"><?= htmlspecialchars($teacherName) ?></div>
+              <a class="name <?= $idx === 1 ? 'link' : '' ?>" href="<?= $viewLink ?>">
+                <?= htmlspecialchars($title) ?>
+              </a>
+              <div class="meta">
+                <span><?= htmlspecialchars($weeks) ?></span>
+                <span><?= htmlspecialchars($students) ?></span>
+              </div>
+              <div class="line"></div>
+              <div class="footer">
+                <div class="price">
+                  <?php if (!empty($oldPrice)): ?>
+                    <span class="was">$<?= number_format((float)$oldPrice, 1) ?></span>
+                  <?php endif; ?>
+                  <?php if ((float)$price > 0): ?>
+                    <span class="now-blue">$<?= number_format((float)$price, 1) ?></span>
+                  <?php else: ?>
+                    <span class="now-green">Free</span>
+                  <?php endif; ?>
+                </div>
+                <a class="more" href="<?= $viewLink ?>">View more</a>
+              </div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    
+
+    <a class="all-btn" href="<?= MyUtility::makeUrl('Courses') ?>">
+      All Courses
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l10 8-10 8V4z"/></svg>
     </a>
   </div>
-</div>
+  <?php
+$trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses, 0, 6) : [];
+?>
+</section>
+
+<section class="rwu-request-tutor">
+  <div class="rwu-request-bg">
+     <img src="<?= $heroBase ?>Section2.jpg"  alt="Background" />
+  </div>
+
+  <div class="rwu-request-content">
+    <!-- LEFT: Text block -->
+    <div class="rwu-request-left">
+      <div class="pill">Tutor Request</div>
+      <h1 class="title">
+        Request Your Tutor ...<br />
+        Get Matched with Qualified & Experienced Teachers
+      </h1>
+      <p class="desc">
+        • Learn Smarter. Get Personalized Tutoring Tailored to Your Goals.<br />
+        • Experience personalised lessons supported by smart learning insights.<br />
+        • Improve performance through real-time feedback and progress tracking.<br />
+        • Learn online, anytime flexible scheduling built around your routine.
+      </p>
+
+      <a href="#" class="btn-main">
+        See Our Tutors
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
+      <div class="rwu-stats">
+   <div class="stat">
+     <img class="icon" src="<?= $heroBase ?>Expert-tutors.svg" alt="Expert Tutors">
+     <span class="num">4k+</span>
+     <span class="label">Expert Tutors</span>
+   </div>
+   <div class="stat">
+     <img class="icon" src="<?= $heroBase ?>Active-Students.svg" alt="Active Students">
+     <span class="num">10k+</span>
+     <span class="label">Active Students</span>
+   </div>
+   <div class="stat">
+     <img class="icon" src="<?= $heroBase ?>Subject-Covered.svg" alt="Subjects Covered">
+     <span class="num">50+</span>
+     <span class="label">Subjects Covered</span>
+   </div>
+   <div class="stat">
+     <img class="icon" src="<?= $heroBase ?>Satisfied-Learners.svg" alt="Satisfied Learners">
+     <span class="num">1.5k+</span>
+     <span class="label">Satisfied Learners</span>
+   </div>
+ </div>
+      
+    </div>
+
+    <!-- RIGHT: Registration Form -->
+    <div class="rwu-request-form">
+      <form>
+        <h3>Fill your Request</h3>
+        <input type="text" placeholder="Your Name" />
+        <div class="row">
+          <input type="email" placeholder="Email Address" />
+          <input type="tel" placeholder="Phone" />
+        </div>
+        <input type="text" placeholder="course list" />
+        <textarea placeholder="Preffered time"></textarea>
+        <button type="submit" class="btn-submit">
+          Sign Up
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="rwu-pricing" aria-labelledby="pricing-title">
+  <div class="wrap">
+    <div class="pill">Our Packages</div>
+
+    <h2 id="pricing-title" class="title">
+      Choose the <span style="color:#2DADFF">Best Pakages</span> for your learning
+    </h2>
+
+    <p class="sub">
+      Explore flexible plans crafted for every learner – from quick revisions to full-length courses, all at affordable rates.
+    </p>
+
+    <div class="grid">
+      <!-- FREE -->
+      <article class="rwu-plan" aria-labelledby="plan-free">
+        <!-- Optional decorative art -->
+        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__1.png" alt="" role="presentation" />
+        <h3 id="plan-free" class="rwu-plan__name">FREE</h3>
+
+        <div class="rwu-price" aria-label="$0 per month">
+          <span class="rwu-price__currency">$</span>
+          <span class="rwu-price__amount">0</span>
+          <span class="rwu-price__period">/ month</span>
+        </div>
+
+        <p class="rwu-plan__tag">Perfect for startup</p>
+
+        <ul class="rwu-list">
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
+              <!-- check -->
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="rwu-li__text">2 user</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="rwu-li__text">Learning Scope</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="rwu-li__text">Team collaboration</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="rwu-li__text">Export HTML code</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="rwu-li__text">Upload Your Logo</span>
+          </li>
+        </ul>
+
+        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Free">
+          Get Started
+        </button>
+        <div class="rwu-plan__fine">No credit card required</div>
+      </article>
+
+      <!-- BASIC -->
+      <article class="rwu-plan" aria-labelledby="plan-basic">
+        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__2.png" alt="" role="presentation" />
+        <h3 id="plan-basic" class="rwu-plan__name">BASIC</h3>
+
+        <div class="rwu-price" aria-label="$29 per month">
+          <span class="rwu-price__currency">$</span>
+          <span class="rwu-price__amount">29</span>
+          <span class="rwu-price__period">/ month</span>
+        </div>
+
+        <p class="rwu-plan__tag">Perfect for startup</p>
+
+        <ul class="rwu-list">
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">5 user</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Learning Scope</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Team collaboration</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Export HTML code</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Upload Your Logo</span>
+          </li>
+        </ul>
+
+        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Basic">
+          Get Started
+        </button>
+        <div class="rwu-plan__fine">No credit card required</div>
+      </article>
+
+      <!-- PRO -->
+      <article class="rwu-plan" aria-labelledby="plan-pro">
+        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__3.png" alt="" role="presentation" />
+        <h3 id="plan-pro" class="rwu-plan__name">PRO</h3>
+
+        <div class="rwu-price" aria-label="$59 per month">
+          <span class="rwu-price__currency">$</span>
+          <span class="rwu-price__amount">59</span>
+          <span class="rwu-price__period">/ month</span>
+        </div>
+
+        <p class="rwu-plan__tag">Perfect for startup</p>
+
+        <ul class="rwu-list">
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">2 user</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Learning Scope</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Team collaboration</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Export HTML code</span>
+          </li>
+          <li class="rwu-li">
+            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="rwu-li__text">Upload Your Logo</span>
+          </li>
+        </ul>
+
+        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Pro">
+          Get Started
+        </button>
+        <div class="rwu-plan__fine">No credit card required</div>
+      </article>
+    </div>
+  </div>
+</section>
+
 
 <?php
- 
- 
-if (!empty($whyUsBlock)) {
-    echo html_entity_decode($whyUsBlock);
-}
-if (!empty($whyWeEffectiveBlock)) {
-    echo html_entity_decode($whyWeEffectiveBlock);
-}
-if (!empty($popularLanguages)) {
-?>
-<section class="section section--language">
-    <div class="container container--narrow">
-        <div class="section__head ">
-            <h2><?php echo Label::getLabel('LBL_WHAT_LANGUAGE_YOU_WANT_TO_LEARN?'); ?></h2>
-        </div>
-        <div class="section__body">
-            <div class="flag-wrapper">
-                <?php foreach ($popularLanguages as $language) { ?>
-                <div class="flag__box">
-                    <div class="flag__media">
-                        <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_TEACHING_LANGUAGES, $language['tlang_id'], Afile::SIZE_SMALL]), CONF_IMG_CACHE_TIME, '.jpg'); ?>"
-                            alt="<?php echo $language['tlang_name']; ?>">
-                    </div>
-                    <div class="flag__name">
-                        <span><?php echo $language['tlang_name'] ?></span>
-                        <div class="lesson-count"></div>
-                    </div>
-                    <a class="flag__action"
-                        href="<?php echo MyUtility::makeUrl('Teachers', 'languages', [$language['tlang_slug']]); ?>"></a>
-                </div>
-                <?php } ?>
-            </div>
-            <div class="more-info align-center">
-                <p><?php echo Label::getLabel("LBL_DIFFERENT_LANGUAGE_NOTE"); ?> <a
-                        href="<?php echo MyUtility::makeUrl('teachers'); ?>"><?php echo Label::getLabel('LBL_BROWSE_THEM_NOW'); ?></a>
-                </p>
-            </div>
 
-
-
-
-
-            <div class="modal fade" id="quizSignupModal" tabindex="-1" aria-labelledby="quizSignupModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content p-4" style="margin:auto;">
-                        <div class="modal-body text-center">
-                            <h2 class="fw-bold mb-2" id="quizSignupModalLabel">Find a Tutor</h2>
-                            <p class="mb-4" style="font-size: 1rem;">Tell us what you're looking for, and we'll connect you with a qualified tutor tailored to your learning needs.</p>
-                                <form id="quizSignupForm" class="form-knowledge" novalidate>
-                                <input type="text" name="full_name" class="form-control mb-3" placeholder="Enter Name" required>
-                                <input type="email" name="email" class="form-control mb-3" placeholder="Enter E-mail" required>
-                                <input type="email" name="parent_email" class="form-control mb-3" placeholder="Enter Parent's E-mail" required>
-                                <input type="text" name="phone" class="form-control mb-3" placeholder="Enter Phone Number" required>
-                                <div class="mb-3">
-                                    <select name="subject" class="form-control modern-input" required>
-                                        <option value="" disabled selected>Select Subject</option>
-                                        <option value="Biology">Biology</option>
-                                        <option value="Chemistry">Chemistry</option>
-                                        <option value="Physics">Physics</option>
-                                        <option value="Maths">Maths</option>
-                                        <option value="English">English</option>
-                                    </select>
-                                </div>
-
-                                <input type="text" name="preferred_time" class="form-control mb-3" placeholder="Enter Preferred Time" required>
-
-                                <button type="button" class="start-quiz-btn w-100 py-2">Submit</button>
-                                </form>
-                        </div>
-                    </div>
-                </div>
-            </div> 
-        </div>
-    </div>
-</section>
-<?php }
- 
-if (!empty($browseTutorPage)) {
-?>
-<?php echo html_entity_decode($browseTutorPage); ?>
-<?php
-}
-if (count($classes) > 0) {
-?>
-<section class="section section--gray section--upcoming-class">
-    <div class="container container--narrow">
-        <div class="section__head d-flex justify-content-between align-items-center">
-            <h2><?php echo Label::getLabel('LBL_UPCOMING_GROUP_CLASSES'); ?></h2>
-            <a class="view-all"
-                href="<?php echo MyUtility::makeUrl('GroupClasses'); ?>"><?php echo Label::getLabel("LBL_VIEW_ALL", $siteLangId); ?></a>
-        </div>
-        <div class="section__body">
-            <div class="slider slider--onethird slider-onethird-js">
-                <?php
-                    foreach ($classes as $class) {
-                        $classData = ['class' => $class, 'siteUserId' => $siteUserId, 'bookingBefore' => $bookingBefore, 'cardClass' => 'card-class-cover'];
-                        $this->includeTemplate('group-classes/card.php', $classData, false);
-                    }
-                    ?>
-            </div>
-        </div>
-    </div>
-</section>
-<?php }if (count($courses) > 0) { ?>
-<section class="section section--gray padding-bottom-20 section--popular-courses">
-    <div class="container container--narrow">
-        <div class="section__head d-flex justify-content-between align-items-center">
-            <h2><?php echo Label::getLabel('LBL_POPULAR_COURSES'); ?></h2>
-            <a class="view-all"
-                href="<?php echo MyUtility::makeUrl('Courses'); ?>"><?php echo Label::getLabel("LBL_VIEW_ALL", $siteLangId); ?></a>
-        </div>
-        <div class="section__body">
-            <?php echo $this->includeTemplate('home/_partial/popularCourses.php', ['moreCourses' => $courses, 'siteLangId' => $siteLangId, 'siteUserId' => $siteUserId]); ?>
-        </div>
-    </div>
-</section>
-<?php
-}
 if ($testmonialList) {
 ?>
 <section class="section section--quote">
@@ -320,7 +638,8 @@ if ($blogPostsList) {
 </section>
 <?php } ?>
 
-
+<!-- somewhere in your base layout before home.js -->
+<script src="<?= CONF_WEBROOT_URL ?>assets/js/bootstrap.bundle.min.js"></script>
 
 <script>
 LANGUAGES = <?php echo json_encode($teachLangs); ?>;
@@ -340,234 +659,12 @@ $(".faq__trigger-js").click(function(e) {
 });
 </script>  
 
+
 <script>
-const baseUrlRaw = "<?php echo getBaseUrl(); ?>"; // site base URL
-const baseUrl = baseUrlRaw.endsWith('/') ? baseUrlRaw : baseUrlRaw + '/'; //line added by rehan to ensure trailing slash in baseUrl
-let steps = [
-  { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
-  { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" }
-];
-
-const selectedValues = {
-  levelId: null,
-  subjectId: null,
-  examboardId: null,
-  tierId: null,
-  yearId: null,
-};
-
-// breadcrumb ke liye selected steps
-const selectedSteps = [];
-
-let currentStep = 0;
-const container = document.getElementById('dropDownOptions');
-const openBtn = document.getElementById('openSelector');
-
-function fetchOptionsForStepWithParam(stepIndex, params) {
-  return new Promise((resolve) => {
-    const step = steps[stepIndex];
-    if (!step.url) { resolve(); return; }
-
-    const rel = step.url.replace(/^\//, '');
-    const url = new URL(rel, baseUrl);
-
-    // Primary param (your existing logic)
-    if (step.paramKey && params[step.paramKey]) {
-      url.searchParams.append(step.paramKey, params[step.paramKey]);
-    }
-
-    // 👇 Extra: when hitting exam boards, also pass levelId
-    if (rel.includes('getExamboards')) {
-      if (params.levelId) url.searchParams.append('levelId', params.levelId);
-    }
-
-    // When hitting years, pass whatever we have (subjectId, levelId, examboardId, tierId)
-    if (rel.includes('getYears')) {
-      if (params.levelId)     url.searchParams.append('levelId', params.levelId);
-      if (params.subjectId)   url.searchParams.append('subjectId', params.subjectId);
-      if (params.examboardId) url.searchParams.append('examboardId', params.examboardId);
-      if (params.tierId)      url.searchParams.append('tierId', params.tierId);
-    }
-
-    fetch(url.toString())
-      .then(res => res.json())
-      .then(json => {
-        step.options = (json.status === 1 && Array.isArray(json.data))
-          ? json.data.map(item => ({ id: item.id, name: item.name }))
-          : [{ id: "error", name: "Error loading options" }];
-        resolve();
-      })
-      .catch(() => { step.options = [{ id: "error", name: "Error loading options" }]; resolve(); });
-  });
-}
-function buildQueryString(params) {
-  const keys = Object.keys(params)
-    .filter(k => params[k] && params[k] !== "error")
-    .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`);
-  return keys.length ? "&" + keys.join("&") : "";
-}
-
-
-
-function renderStep(stepIndex) {
-  const step = steps[stepIndex];
-  container.innerHTML = '';
-
-  // Header row with breadcrumb
-  const headerRow = document.createElement('div');
-  headerRow.style.display = "flex";
-  headerRow.style.alignItems = "center";
-  headerRow.style.justifyContent = "center";
-  headerRow.style.position = "relative";
-  headerRow.style.marginTop = "15px";
-  headerRow.style.marginBottom = "10px";
-
-  const breadcrumb = document.createElement('div');
-  breadcrumb.className = 'breadcrumb-nav';
-  breadcrumb.style.display = 'flex';
-  breadcrumb.style.gap = '8px';
-  breadcrumb.style.fontSize = '14px';
-  breadcrumb.style.cursor = 'pointer';
-
-  selectedSteps.forEach((sel, idx) => {
-    if (sel) {
-      const crumb = document.createElement('span');
-      crumb.textContent = sel.name;
-      crumb.style.color = idx === stepIndex ? '#333' : '#3589c2';
-      crumb.style.fontWeight = idx === stepIndex ? 'bold' : 'normal';
-
-      crumb.onclick = () => {
-        // Reset current step
-        currentStep = idx;
-
-        // Clear all selections after this step
-        selectedSteps.splice(idx + 1);
-        if (idx < 1) {
-          selectedValues.subjectId = null;
-          selectedValues.examboardId = null;
-          selectedValues.tierId = null;
-          selectedValues.yearId = null;
-        } else if (idx < 2) {
-          selectedValues.examboardId = null;
-          selectedValues.tierId = null;
-          selectedValues.yearId = null;
-        } else if (idx < 3) {
-          selectedValues.tierId = null;
-          selectedValues.yearId = null;
-        }
-
-        renderStep(currentStep);
-      };
-
-      breadcrumb.appendChild(crumb);
-
-      if (idx < stepIndex) {
-        const arrow = document.createElement('span');
-        arrow.textContent = '›';
-        breadcrumb.appendChild(arrow);
-      }
-    }
-  });
-
-  headerRow.appendChild(breadcrumb);
-  container.appendChild(headerRow);
-
-  // Heading of current step
-  const heading = document.createElement('h5');
-  heading.className = 'ft-gothic';
-  heading.style.textAlign = 'center';
-  heading.style.marginBottom = '15px';
-  heading.textContent = step.title;
-  container.appendChild(heading);
-
-  // Options
-  step.options.forEach(opt => {
-    const div = document.createElement('div');
-    div.className = 'loop-wrap-btn';
-    const btn = document.createElement('button');
-    btn.className = 'ft-gothic';
-
-    const displayName = opt.name;
-    const optId = opt.id;
-
-  btn.innerHTML = `<span>${displayName}</span>
-                 <img src="${baseUrl.replace(/\/$/, '/') }public/assets/img/right-arrow.svg" alt="Arrow" class="arrow">`;
-
-
-    btn.onclick = () => {
-      selectedSteps[stepIndex] = { id: optId, name: displayName };
-
-      if (step.title === "Select Level") {
-        selectedValues.levelId = optId;
-
-        if (displayName === "GCSE") {
-          // GCSE → Examboard + Tier
-          steps = [
-                { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
-                { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
-                { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
-                { title: "Select Tier", options: [], url: "api.php?url=getTiers", paramKey: "examboardId" },
-                 { title: "Select Year", options: [], url: "api.php?url=getYears",       paramKey: "subjectId" },
-          ];
-        } else {
-          // Non-GCSE → Year
-          steps = [
-            { title: "Select Level", options: [], url: "api.php?url=getCourses", paramKey: null },
-            { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
-            { title: "Select Year", options: [], url: "api.php?url=getYears", paramKey: "subjectId" },
-          ];
-        }
-
-      } else if (step.title === "Select Subject") {
-        selectedValues.subjectId = optId;
-      } else if (step.title === "Select Examboard") {
-        selectedValues.examboardId = optId;
-      } else if (step.title === "Select Tier") {
-        selectedValues.tierId = optId;
-      } else if (step.title === "Select Year") {
-        selectedValues.yearId = optId;
-      }
-
-      // Next step
-      currentStep++;
-      if (currentStep < steps.length) {
-        fetchOptionsForStepWithParam(currentStep, selectedValues).then(() => renderStep(currentStep));
-      } else {
-        container.style.display = 'none';
-        currentStep = 0;
-     // instead of subtopic, redirect with setup_id
-fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
-  .then(r => r.json())
-  .then(j => {
-      if (j.status === 1 && j.data?.setup_id) {
-          const url = fcom.makeUrl('quizizz') + '?setup_id=' + j.data.setup_id;
-          window.location.href = url;
-      } else {
-          alert("Unable to load quiz. Please try again.");
-      }
-  });
-
-        window.location.href = url;
-      }
-    };
-
-    div.appendChild(btn);
-    container.appendChild(div);
-  });
-
-  container.style.display = 'block';
-}
-
-openBtn.addEventListener('click', () => {
-  if (container.style.display === 'block') {
-    container.style.display = 'none';
-    currentStep = 0;
-  } else {
-    if (steps[0].url && steps[0].options.length === 0) {
-      fetchOptionsForStepWithParam(0, selectedValues).then(() => renderStep(0));
-    } else {
-      renderStep(0);
-    }
-  }
-});
+  window.RWU_CONFIG = {
+    baseUrl: <?= json_encode(getBaseUrl()) ?>  
+  };
 </script>
+
+<!-- then include your JS files -->
+<script src="<?= CONF_WEBROOT_URL ?>js/home.js"></script>
