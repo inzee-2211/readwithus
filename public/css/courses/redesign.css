@@ -1,0 +1,355 @@
+/* RWU Courses Redesign - Main Styles */
+:root {
+  --rwu-primary: #2D5BFF;
+  --rwu-primary-dark: #1A49EB;
+  --rwu-secondary: #FF6B35;
+  --rwu-accent: #00C896;
+  --rwu-text: #2D3748;
+  --rwu-text-light: #718096;
+  --rwu-border: #E2E8F0;
+  --rwu-bg: #F7FAFC;
+  --rwu-white: #FFFFFF;
+  --rwu-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --rwu-radius: 8px;
+}
+
+/* Layout Structure */
+.rwu-courses-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.rwu-courses-sidebar {
+  background: var(--rwu-white);
+  border-radius: var(--rwu-radius);
+  padding: 24px;
+  box-shadow: var(--rwu-shadow);
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.rwu-courses-main {
+  min-height: 600px;
+}
+
+/* View Toggle */
+.rwu-view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--rwu-white);
+  padding: 8px;
+  border-radius: var(--rwu-radius);
+  box-shadow: var(--rwu-shadow);
+  width: fit-content;
+}
+
+.rwu-view-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.rwu-view-btn.active {
+  background: var(--rwu-primary);
+  color: var(--rwu-white);
+}
+
+/* Course Grid View */
+.rwu-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.rwu-course-card {
+  background: var(--rwu-white);
+  border-radius: var(--rwu-radius);
+  overflow: hidden;
+  box-shadow: var(--rwu-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.rwu-course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.rwu-course-card__image {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.rwu-course-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.rwu-course-card:hover .rwu-course-card__image img {
+  transform: scale(1.05);
+}
+
+.rwu-course-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--rwu-accent);
+  color: var(--rwu-white);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rwu-course-card__favorite {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.rwu-course-card__favorite.active {
+  background: var(--rwu-primary);
+  color: var(--rwu-white);
+}
+
+.rwu-course-card__content {
+  padding: 20px;
+}
+
+.rwu-course-card__category {
+  color: var(--rwu-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.rwu-course-card__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rwu-text);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.rwu-course-card__subtitle {
+  color: var(--rwu-text-light);
+  font-size: 14px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.rwu-course-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rwu-border);
+}
+
+.rwu-course-meta__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--rwu-text-light);
+}
+
+.rwu-course-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rwu-course-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--rwu-primary);
+}
+
+.rwu-course-price.free {
+  color: var(--rwu-accent);
+}
+
+.rwu-course-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+/* Course List View */
+.rwu-courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rwu-course-list-item {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  gap: 20px;
+  background: var(--rwu-white);
+  border-radius: var(--rwu-radius);
+  padding: 20px;
+  box-shadow: var(--rwu-shadow);
+  transition: all 0.3s ease;
+}
+
+.rwu-course-list-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.rwu-course-list-item__image {
+  width: 200px;
+  height: 120px;
+  border-radius: var(--rwu-radius);
+  overflow: hidden;
+}
+
+.rwu-course-list-item__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rwu-course-list-item__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.rwu-course-list-item__meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+/* Filter Sidebar */
+.rwu-filter-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rwu-border);
+}
+
+.rwu-filter-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.rwu-filter-section__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--rwu-text);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rwu-filter-clear {
+  font-size: 12px;
+  color: var(--rwu-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.rwu-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rwu-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.rwu-filter-option input[type="checkbox"],
+.rwu-filter-option input[type="radio"] {
+  accent-color: var(--rwu-primary);
+}
+
+.rwu-filter-option label {
+  font-size: 14px;
+  color: var(--rwu-text);
+  cursor: pointer;
+}
+
+/* Price Range */
+.rwu-price-range {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rwu-price-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--rwu-border);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .rwu-courses-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .rwu-courses-sidebar {
+    position: static;
+    margin-bottom: 16px;
+  }
+  
+  .rwu-course-list-item {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .rwu-course-list-item__image {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rwu-courses-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rwu-view-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}

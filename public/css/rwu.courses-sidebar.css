@@ -1,0 +1,45 @@
+/* === Layout shell: sidebar + content === */
+.section--listing .rwu-courses-layout{
+  display:grid;
+  grid-template-columns: 320px minmax(0,1fr);
+  gap:32px;
+  align-items:start;
+}
+
+/* Sidebar card */
+.section--listing .rwu-courses-sidebar{
+  position:sticky; top:84px;
+  background:#fff;
+  border:1px solid #EAEAEA;
+  border-radius:12px;
+  padding:24px 26px;
+}
+
+/* Main area */
+.section--listing .rwu-courses-main{ min-width:0; }
+
+/* Figma-ish sidebar inner styles (from your new.txt, simplified) */
+.section--listing .rwu-course-sidebar .rwu-filter-block{ margin-bottom:30px; }
+.section--listing .rwu-course-sidebar .rwu-filter-title{
+  font:600 20px/1.2 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  color:#000; margin:0 0 20px; text-transform:capitalize;
+}
+.section--listing .rwu-course-sidebar .rwu-filter-list{
+  margin:0; padding:0; list-style:none; display:flex;flex-direction:column;gap:10px;
+}
+.section--listing .rwu-course-sidebar .rwu-filter-list label{
+  display:flex; align-items:center; gap:8px; cursor:pointer;
+  font:400 18px/1.5 Jost,Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; color:#555;
+}
+.section--listing .rwu-course-sidebar .rwu-filter-list input{
+  accent-color:#2DADFF; transform:scale(1.1);
+}
+.section--listing .rwu-course-sidebar .rwu-filter-list input:checked + span{
+  color:#000; font-weight:500;
+}
+
+/* Responsive */
+@media (max-width: 992px){
+  .section--listing .rwu-courses-layout{ grid-template-columns: 1fr; }
+  .section--listing .rwu-courses-sidebar{ position:static; }
+}

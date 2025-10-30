@@ -20,6 +20,12 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
 <link rel="stylesheet" href="<?= asset_css('css/home.thirdsection.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('css/home.requesttutor.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('css/home.pricing.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.testimonials.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.blogs.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('css/home.cta-banner.css') ?>">
+
+
+
 
 
 <section class="rw-hero">
@@ -500,143 +506,185 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
   </div>
 </section>
 
-
-<?php
-
-if ($testmonialList) {
-?>
-<section class="section section--quote">
-    <div class="container container--narrow">
-        <div class="quote-slider">
-            <div class="slider slider--quote slider-quote-js">
-                <?php foreach ($testmonialList as $testmonialDetail) { ?>
-                <div>
-                    <div class="slider__item">
-                        <div class="quote">
-                            <div class="quote__media">
-                                <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_TESTIMONIAL_IMAGE, $testmonialDetail['testimonial_id'], Afile::SIZE_LARGE]), CONF_DEF_CACHE_TIME, '.jpg'); ?>"
-                                    alt="<?php echo $testmonialDetail['testimonial_user_name']; ?>">
-                                <div class="quote__box">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="30.857"
-                                        viewBox="0 0 36 30.857">
-                                        <g transform="translate(0 -29.235)">
-                                            <path
-                                                d="M233.882,29.235V44.664h10.286a10.3,10.3,0,0,1-10.286,10.286v5.143a15.445,15.445,0,0,0,15.429-15.429V29.235Z"
-                                                transform="translate(-213.311)" />
-                                            <path
-                                                d="M0,44.664H10.286A10.3,10.3,0,0,1,0,54.949v5.143A15.445,15.445,0,0,0,15.429,44.664V29.235H0Z"
-                                                transform="translate(0 0)" />
-                                        </g>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="quote__content">
-                                <p><?php echo $testmonialDetail['testimonial_text']; ?></p>
-                                <div class="quote-info">
-                                    <h4><?php echo $testmonialDetail['testimonial_user_name']; ?></h4>
-                                </div>
-                                <div class="quote__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="138" height="118.286"
-                                        viewBox="0 0 138 118.286">
-                                        <g transform="translate(0 -29.235)">
-                                            <path
-                                                d="M233.882,29.235V88.378H273.31a39.474,39.474,0,0,1-39.429,39.429v19.714a59.208,59.208,0,0,0,59.143-59.143V29.235Z"
-                                                transform="translate(-155.025 0)" />
-                                            <path class="b"
-                                                d="M0,88.378H39.429A39.474,39.474,0,0,1,0,127.806v19.714A59.208,59.208,0,0,0,59.143,88.378V29.235H0Z"
-                                                transform="translate(0 0)" />
-                                        </g>
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php } ?>
-            </div>
+  <!-- TESTIMONIALS / WHAT THEY SAY -->
+  <section class="rwu-testimonials" aria-label="What they say about us">
+    <div class="rwu-t-container">
+      <!-- LEFT PANEL -->
+      <div class="rwu-t-left">
+        <div class="rwu-pill" aria-hidden="true">
+          <span>Trusted by Parents</span>
         </div>
+
+        <h2 class="rwu-t-title">
+          What they says <br />
+          <span class="accent">About us</span>
+        </h2>
+
+        <p class="rwu-t-copy">
+          At ReadWithUs, we take pride in transforming education through real connections and results.
+          Hear from learners and parents who experienced personalized tutoring, interactive lessons,
+          and academic growth guided by passionate educators.
+        </p>
+
+        <div class="rwu-t-cta">
+          <a class="rwu-btn" href="#all-testimonials">Read All Testimonials →</a>
+        </div>
+      </div>
+
+      <!-- RIGHT GRID -->
+      <div class="rwu-t-right">
+        <!-- CARD 1 -->
+        <article class="rwu-quote-card">
+          <div class="rwu-quote-badge" aria-hidden="true">
+            <!-- quotation icon -->
+            <svg viewBox="0 0 24 24" class="rwu-quote-icon" aria-hidden="true">
+              <path d="M8.9 6C6.7 6 5 7.8 5 10v8h7v-8H9.9c.1-1.1.6-2 1.8-2V6H8.9zm9 0c-2.2 0-3.9 1.8-3.9 4v8H21v-8h-2.1c.1-1.1.6-2 1.8-2V6h-1.8z"/>
+            </svg>
+          </div>
+
+          <div class="rwu-quote-body">
+            “The tutors at ReadWithUs are amazing! My mentor helped me understand tough topics in a way
+            that finally made sense. The progress tracking and regular feedback made me feel supported
+            every step of the way.”
+          </div>
+
+          <div class="rwu-person">
+            <div class="rwu-avatar">
+              <img src="https://via.placeholder.com/80" alt="Photo of Robind Jon" />
+            </div>
+            <div class="rwu-person-meta">
+              <div class="rwu-name">Robind Jon</div>
+              <div class="rwu-role">Designer TechBoot</div>
+            </div>
+          </div>
+        </article>
+
+        <!-- CARD 2 -->
+        <article class="rwu-quote-card">
+          <div class="rwu-quote-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="rwu-quote-icon" aria-hidden="true">
+              <path d="M8.9 6C6.7 6 5 7.8 5 10v8h7v-8H9.9c.1-1.1.6-2 1.8-2V6H8.9zm9 0c-2.2 0-3.9 1.8-3.9 4v8H21v-8h-2.1c.1-1.1.6-2 1.8-2V6h-1.8z"/>
+            </svg>
+          </div>
+
+          <div class="rwu-quote-body">
+            “I’m truly impressed by how quickly ReadWithUs connected my daughter with the perfect tutor.
+            The human approach combined with progress reports gives us confidence that she’s in great hands.”
+          </div>
+
+          <div class="rwu-person">
+            <div class="rwu-avatar">
+              <img src="https://via.placeholder.com/80" alt="Photo of Robind Jon" />
+            </div>
+            <div class="rwu-person-meta">
+              <div class="rwu-name">Robind Jon</div>
+              <div class="rwu-role">Designer TechBoot</div>
+            </div>
+          </div>
+        </article>
+      </div>
     </div>
-</section>
-<?php
-}
-if (!empty($startLearning)) {
-    echo html_entity_decode($startLearning);
-}
+  </section>
+  <?php
+  // Prepare data
+  $blogs = is_array($blogPostsList ?? null) ? array_slice($blogPostsList, 0, 3) : [];
 ?>
-<section class="section section--faq">
-    <div class="container container--narrow">
-        <div class="section__head">
-            <h2><?php echo Label::getLabel('LBL_POPULAR_FAQS', $siteLangId); ?></h2>
-        </div>
-        <div class="faq-cover faq-container">
-            <?php foreach ($popularFaqList as $faqId => $faqDetails) { ?>
-            <div class="faq-row faq-group-js">
-                <a href="javascript:void(0)" class="faq-title faq__trigger faq__trigger-js">
-                    <h5 class="text-center"><?php echo $faqDetails['faq_title']; ?></h5>
-                </a>
-                <div class="faq-answer faq__target faq__target-js">
-                    <iframe srcdoc="<?php echo $faqDetails['faq_description']; ?>"
-                        style="border:none;width: 100%;height: 100%;"></iframe>
-                </div>
-            </div>
+<section class="rwu-blogs" aria-labelledby="blogs-title">
+  <div class="rwu-blogs__wrap">
+    <div class="rwu-blogs__head">
+      <div class="rwu-blogs__title">
+        <h2 id="blogs-title" class="rb-title">Latest Blogs</h2>
+        <p class="rb-sub">Explore our latest blogs</p>
+      </div>
+
+      <a class="rb-all" href="<?php echo MyUtility::makeUrl('Blog'); ?>">
+        All Blogs
+      </a>
+    </div>
+
+    <div class="rwu-blogs__grid">
+      <?php foreach ($blogs as $post): 
+        $postId   = (int)($post['post_id'] ?? 0);
+        $title    = trim($post['post_title'] ?? 'Blog');
+        $cat      = trim($post['bpcategory_name'] ?? '');
+        $img      = FatCache::getCachedUrl(
+                      MyUtility::makeFullUrl('Image','show',[Afile::TYPE_BLOG_POST_IMAGE,$postId,Afile::SIZE_MEDIUM]),
+                      CONF_DEF_CACHE_TIME,
+                      '.jpg'
+                    );
+        $dateStr  = !empty($post['post_published_on']) 
+                    ? MyDate::formatDate($post['post_published_on']) 
+                    : '';
+        $detailUrl = MyUtility::makeUrl('Blog', 'PostDetail', [$postId]);
+        // Optional excerpt (if your list has it); otherwise derive short version from title
+        $excerpt = trim(strip_tags($post['post_short_description'] ?? '')) ?: $title;
+        if (mb_strlen($excerpt) > 120) { $excerpt = mb_substr($excerpt, 0, 120) . '…'; }
+      ?>
+      <article class="rb-card">
+        <a href="<?php echo $detailUrl; ?>" class="rb-media" aria-label="<?php echo htmlspecialchars($title); ?>">
+          <img
+            src="<?php echo $img; ?>"
+            alt="<?php echo htmlspecialchars($title); ?>"
+            loading="lazy"
+            onerror="this.src='<?= CONF_WEBROOT_URL ?>images/defaults/blog-4by3.jpg';"
+          >
+        </a>
+
+        <div class="rb-content">
+          <div class="rb-meta">
+            <?php if ($cat) { ?><span class="rb-chip"><?php echo htmlspecialchars($cat); ?></span><?php } ?>
+            <?php if ($dateStr) { ?>
+              <span class="rb-date" aria-label="Published on"><?php echo $dateStr; ?></span>
             <?php } ?>
+          </div>
+
+          <h3 class="rb-h4">
+            <a href="<?php echo $detailUrl; ?>"><?php echo htmlspecialchars($title); ?></a>
+          </h3>
+
+          <p class="rb-excerpt"><?php echo htmlspecialchars($excerpt); ?></p>
+
+          <div class="rb-footer">
+            <a class="rb-link" href="<?php echo $detailUrl; ?>">Read More →</a>
+          </div>
         </div>
+      </article>
+      <?php endforeach; ?>
+
+      <?php if (empty($blogs)) { ?>
+        <div class="rb-empty">No blogs found. Please check back soon.</div>
+      <?php } ?>
     </div>
+  </div>
 </section>
-<?php
-if ($blogPostsList) {
-?>
-<section class="section">
-    <div class="container container--narrow">
-        <div class="section__head d-flex justify-content-between align-items-center">
-            <h2><?php echo Label::getLabel('LBL_Latest_Blogs'); ?></h2>
-            <a class="view-all"
-                href="<?php echo MyUtility::makeUrl('Blog') ?>"><?php echo Label::getLabel('LBL_View_Blogs'); ?></a>
-        </div>
-        <div class="section__body">
-            <div class="blog-wrapper">
-                <div class="slider slider--onehalf slider-onehalf-js">
-                    <?php foreach ($blogPostsList as $postDetail) { ?>
-                    <div>
-                        <div class="slider__item">
-                            <div class="blog-card">
-                                <div class="blog__head">
-                                    <div class="blog__media ratio ratio--4by3">
-                                        <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_BLOG_POST_IMAGE, $postDetail['post_id'], Afile::SIZE_MEDIUM]), CONF_DEF_CACHE_TIME, '.jpg') ?>"
-                                            alt="<?php echo $postDetail['post_title']; ?>">
-                                    </div>
-                                </div>
-                                <div class="blog__body">
-                                    <div class="blog__detail">
-                                        <div class="tags-inline__item"><?php echo $postDetail['bpcategory_name']; ?>
-                                        </div>
-                                        <div class="blog__title">
-                                            <h3><?php echo $postDetail['post_title'] ?></h3>
-                                        </div>
-                                        <div class="blog__date">
-                                            <svg class="icon icon--calendar">
-                                                <use
-                                                    xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#calendar' ?>">
-                                                </use>
-                                            </svg>
-                                            <span><?php echo MyDate::formatDate($postDetail['post_published_on']); ?>
-                                            </span>
-                                        </div>
-                                        <a href="<?php echo MyUtility::makeUrl('Blog', 'PostDetail', [$postDetail['post_id']]); ?>" class="btn btn--secondary"><?php echo Label::getLabel('LBL_VIEW_BLOG'); ?></a>
-                                    </div>
-                                </div>
-                                <a href="<?php echo MyUtility::makeUrl('Blog', 'PostDetail', [$postDetail['post_id']]); ?>"
-                                    class="blog__action"></a>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                </div>
-            </div>
-        </div>
+<section class="rwu-cta" aria-labelledby="rwu-cta-title">
+  <div class="rwu-cta__wrap">
+    <!-- Left: Icon -->
+    <div class="rwu-cta__icon" aria-hidden="true">
+      <!-- Simple graduation-cap icon (inline SVG so no external load) -->
+      <svg viewBox="0 0 24 24" class="cap">
+        <path d="M12 3L1 9l11 6 9-4.909V17h2V9L12 3zM7 12.5v3c0 .828 2.686 1.5 6 1.5s6-.672 6-1.5v-3l-6 3-6-3z"/>
+      </svg>
     </div>
+
+    <!-- Middle: Title -->
+    <div class="rwu-cta__title">
+      <h3 id="rwu-cta-title">Let’s Start With Readwithus</h3>
+    </div>
+
+    <!-- Right: Actions -->
+    <div class="rwu-cta__actions">
+      <a class="btn-pill btn--ghost" href="<?php echo getBaseUrl(); ?>/teachers">
+        I’m A Student
+      </a>
+      <a class="btn-pill btn--primary" href="<?php echo getBaseUrl(); ?>/apply-to-teach">
+        Become An Instructor
+      </a>
+    </div>
+  </div>
 </section>
-<?php } ?>
+
+
 
 <!-- somewhere in your base layout before home.js -->
 <script src="<?= CONF_WEBROOT_URL ?>assets/js/bootstrap.bundle.min.js"></script>

@@ -1,0 +1,127 @@
+/* ==========================
+   CTA Banner (Final Section)
+   ========================== */
+
+:root{
+  --rwu-blue: #2DADFF;
+  --rwu-blue-200:#C2E6FF;
+  --rwu-ink: #0A033C;
+  --rwu-text:#5F6C76;
+  --rwu-white:#FFFFFF;
+  --radius-lg: 20px;
+  --shadow-lg: 0 18px 40px rgba(1,11,60,.08);
+}
+
+.rwu-cta{
+  padding: 28px 16px 64px;    /* top small spacing so it tucks under blogs nicely */
+  background: transparent;    /* keep page bg */
+}
+
+.rwu-cta__wrap{
+  max-width: 1260px;          /* matches your Figma width */
+  margin: 0 auto;
+
+  /* Banner */
+  background:
+    radial-gradient(90% 140% at 15% 0%, rgba(194,230,255,.55) 0%, rgba(194,230,255,0) 60%),
+    radial-gradient(120% 140% at 85% 100%, rgba(235,212,255,.55) 0%, rgba(235,212,255,0) 60%),
+    linear-gradient(90deg, #DDF0FF 0%, #EEDDFE 100%);  /* soft blue→violet like the Figma */
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 32px;
+
+  min-height: 250px;          /* Figma height */
+  padding: 24px 28px;         /* inner breathing space */
+  position: relative;
+}
+
+/* Left Circle Icon */
+.rwu-cta__icon{
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.8);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 24px rgba(0,0,0,.06);
+}
+.rwu-cta__icon .cap{
+  width: 44px;
+  height: 44px;
+  fill: #1B3B6F;              /* deep blue for contrast */
+}
+
+/* Title */
+.rwu-cta__title h3{
+  margin: 0;
+  font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-weight: 600;
+  font-size: 22px;            /* visually similar to Figma “Let’s Start…” */
+  line-height: 1.4;
+  color: var(--rwu-ink);
+}
+
+/* Buttons (right) */
+.rwu-cta__actions{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Pill base */
+.btn-pill{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+  white-space: nowrap;
+}
+
+.btn--primary{
+  background: var(--rwu-blue);
+  color: var(--rwu-white);
+  box-shadow: 0 6px 14px rgba(45,173,255,.25);
+}
+.btn--primary:hover{ transform: translateY(-1px); }
+
+.btn--ghost{
+  background: rgba(255,255,255,.85);
+  color: #1B3B6F;
+  border: 1px solid rgba(27,59,111,.12);
+}
+.btn--ghost:hover{ transform: translateY(-1px); }
+
+/* Responsiveness */
+@media (max-width: 980px){
+  .rwu-cta__wrap{
+    grid-template-columns: 1fr;
+    gap: 18px;
+    text-align: center;
+    min-height: 200px;
+    padding: 22px;
+  }
+  .rwu-cta__icon{
+    margin: 0 auto;
+    width: 76px; height: 76px;
+  }
+  .rwu-cta__actions{
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 520px){
+  .rwu-cta__title h3{ font-size: 20px; }
+  .btn-pill{ width: 100%; max-width: 280px; }
+}

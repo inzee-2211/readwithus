@@ -1,0 +1,229 @@
+/* =======================
+   Design Tokens
+======================= */
+:root{
+  --rwu-blue: #2DADFF;
+  --rwu-blue-200:#C2E6FF;
+  --rwu-ink: #0A033C;
+  --rwu-text:#5F6C76;
+  --rwu-bg:#F0F8FF;
+  --rwu-white:#FFFFFF;
+  --rwu-muted:#9F98B2;
+  --radius-lg: 16px;
+  --radius-pill: 40px;
+  --shadow: 0 18px 40px rgba(1,11,60,.08);
+  --font-display: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  --font-ui: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  --font-price: Hind, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* =======================
+   Section Shell
+======================= */
+.rwu-testimonials{
+  position: relative;
+  background: var(--rwu-bg);
+  background-image: radial-gradient(1400px 600px at 20% 10%, rgba(194,230,255,.35), transparent 60%);
+  padding: 100px 16px;
+}
+
+/* Wider container so two cards fit without scroll on desktop */
+.rwu-t-container{
+  max-width: 1480px;                /* widened from 1200 */
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); /* give right more room */
+  gap: 56px;                         /* a touch wider gap so it breathes */
+  align-items: start;
+}
+
+/* =======================
+   Left Panel
+======================= */
+.rwu-t-left{ position: relative; }
+
+.rwu-pill{
+  display: inline-flex;
+  background: var(--rwu-blue-200);
+  border-radius: var(--radius-pill);
+  padding: 12px 18px;
+  margin-bottom: 20px;
+}
+.rwu-pill span{
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 18px;
+  color: #14A3FF;
+  line-height: 1;
+}
+
+.rwu-t-title{
+  font-family: var(--font-display);
+  color: var(--rwu-ink);
+  font-size: 32px;
+  line-height: 1.4;
+  font-weight: 600;
+  margin: 10px 0 12px;
+}
+.rwu-t-title .accent{ color: var(--rwu-ink); }
+
+.rwu-t-copy{
+  font-family: 'Actor', var(--font-ui), sans-serif;
+  color: var(--rwu-text);
+  font-size: 16px;
+  line-height: 29px;
+  margin: 6px 0 22px;
+}
+.rwu-t-cta{ margin-top: 20px; }
+
+.rwu-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 231px;
+  height: 49px;
+  background: var(--rwu-blue);
+  color: var(--rwu-white);
+  border: 1px solid var(--rwu-blue);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+  box-shadow: 0 6px 14px rgba(45,173,255,.25);
+}
+.rwu-btn:hover{ transform: translateY(-1px); }
+.rwu-btn:active{ transform: translateY(0); }
+
+/* =======================
+   Testimonials (Right)
+======================= */
+
+/* Desktop: two cards side-by-side with no horizontal scroll */
+.rwu-t-right{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(360px, 1fr)); /* two columns */
+  gap: 32px;
+}
+
+/* Card */
+.rwu-quote-card{
+  background: var(--rwu-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px 20px;
+  position: relative;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.rwu-quote-card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(1,11,60,.1);
+}
+
+.rwu-quote-badge{
+  position: absolute;
+  top: -20px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  background: var(--rwu-blue);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+.rwu-quote-icon{
+  width: 30px;
+  height: 30px;
+  fill: #fff;
+  transform: scaleY(-1);
+}
+
+.rwu-quote-body{
+  margin-top: 30px;
+  font-family: var(--font-ui);
+  color: var(--rwu-text);
+  font-size: 16px;
+  line-height: 29px;
+}
+
+.rwu-person{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+.rwu-avatar{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
+.rwu-avatar img{
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rwu-person-meta{ line-height: 1.15; }
+.rwu-name{
+  font-family: var(--font-price);
+  font-weight: 600;
+  font-size: 20px;
+  color: #000;
+  margin-bottom: 4px;
+}
+.rwu-role{
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--rwu-muted);
+}
+
+/* =======================
+   Responsiveness
+======================= */
+
+/* Large tablets / narrow laptops:
+   keep them horizontal with gentle side scroll if space is tight */
+@media (max-width: 1200px){
+  .rwu-t-container{
+    max-width: 1100px;
+    gap: 44px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+  .rwu-t-right{
+    display: flex;
+    gap: 28px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scroll-snap-type: x mandatory;
+  }
+  .rwu-quote-card{
+    flex: 0 0 420px;          /* consistent width while scrolling */
+    scroll-snap-align: start;
+  }
+  .rwu-t-right::-webkit-scrollbar{ height: 8px; }
+  .rwu-t-right::-webkit-scrollbar-thumb{
+    background: rgba(45,173,255,.5);
+    border-radius: 4px;
+  }
+}
+
+/* Tablets & below: stack */
+@media (max-width: 1024px){
+  .rwu-t-container{
+    grid-template-columns: 1fr;
+    gap: 36px;
+    max-width: 760px;
+  }
+}
+
+/* Phones */
+@media (max-width: 560px){
+  .rwu-t-title{ font-size: 28px; }
+  .rwu-pill span{ font-size: 16px; }
+  .rwu-btn{ width: 100%; min-width: 0; }
+  .rwu-quote-badge{ left: 16px; }
+  .rwu-quote-card{  margin-top:29px; padding: 26px 18px 18px; }
+}

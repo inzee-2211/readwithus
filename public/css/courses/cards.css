@@ -1,0 +1,150 @@
+/* =========================================
+   RWU COURSE CARDS – Modern Redesign
+   Inspired by Figma (990x250 layout)
+========================================= */
+
+/* Card shell */
+.course-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 990px;
+  padding: 16px;
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Card content */
+.course-grid__body {
+    margin-left: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Category label */
+.course-card__label {
+  font-size: 13px;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: 0.4px;
+}
+.course-card__label a {
+  color: #2dadff;
+  text-decoration: none;
+}
+.course-card__label a:hover {
+  text-decoration: underline;
+}
+
+/* Title + subtitle */
+.course-card__title a {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0a033c;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.course-card__title a:hover {
+  color: #2dadff;
+}
+.course-card__subtitle {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 6px 0 12px;
+  line-height: 1.5;
+}
+
+/* Stats row */
+.course-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 14px;
+}
+.course-stats__item strong {
+  color: #0a033c;
+}
+
+/* Buttons / actions */
+.course-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #eee;
+  padding-top: 14px;
+  margin-top: auto;
+}
+
+.course-actions__grid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Buttons */
+.course-controls__item .btn {
+  border-radius: 10px;
+  font-weight: 600;
+  padding: 8px 20px;
+  transition: all 0.3s;
+}
+
+.btn--primary {
+  background: #2dadff;
+  color: #fff;
+  border: none;
+}
+.btn--primary:hover {
+  background: #2196f3;
+}
+
+.btn--bordered {
+  border: 1px solid #d1d5db;
+  color: #374151;
+  background: #fff;
+}
+.btn--bordered:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+/* Free text */
+.free-text {
+  font-weight: 700;
+  color: #22c55e !important;
+}
+
+/* Instructor image area */
+
+.course-card:hover .profile-meta__media img {
+  transform: scale(1.05);
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+  .course-card {
+    flex-direction: column;
+    height: auto;
+  }
+  .course-grid__head {
+    flex: none;
+    height: 200px;
+  }
+}
