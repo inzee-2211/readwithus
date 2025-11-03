@@ -200,10 +200,15 @@ class TeacherRequestsController extends AdminBaseController
                 $db->rollbackTransaction();
                 FatUtility::dieJsonError($user->getError());
             }
+             $registeredAs    = (int)($uRow['user_registered_as'] ?? 0) ?: User::TEACHER;
             $data = [
                 'user_phone_number' => $requestRow['tereq_phone_number'],
                 'user_phone_code' => $requestRow['tereq_phone_code'],
-                'user_video_link' => $requestRow['tereq_video_link']
+                'user_video_link' => $requestRow['tereq_video_link'],
+                'user_dashboard'      => User::TEACHER,
+                'user_registered_as' => $registeredAs,
+                'teacher_wallet_balance' => 0,
+                'user_wallet_balance' => 0,
             ];
             $userSetting = new UserSetting($requestRow['tereq_user_id']);
             if (!$userSetting->saveData($data)) {

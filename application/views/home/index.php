@@ -50,7 +50,8 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
 
       <!-- Search rail -->
       <div class="rw-hero__search">
-        <button id="openSelector" class="rw-pill" type="button" data-bs-toggle="modal" data-bs-target="#reviseTopicModal">
+      <button id="openSelector" class="rw-pill" type="button">
+
           <span>Revise Your Topic</span>
           <img src="<?php echo getBaseUrl(); ?>/assets/img/arrow-2.svg" class="arrow" alt="">
         </button>

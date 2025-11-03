@@ -122,3 +122,88 @@
     });
 </script>
 </div>
+<style>
+/* =======================================
+   LEGAL DOCUMENT PAGE STYLING
+   (Privacy Policy / Terms of Service)
+======================================= */
+.cms-view .who-we__content {
+  max-width: 850px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 40px 50px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  color: #2c2c2c;
+  font-family: "Open Sans", system-ui, sans-serif;
+  line-height: 1.75;
+  font-size: 15.5px;
+  text-align: justify;
+}
+
+/* Headings */
+.cms-view .who-we__content h1,
+.cms-view .who-we__content h2,
+.cms-view .who-we__content h3,
+.cms-view .who-we__content h4 {
+  color: #0A033C;
+  font-weight: 700;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.cms-view .who-we__content h1 { font-size: 2rem; border-bottom: 3px solid #2DADFF; padding-bottom: 6px; }
+.cms-view .who-we__content h2 { font-size: 1.6rem; color: #2DADFF; }
+.cms-view .who-we__content h3 { font-size: 1.3rem; color: #333; }
+
+/* Paragraphs and Lists */
+.cms-view .who-we__content p {
+  margin-bottom: 16px;
+  color: #444;
+}
+.cms-view .who-we__content ul, 
+.cms-view .who-we__content ol {
+  margin: 12px 0 24px 32px;
+}
+.cms-view .who-we__content li {
+  margin-bottom: 8px;
+}
+
+/* Highlight legal definitions or keywords */
+.cms-view .who-we__content strong {
+  color: #0A033C;
+}
+
+/* Quotation / clause style */
+.cms-view .who-we__content blockquote {
+  background: #f5faff;
+  border-left: 4px solid #2DADFF;
+  padding: 12px 16px;
+  margin: 20px 0;
+  color: #555;
+  font-style: italic;
+}
+
+/* Section title at top */
+.cms-view .main__title h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #0A033C;
+  margin-bottom: 24px;
+  text-align: center;
+  border-bottom: 2px solid #2DADFF;
+  display: inline-block;
+  padding-bottom: 6px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .cms-view .who-we__content {
+    padding: 24px 20px;
+    font-size: 14.5px;
+  }
+  .cms-view .main__title h2 {
+    font-size: 1.7rem;
+  }
+}
+</style>

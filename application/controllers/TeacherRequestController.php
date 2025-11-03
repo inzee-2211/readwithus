@@ -46,26 +46,50 @@ class TeacherRequestController extends MyAppController
         $this->set('becometutorSection', ExtraPage::getBlockContent(ExtraPage::BLOCK_APPLY_TO_TEACH_BECOME_A_TUTOR_SECTION, $this->siteLangId));
         $this->_template->render();
     }
-
-    public function form()
-    {
-        $userId = FatUtility::int($this->userId);
-        if ($userId < 1) {
-            TeacherRequest::closeSession();
-            FatApp::redirectUser(MyUtility::makeUrl('TeacherRequest', '', [], CONF_WEBROOT_FRONTEND));
+public function form()
+{
+    // More flexible user ID detection
+    $userId = FatUtility::int($this->userId);
+    
+    // If no user ID found, try to get from session directly
+    if ($userId < 1) {
+        $sessionUserId = TeacherRequest::getSession('user_id');
+        $userId = FatUtility::int($sessionUserId);
+        
+        if ($userId > 0) {
+            $this->userId = $userId;
         }
-        $this->requestCount = TeacherRequest::getRequestCount($userId);
-        if ($this->requestCount == FatApp::getConfig('CONF_MAX_TEACHER_REQUEST_ATTEMPT')) {
-            $this->set('step', 5);
-        } else {
-            $this->set('step', TeacherRequest::getRequestByUserId($userId)['tereq_step'] ?? 1);
-        }
-        $this->set('exculdeMainHeaderDiv', false);
-        $this->_template->addJs('js/jquery.form.js');
-        $this->_template->addJs('js/cropper.js');
-        $this->_template->render(true, false);
+    }
+    
+    // Final check - if still no user ID, redirect
+    if ($userId < 1) {
+        error_log("TeacherRequestController: No user ID found, redirecting to index");
+        TeacherRequest::closeSession();
+        FatApp::redirectUser(MyUtility::makeUrl('TeacherRequest', '', [], CONF_WEBROOT_FRONTEND));
     }
 
+    $this->requestCount = TeacherRequest::getRequestCount($userId);
+
+    $step = 1;
+    if ($this->requestCount == FatApp::getConfig('CONF_MAX_TEACHER_REQUEST_ATTEMPT')) {
+        $step = 5;
+    } else {
+        $req  = TeacherRequest::getRequestByUserId($userId);
+        $step = (int)($req['tereq_step'] ?? 1);
+        if ($step < 1 || $step > 5) { $step = 1; }
+    }
+
+    // Pass the userId to the view for debugging
+    $this->set('step', $step);
+    $this->set('userId', $userId);
+    $this->set('exculdeMainHeaderDiv', false);
+    
+    $this->_template->addJs('js/jquery.form.js');
+    $this->_template->addJs('js/cropper.js');
+    $this->_template->addJs('teacher-request/page-js/form.js');
+    
+    $this->_template->render(true, false);
+}
     private function attemptReachedCheck()
     {
         $this->requestCount = TeacherRequest::getRequestCount($this->userId);
@@ -229,46 +253,77 @@ class TeacherRequestController extends MyAppController
     /**
      * Setup Step1 Form
      */
-    public function setupStep1()
-    {
-        $userId = FatUtility::int($this->userId);
-        if ($userId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $resubmit = FatApp::getPostedData('resubmit', FatUtility::VAR_INT, 0);
-        $frm = $this->getFormStep1($this->siteLangId);
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        if (!empty($_FILES['user_photo_id']['tmp_name'])) {
-            $file = new Afile(Afile::TYPE_TEACHER_APPROVAL_PROOF);
-            if (!$file->saveFile($_FILES['user_photo_id'], $userId, true)) {
-                FatUtility::dieJsonError($file->getError());
-            }
-        }
-        $data = [
-            'tereq_step' => 2,
-            'tereq_user_id' => $userId,
-            'tereq_language_id' => $this->siteLangId,
-            'tereq_reference' => $userId . '-' . time(),
-            'tereq_date' => date('Y-m-d H:i:s'),
-            'tereq_first_name' => $post['tereq_first_name'],
-            'tereq_last_name' => $post['tereq_last_name'],
-            'tereq_gender' => $post['tereq_gender'],
-            'tereq_phone_code' => $post['tereq_phone_code'],
-            'tereq_phone_number' => $post['tereq_phone_number'],
-        ];
-        $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
-        if (!empty($request)) {
-            $data['tereq_id'] = $request['tereq_id'];
-        }
-        $record = new TableRecord(TeacherRequest::DB_TBL);
-        $record->assignValues($data);
-        if (!$record->addNew([], $data)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_SOMETHING_WENT_WRONG_PLEASE_TRY_AGAIN'));
-        }
-        FatUtility::dieJsonSuccess(['step' => 2, 'msg' => Label::getLabel('LBL_ACTION_PERFORMED_SUCCESSFULLY')]);
+  public function setupStep1()
+{
+    $userId = FatUtility::int($this->userId);
+    if ($userId < 1) {
+        FatUtility::dieJsonError('INVALID_REQUEST: userId missing');
     }
+
+    $frm = $this->getFormStep1($this->siteLangId);
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        $ve = current($frm->getValidationErrors());
+        error_log('[TR][setupStep1] validation error: ' . print_r($frm->getValidationErrors(), true));
+        FatUtility::dieJsonError('VALIDATION_FAIL: ' . $ve);
+    }
+
+    // Optional file upload
+    if (!empty($_FILES['user_photo_id']['tmp_name'])) {
+        $file = new Afile(Afile::TYPE_TEACHER_APPROVAL_PROOF);
+        if (!$file->saveFile($_FILES['user_photo_id'], $userId, true)) {
+            $fErr = $file->getError() ?: 'Unknown file error';
+            error_log('[TR][setupStep1] file upload error: ' . $fErr);
+            FatUtility::dieJsonError('FILE_UPLOAD_ERROR: ' . $fErr);
+        }
+    }
+
+    $data = [
+        'tereq_step'         => 2,
+        'tereq_user_id'      => $userId,
+        'tereq_language_id'  => $this->siteLangId,
+        'tereq_reference'    => $userId . '-' . time(),
+        'tereq_date'         => date('Y-m-d H:i:s'),
+        'tereq_first_name'   => $post['tereq_first_name'],
+        'tereq_last_name'    => $post['tereq_last_name'],
+        'tereq_gender'       => $post['tereq_gender'],
+        'tereq_phone_code'   => $post['tereq_phone_code'],
+        'tereq_phone_number' => $post['tereq_phone_number'],
+        'tereq_status'       => TeacherRequest::STATUS_PENDING,
+        'tereq_status_updated' => date('Y-m-d H:i:s'),
+        'tereq_comments'     => '' ,
+        'tereq_attempts' => '',
+        'tereq_terms'=> '',
+        'tereq_video_link'=> '',
+        'tereq_biography'=> '',
+        'tereq_teach_langs'=> '',
+        'tereq_speak_langs'=> '',
+        'tereq_slang_proficiency'=> '',
+    ];
+
+    // If there’s already a pending request, update it instead of insert
+    $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
+    if (!empty($request)) {
+        $data['tereq_id'] = $request['tereq_id'];
+    }
+
+    // Log the payload so we can compare with table schema
+    error_log('[TR][setupStep1] about to save: ' . json_encode($data));
+
+    $db = FatApp::getDb();
+    $record = new TableRecord(TeacherRequest::DB_TBL);
+    $record->assignValues($data);
+
+    if (!$record->addNew([], $data)) {
+        $recErr = $record->getError();
+        $dbErr  = method_exists($db, 'getError') ? $db->getError() : '';
+        error_log('[TR][setupStep1] addNew FAILED. recordError=' . $recErr . ' dbError=' . $dbErr);
+
+        // Return a developer-friendly message TEMPORARILY
+        FatUtility::dieJsonError('DB_SAVE_FAILED: ' . ($recErr ?: $dbErr ?: 'unknown'));
+    }
+
+    FatUtility::dieJsonSuccess(['step' => 2, 'msg' => 'OK']);
+}
 
     /**
      * Setup Profile Image
@@ -300,126 +355,176 @@ class TeacherRequestController extends MyAppController
     /**
      * Setup Step2 Form
      */
-    public function setupStep2()
-    {
-        $userId = FatUtility::int($this->userId);
-        if ($userId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $frm = $this->getFormStep2($this->siteLangId);
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
-        if (empty($request)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $userImage = (new Afile(Afile::TYPE_TEACHER_APPROVAL_IMAGE))->getFile($this->userId);
-        if (empty($userImage)) {
-            $userImage = (new Afile(Afile::TYPE_USER_PROFILE_IMAGE))->getFile($this->userId);
-            if (empty($userImage)) {
-                FatUtility::dieJsonError(Label::getLabel('LBL_PROFILE_PICTURE_REQURED'));
-            }
-        }
-        $record = new TableRecord(TeacherRequest::DB_TBL);
-        $data = [
-            'tereq_step' => 3,
-            'tereq_id' => $request['tereq_id'],
-            'tereq_video_link' => $post['tereq_video_link'],
-            'tereq_biography' => $post['tereq_biography'],
-        ];
-        $record->assignValues($data);
-        if (!$record->addNew([], $data)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_SOMETHING_WENT_WRONG_PLEASE_TRY_AGAIN'));
-        }
-        FatUtility::dieJsonSuccess(['step' => 3, 'msg' => Label::getLabel('LBL_ACTION_PERFORMED_SUCCESSFULLY')]);
+  public function setupStep2()
+{
+    $userId = FatUtility::int($this->userId);
+    if ($userId < 1) {
+        FatUtility::dieJsonError('INVALID_REQUEST: userId missing');
     }
+
+    $frm = $this->getFormStep2($this->siteLangId);
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        $ve = current($frm->getValidationErrors());
+        error_log('[TR][setupStep2] validation error: ' . print_r($frm->getValidationErrors(), true));
+        FatUtility::dieJsonError('VALIDATION_FAIL: ' . $ve);
+    }
+
+    $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
+    if (empty($request)) {
+        error_log('[TR][setupStep2] no pending request for userId=' . $userId);
+        FatUtility::dieJsonError('INVALID_REQUEST: pending record missing');
+    }
+
+    // Ensure profile image exists (approval image or fallback to profile)
+    $userImage = (new Afile(Afile::TYPE_TEACHER_APPROVAL_IMAGE))->getFile($this->userId);
+    if (empty($userImage)) {
+        $userImage = (new Afile(Afile::TYPE_USER_PROFILE_IMAGE))->getFile($this->userId);
+        if (empty($userImage)) {
+            error_log('[TR][setupStep2] profile picture missing for userId=' . $userId);
+            FatUtility::dieJsonError(Label::getLabel('LBL_PROFILE_PICTURE_REQURED'));
+        }
+    }
+
+    $data = [
+        'tereq_step'       => 3,
+        'tereq_video_link' => $post['tereq_video_link'],
+        'tereq_biography'  => $post['tereq_biography'],
+    ];
+    error_log('[TR][setupStep2] updating tereq_id=' . $request['tereq_id'] . ' with: ' . json_encode($data));
+
+    $db = FatApp::getDb();
+    $record = new TableRecord(TeacherRequest::DB_TBL);
+    $record->assignValues($data);
+
+    if (!$record->update(['smt' => 'tereq_id = ?', 'vals' => [$request['tereq_id']]])) {
+        $recErr = $record->getError();
+        $dbErr  = method_exists($db, 'getError') ? $db->getError() : '';
+        error_log('[TR][setupStep2] UPDATE FAILED. recordError=' . $recErr . ' dbError=' . $dbErr);
+        FatUtility::dieJsonError('DB_UPDATE_FAILED: ' . ($recErr ?: $dbErr ?: 'unknown'));
+    }
+
+    FatUtility::dieJsonSuccess(['step' => 3, 'msg' => 'OK']);
+}
+
 
     /**
      * Setup Step3 Form
      */
-    public function setupStep3()
-    {
-        $userId = FatUtility::int($this->userId);
-        if ($userId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $spokenLangs = SpeakLanguage::getAllLangs($this->siteLangId, true);
-        $frm = $this->getFormStep3($this->siteLangId, $spokenLangs);
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
-        if (empty($request)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $teachLangs = json_encode(array_filter(FatUtility::int($post['tereq_teach_langs'])));
-        $speakLangs = [];
-        $speakLangArr = array_filter(FatUtility::int(array_values($post['tereq_speak_langs'])));
-        foreach ($speakLangArr as $key => $value) {
-            array_push($speakLangs, $value);
-        }
-        $speakLangsProf = [];
-        $speakLangsProfArr = array_filter(FatUtility::int(array_values($post['tereq_slang_proficiency'])));
-        foreach ($speakLangsProfArr as $key => $value) {
-            array_push($speakLangsProf, $value);
-        }
-        if (empty($speakLangs) || empty($speakLangsProf)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_SPEAK_LANGUAGE_AND_PROFICIENCY_REQUIRED'));
-        }
-        $record = new TableRecord(TeacherRequest::DB_TBL);
-        $data = [
-            'tereq_step' => 4,
-            'tereq_id' => $request['tereq_id'],
-            'tereq_teach_langs' => $teachLangs,
-            'tereq_speak_langs' => json_encode($speakLangs),
-            'tereq_slang_proficiency' => json_encode($speakLangsProf),
-        ];
-        $record->assignValues($data);
-        if (!$record->addNew([], $data)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_SOMETHING_WENT_WRONG_PLEASE_TRY_AGAIN'));
-        }
-        FatUtility::dieJsonSuccess(['step' => 4, 'msg' => Label::getLabel('LBL_ACTION_PERFORMED_SUCCESSFULLY')]);
+   public function setupStep3()
+{
+    $userId = FatUtility::int($this->userId);
+    if ($userId < 1) {
+        FatUtility::dieJsonError('INVALID_REQUEST: userId missing');
     }
+
+    $spokenLangs = SpeakLanguage::getAllLangs($this->siteLangId, true);
+    $frm = $this->getFormStep3($this->siteLangId, $spokenLangs);
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        $ve = current($frm->getValidationErrors());
+        error_log('[TR][setupStep3] validation error: ' . print_r($frm->getValidationErrors(), true));
+        FatUtility::dieJsonError('VALIDATION_FAIL: ' . $ve);
+    }
+
+    $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
+    if (empty($request)) {
+        error_log('[TR][setupStep3] no pending request for userId=' . $userId);
+        FatUtility::dieJsonError('INVALID_REQUEST: pending record missing');
+    }
+
+    $teachLangs = json_encode(array_filter(FatUtility::int($post['tereq_teach_langs'])));
+    $speakLangs = [];
+    $speakLangArr = array_filter(FatUtility::int(array_values($post['tereq_speak_langs'])));
+    foreach ($speakLangArr as $v) { $speakLangs[] = $v; }
+
+    $speakLangsProf = [];
+    $speakLangsProfArr = array_filter(FatUtility::int(array_values($post['tereq_slang_proficiency'])));
+    foreach ($speakLangsProfArr as $v) { $speakLangsProf[] = $v; }
+
+    if (empty($speakLangs) || empty($speakLangsProf)) {
+        error_log('[TR][setupStep3] missing speak langs or proficiency');
+        FatUtility::dieJsonError(Label::getLabel('LBL_SPEAK_LANGUAGE_AND_PROFICIENCY_REQUIRED'));
+    }
+
+    $data = [
+        'tereq_step'              => 4,
+        'tereq_teach_langs'       => $teachLangs,
+        'tereq_speak_langs'       => json_encode($speakLangs),
+        'tereq_slang_proficiency' => json_encode($speakLangsProf),
+    ];
+    error_log('[TR][setupStep3] updating tereq_id=' . $request['tereq_id'] . ' with: ' . json_encode($data));
+
+    $db = FatApp::getDb();
+    $record = new TableRecord(TeacherRequest::DB_TBL);
+    $record->assignValues($data);
+
+    if (!$record->update(['smt' => 'tereq_id = ?', 'vals' => [$request['tereq_id']]])) {
+        $recErr = $record->getError();
+        $dbErr  = method_exists($db, 'getError') ? $db->getError() : '';
+        error_log('[TR][setupStep3] UPDATE FAILED. recordError=' . $recErr . ' dbError=' . $dbErr);
+        FatUtility::dieJsonError('DB_UPDATE_FAILED: ' . ($recErr ?: $dbErr ?: 'unknown'));
+    }
+
+    FatUtility::dieJsonSuccess(['step' => 4, 'msg' => 'OK']);
+}
+
 
     /**
      * Setup Step4 Form
      */
-    public function setupStep4()
-    {
-        $userId = FatUtility::int($this->userId);
-        if ($userId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $frm = $this->getFormStep4();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        $request = TeacherRequest::getRequestByUserId($userId);
-        if (empty($request)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $qualification = new UserQualification(0, $this->userId);
-        $rows = $qualification->getUQualification(false, true);
-        if (empty($rows)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_TEACHER_QUALIFICATION_REQUIRED'));
-        }
-        $record = new TableRecord(TeacherRequest::DB_TBL);
-        $record->assignValues(['tereq_step' => 5, 'tereq_terms' => $post['tereq_terms']]);
-        if (!$record->update(['smt' => 'tereq_id = ?', 'vals' => [$request['tereq_id']]])) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_SOMETHING_WENT_WRONG_PLEASE_TRY_AGAIN'));
-        }
-        $mail = new FatMailer($this->siteLangId, 'teacher_request_received');
-        $vars = [
-            '{refnum}' => $request['tereq_reference'],
-            '{name}' => $request['tereq_first_name'] . ' ' . $request['tereq_last_name'],
-            '{phone}' => $request['tereq_phone_code'] . ' ' . $request['tereq_phone_number'],
-            '{request_date}' => $request['tereq_date']
-        ];
-        $mail->setVariables($vars);
-        $mail->sendMail([FatApp::getConfig('CONF_SITE_OWNER_EMAIL')]);
-        FatUtility::dieJsonSuccess(['step' => 5, 'msg' => Label::getLabel('LBL_ACTION_PERFORMED_SUCCESSFULLY')]);
+   public function setupStep4()
+{
+    $userId = FatUtility::int($this->userId);
+    if ($userId < 1) {
+        FatUtility::dieJsonError('INVALID_REQUEST: userId missing');
     }
+
+    $frm = $this->getFormStep4();
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        $ve = current($frm->getValidationErrors());
+        error_log('[TR][setupStep4] validation error: ' . print_r($frm->getValidationErrors(), true));
+        FatUtility::dieJsonError('VALIDATION_FAIL: ' . $ve);
+    }
+
+    $request = TeacherRequest::getRequestByUserId($userId);
+    if (empty($request)) {
+        error_log('[TR][setupStep4] no request found for userId=' . $userId);
+        FatUtility::dieJsonError('INVALID_REQUEST: record missing');
+    }
+
+    $qualification = new UserQualification(0, $this->userId);
+    $rows = $qualification->getUQualification(false, true);
+    if (empty($rows)) {
+        error_log('[TR][setupStep4] qualification missing for userId=' . $userId);
+        FatUtility::dieJsonError(Label::getLabel('LBL_TEACHER_QUALIFICATION_REQUIRED'));
+    }
+
+    $data = ['tereq_step' => 5, 'tereq_terms' => $post['tereq_terms']];
+    error_log('[TR][setupStep4] updating tereq_id=' . $request['tereq_id'] . ' with: ' . json_encode($data));
+
+    $db = FatApp::getDb();
+    $record = new TableRecord(TeacherRequest::DB_TBL);
+    $record->assignValues($data);
+
+    if (!$record->update(['smt' => 'tereq_id = ?', 'vals' => [$request['tereq_id']]])) {
+        $recErr = $record->getError();
+        $dbErr  = method_exists($db, 'getError') ? $db->getError() : '';
+        error_log('[TR][setupStep4] UPDATE FAILED. recordError=' . $recErr . ' dbError=' . $dbErr);
+        FatUtility::dieJsonError('DB_UPDATE_FAILED: ' . ($recErr ?: $dbErr ?: 'unknown'));
+    }
+
+    // email
+    $mail = new FatMailer($this->siteLangId, 'teacher_request_received');
+    $vars = [
+        '{refnum}'       => $request['tereq_reference'],
+        '{name}'         => $request['tereq_first_name'] . ' ' . $request['tereq_last_name'],
+        '{phone}'        => $request['tereq_phone_code'] . ' ' . $request['tereq_phone_number'],
+        '{request_date}' => $request['tereq_date']
+    ];
+    $mail->setVariables($vars);
+    $mail->sendMail([FatApp::getConfig('CONF_SITE_OWNER_EMAIL')]);
+
+    FatUtility::dieJsonSuccess(['step' => 5, 'msg' => 'OK']);
+}
 
     /**
      * Get Step1 Form
@@ -548,39 +653,70 @@ class TeacherRequestController extends MyAppController
     /**
      * Setup Teacher Qualification
      */
-    public function setupTeacherQualification()
-    {
-        $frm = UserQualification::getForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        $post['uqualification_user_id'] = $this->userId;
-        $qualification = new UserQualification($post['uqualification_id']);
-        $db = FatApp::getDb();
-        $db->startTransaction();
+  public function setupTeacherQualification()
+{
+    $frm = UserQualification::getForm();
+
+    // Validate incoming fields against the form
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        FatUtility::dieJsonError(current($frm->getValidationErrors()));
+    }
+
+    // Always attach the current user
+    $post['uqualification_user_id'] = $this->userId;
+
+    // ---- Hardening: provide defaults for NOT NULL columns ----
+    // (adjust or remove any that don't exist in your schema)
+    if (!isset($post['uqualification_active']))   { $post['uqualification_active']   = 1; }
+    if (!isset($post['uqualification_verified'])) { $post['uqualification_verified'] = 0; }
+    if (!isset($post['uqualification_order']))    { $post['uqualification_order']    = 0; }
+
+    // Optional: make sure id is int
+    $qualificationId = FatUtility::int($post['uqualification_id'] ?? 0);
+
+    $db = FatApp::getDb();
+    $db->startTransaction();
+
+    try {
+        // If updating, you can optionally verify the row belongs to this user here.
+        $qualification = new UserQualification($qualificationId, $this->userId);
         $qualification->assignValues($post);
+
         if (!$qualification->save()) {
+            // Surface the model error (and last query if needed)
             $db->rollbackTransaction();
-            FatUtility::dieJsonError($qualification->getError());
+            $err = $qualification->getError() ?: Label::getLabel('MSG_SETUP_FAILED');
+            FatUtility::dieJsonError($err);
         }
+
+        // Handle certificate upload if provided
         if (!empty($_FILES['certificate']['tmp_name'])) {
             if (!is_uploaded_file($_FILES['certificate']['tmp_name'])) {
                 $db->rollbackTransaction();
                 FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_A_FILE'));
             }
-            $uqualification_id = $qualification->getMainTableRecordId();
-            $file = new Afile(Afile::TYPE_USER_QUALIFICATION_FILE);
-            if (!$file->saveFile($_FILES['certificate'], $uqualification_id, true)) {
+            $savedId = $qualification->getMainTableRecordId();
+            $file    = new Afile(Afile::TYPE_USER_QUALIFICATION_FILE);
+
+            if (!$file->saveFile($_FILES['certificate'], $savedId, true)) {
                 $db->rollbackTransaction();
                 FatUtility::dieJsonError($file->getError());
             }
         }
+
         if (!$db->commitTransaction()) {
             FatUtility::dieJsonError(Label::getLabel('MSG_SOMETHING_WENT_WRONG'));
-        } else {
-            FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
         }
+
+        // Success
+        FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
+
+    } catch (Throwable $e) {
+        $db->rollbackTransaction();
+        // Return a concise, useful error
+        FatUtility::dieJsonError('ERR_QUALIFICATION_SAVE: ' . $e->getMessage());
     }
+}
 
     /**
      * Delete Teacher Qualification
@@ -662,6 +798,30 @@ class TeacherRequestController extends MyAppController
             FatUtility::dieJsonError(Label::getLabel('MSG_PASSWORD_MUST_BE_EIGHT_CHARACTERS_LONG_AND_ALPHANUMERIC'));
         }
         $db = FatApp::getDb();
+// 1) Email format
+if (!filter_var($post['user_email'], FILTER_VALIDATE_EMAIL)) {
+    FatUtility::dieJsonError(Label::getLabel('MSG_INVALID_EMAIL'));
+}
+
+// 2) Email uniqueness (server-side hard stop)
+$srch = new SearchBase('tbl_users', 'u');
+$srch->addCondition('u.user_email', '=', $post['user_email']);
+$srch->addFld('u.user_id');
+if (FatApp::getDb()->fetch($srch->getResultSet())) {
+    FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_ALREADY_REGISTERED'));
+}
+
+// 3) Password policy (defense-in-depth)
+if (!MyUtility::validatePassword($post['user_password'])) {
+    FatUtility::dieJsonError(Label::getLabel('MSG_PASSWORD_MUST_BE_EIGHT_CHARACTERS_LONG_AND_ALPHANUMERIC'));
+}
+
+// 4) Terms agreed
+if (empty($post['agree'])) {
+    FatUtility::dieJsonError(Label::getLabel('MSG_Terms_and_Condition_and_Privacy_Policy_are_mandatory.'));
+}
+
+
         $db->startTransaction();
         $userData = array_merge($post, [
             'user_dashboard' => User::TEACHER,
@@ -679,7 +839,7 @@ class TeacherRequestController extends MyAppController
         }
         if (!$user->save()) {
             $db->rollbackTransaction();
-            FatUtility::dieJsonError(Label::getLabel("MSG_USER_COULD_NOT_BE_SET"));
+            FatUtility::dieJsonError(Label::getLabel("MSG_USER_COULDDDD_NOT_BE_SET"));
         }
         if (!$user->setSettings($userData)) {
             $db->rollbackTransaction();
@@ -693,23 +853,31 @@ class TeacherRequestController extends MyAppController
             FatUtility::dieJsonError(Label::getLabel("MSG_USER_COULD_NOT_BE_SET"));
         }
         $userData['user_id'] = $user->getMainTableRecordId();
+          error_log("TeacherRequestController: Created user with ID: " . $userData['user_id']);
+    
         $auth = new UserAuth();
         $res = $auth->sendSignupEmails($userData);
-        if (
-            FatApp::getConfig('CONF_ADMIN_APPROVAL_REGISTRATION') == AppConstant::NO &&
-            FatApp::getConfig('CONF_EMAIL_VERIFICATION_REGISTRATION') == AppConstant::NO &&
-            FatApp::getConfig('CONF_AUTO_LOGIN_REGISTRATION') == AppConstant::YES
-        ) {
-            if (!$auth->login($userData['user_email'], $userData['user_password'], MyUtility::getUserIp())) {
-                FatUtility::dieJsonError($auth->getError());
-            }
-        } else {
-            TeacherRequest::startSession($userData);
+       $autoLogin = (
+        FatApp::getConfig('CONF_ADMIN_APPROVAL_REGISTRATION') == AppConstant::NO &&
+        FatApp::getConfig('CONF_EMAIL_VERIFICATION_REGISTRATION') == AppConstant::NO &&
+        FatApp::getConfig('CONF_AUTO_LOGIN_REGISTRATION') == AppConstant::YES
+    );
+
+    if ($autoLogin) {
+        if (!$auth->login($userData['user_email'], $userData['user_password'], MyUtility::getUserIp())) {
+            FatUtility::dieJsonError($auth->getError());
         }
-        FatUtility::dieJsonSuccess([
-            'msg' => $res['msg'] ?? Label::getLabel('LBL_REGISTERATION_SUCCESSFULL'),
-            'redirectUrl' => MyUtility::makeUrl('TeacherRequest', 'form')
-        ]);
+        // logged-in users will have $this->siteUserId
+    } else {
+        // make 100% sure the guest session carries the user id we just created
+         $sessionCheck = TeacherRequest::getSession('user_id');
+        TeacherRequest::startSession(['user_id' => $userId, 'user_email' => $userData['user_email']]);
+    }
+
+    FatUtility::dieJsonSuccess([
+        'msg'         => $res['msg'] ?? Label::getLabel('LBL_REGISTERATION_SUCCESSFULL'),
+        'redirectUrl' => MyUtility::makeUrl('TeacherRequest', 'form')
+    ]);
     }
 
     /**

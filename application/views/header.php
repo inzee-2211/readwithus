@@ -237,22 +237,22 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                             <div class="header__middle">
                                 <?php if (!empty($headerNav)) { ?>
                                     <span class="overlay overlay--nav toggle--nav-js is-active"></span>
-                                    <nav class="menu nav--primary-offset">
-                                        <ul>
-                                            <?php foreach ($headerNav as $nav) { ?>
-                                                <?php
-                                                if ($nav['pages']) {
-                                                    foreach ($nav['pages'] as $link) {
-                                                        $navUrl = CommonHelper::getnavigationUrl($link['nlink_type'], $link['nlink_url'], $link['nlink_cpage_id']);
-                                                        ?>
-                                                        <li class="menu__item"><a target="<?php echo $link['nlink_target']; ?>" href="<?php echo $navUrl; ?>"><?php echo $link['nlink_caption']; ?></a></li>
-                                                        <?php
-                                                    }
-                                                }
-                                            }
-                                            ?>
-                                        </ul>
-                                    </nav>
+                                <nav class="menu nav--primary-offset">
+  <ul>
+      <li class="menu__item dropdown">
+        <a href="javascript:void(0)" class="dropdown-toggle" id="openSelectorNav">Revise Your Topic </a>
+        <ul class="dropdown-menu" id="dropDownOptionNav" style="display:none; position:absolute; background:#fff; color:#000; padding:10px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.1);">
+          <li style="padding:6px 10px; font-size:14px; color:#555;">Loading topics...</li>
+        </ul>
+      </li>
+    <li class="menu__item"><a href="<?php echo MyUtility::makeUrl('courses'); ?>">Courses</a></li>
+    <li class="menu__item"><a href="<?php echo MyUtility::makeUrl('pricing'); ?>">Pricing</a></li>
+    <li class="menu__item"><a href="<?php echo MyUtility::makeUrl('teachers'); ?>">Find a Tutor</a></li>
+    <li class="menu__item"><a href="<?php echo MyUtility::makeUrl('apply-to-teach'); ?>">Apply as Instructor</a></li>
+
+    <!-- Revise Topic dropdown -->
+  </ul>
+</nav>
                                 <?php } ?>
                             </div>
 
@@ -377,7 +377,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
         <!-- Log in button -->
         <a href="javascript:void(0)" onClick="signinForm();"
            class="header-controls__action btn btn--bordered user-click"
-           style="background-color: #ffffff; color: #6cb6e0; border: 2px solid #6cb6e0;">
+           style="background-color: #ffffff; color: #2DADFF; border: 2px solid #2DADFF;">
             <?php echo Label::getLabel('LBL_Login'); ?>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="18.375" viewBox="0 0 18.331 15.331" id="enter">
                 <path d="M17.692 0h-11.5a.639.639 0 00-.639.639V5.11a.639.639 0 101.278 0V1.278h10.222v12.775H6.833v-3.832a.639.639 0 00-1.278 0v4.472a.639.639 0 00.639.639h11.5a.639.639 0 00.639-.639V.639A.639.639 0 0017.692 0z"></path>
@@ -388,7 +388,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
         <!-- Register button -->
         <a href="javascript:void(0)" onClick="signupForm();"
            class="btn btn--primary user-click"
-           style="background-color: #6cb6e0; color: #fff; border: 2px solid #6cb6e0;">
+           style="background-color:#2DADFF; color: #fff; border: 2px solid #6cb6e0;">
             <?php echo Label::getLabel('LBL_SIGN_UP'); ?>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="18.375" viewBox="0 0 14 18.375">
                 <path d="M18,19.375H16.25v-1.75A2.625,2.625,0,0,0,13.625,15H8.375A2.625,2.625,0,0,0,5.75,17.625v1.75H4v-1.75A4.375,4.375,0,0,1,8.375,13.25h5.25A4.375,4.375,0,0,1,18,17.625ZM11,11.5a5.25,5.25,0,1,1,5.25-5.25A5.25,5.25,0,0,1,11,11.5Zm0-1.75a3.5,3.5,0,1,0-3.5-3.5A3.5,3.5,0,0,0,11,9.75Z" transform="translate(-4 -1)" />
@@ -406,3 +406,93 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
             </header>
             <div id="body" class="body">
             <?php } ?>
+<style>
+/* anchor dropdown to its <li> */
+.menu.nav--primary-offset .dropdown { position: relative; }
+
+/* Revise button — brand blue and tighter near logo */
+#openSelectorNav{
+  display:inline-block;
+  background:#2DADFF;
+  color:#fff!important;
+  font-weight:600;
+  border-radius:6px;
+  margin-top: 3%;
+  padding:13px 18px;
+  margin-left:-10%;   /* pulls closer to logo */
+  margin-right:12px;
+  border:2px solid transparent;
+  letter-spacing:.2px;
+  transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+#openSelectorNav:hover{
+  background:#37b6ff;
+  box-shadow:0 6px 16px rgba(45,173,255,.25);
+  transform:translateY(-2px);
+}
+
+/* Dropdown container (CORRECT ID) */
+#dropDownOptionNav{
+  display:none;            /* shown/hidden by JS */
+  position:absolute;
+  top:44px; left:0;
+  margin-top: 3%;
+  margin-left:-12%;
+  min-width:260px; max-height:420px; overflow-y:auto;
+  background:rgba(255,255,255,.98);
+  backdrop-filter:blur(6px);
+  border-radius:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.08);
+  padding:10px 12px;
+  z-index:9999;
+  animation:navFadeIn .22s ease;
+}
+
+/* optional header/breadcrumb inside the menu */
+#dropDownOptionNav .breadcrumb-nav span{
+  font-size:13px; color:#1D9CFD; cursor:pointer;
+}
+#dropDownOptionNav .breadcrumb-nav span:hover{ color:#0A033C; }
+
+/* reset default LI appearance */
+#dropDownOptionNav li{ list-style:none; padding:0; margin:0; border:0; background:none; }
+
+/* the clickable options rendered by JS */
+#dropDownOptionNav .rtm-item{
+  display:block; width:100%;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none; /* kill grey block */
+  background:#F6FAFF;
+  border:1px solid #E0F0FF;
+  color:#0A033C;
+  border-radius:8px;
+  padding:10px 12px;
+  margin:6px 0;
+  font-size:14px; font-weight:600; text-align:left;
+  cursor:pointer;
+  transition:transform .15s ease, background .15s ease, border-color .15s ease;
+}
+#dropDownOptionNav .rtm-item:hover{
+  background:#EAF5FF; border-color:#B3E0FF; transform:translateX(3px);
+}
+#dropDownOptionNav .rtm-item:focus{
+  outline:0; box-shadow:0 0 0 3px rgba(45,173,255,.25);
+}
+
+/* little fade */
+@keyframes navFadeIn{
+  from{ opacity:0; transform:translateY(-6px); }
+  to  { opacity:1; transform:translateY(0); }
+}
+
+/* mobile tweaks */
+@media (max-width:768px){
+  #openSelectorNav{ margin-left:0; margin-top:6px; }
+  #dropDownOptionNav{ left:0; right:auto; width:calc(100vw - 32px); }
+}
+</style>
+
+<script>
+  window.RWU_CONFIG = window.RWU_CONFIG || {};
+  window.RWU_CONFIG.baseUrl = '<?= getBaseUrl(); ?>';
+</script>
+<script src="<?= CONF_WEBROOT_URL ?>js/nav-revise.js"></script>

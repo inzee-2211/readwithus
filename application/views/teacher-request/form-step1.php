@@ -1,5 +1,16 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
+
+// Debug: Check if variables are set
+error_log("form-step1.php - User ID: " . ($this->userId ?? 'NOT SET'));
+error_log("form-step1.php - Form object: " . (isset($frm) ? 'SET' : 'NOT SET'));
+error_log("form-step1.php - Request: " . (isset($request) ? 'SET' : 'NOT SET'));
+
+// Rest of your existing code...
+?>
+
+<?php
+defined('SYSTEM_INIT') or die('Invalid Usage.');
 $frm->setFormTagAttribute('class', 'form');
 $frm->setFormTagAttribute('onsubmit', 'setupStep1(this); return(false);');
 $usrFirstName = $frm->getField('tereq_first_name');
