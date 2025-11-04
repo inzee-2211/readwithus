@@ -1,6 +1,6 @@
 .rwu-trending{background:#fff;padding:64px 0 24px;}
 .rwu-trending .wrap{
-  max-width:1569px; /* matches Figma container */
+  max-width:90vw; /* matches Figma container */
   width:calc(100% - 48px);
   margin:0 auto;
   position:relative;
@@ -23,7 +23,7 @@
   margin:0 0 12px;
 }
 .rwu-trending .sub{
-  max-width:1654px;margin:0 auto 26px;
+  max-width:80vw;margin:0 auto 24px;
   text-align:center;color:#5F6C76;
   font:500 clamp(14px,1.35vw,24px)/1.7 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
 }
@@ -31,7 +31,7 @@
 
 /* ---------- Grid ---------- */
 .rwu-trending .grid {
-  width:1534px; max-width:100%;
+  width:80vw; max-width:95%;
   margin:0 auto;
   display:grid; grid-template-columns:repeat(3, 410px); gap:40px 121px; /* gap matches figma (121 horiz, 40 vert) */
   justify-content:center;
@@ -160,3 +160,91 @@
 
 /* ---------- All Courses button spacing ---------- */
 .rwu-trending .all-btn{ margin-top: 40px; }
+/* ===============================
+   RWU Trending – responsive fixes
+   (add at the END of your CSS)
+=================================*/
+
+/* Container breathing room stays % based */
+.rwu-trending .wrap{
+  max-width: 92vw;
+  width: calc(100% - 32px);
+}
+
+/* -------- GRID: fluid columns --------
+   - Desktop: 3 columns when space allows
+   - Tablet: 2 columns
+   - Mobile: 1 column
+*/
+
+
+/* ensure the filter bar never forces overflow */
+.rwu-trending__filters{ max-width: 100%; }
+
+/* -------- CARD: fluid sizing -------- */
+.rwu-course{
+  width: 100%;
+  max-width: 410px;       /* keeps your desktop look */
+  height: auto;           /* let height grow naturally */
+  border: 1px solid #EAEAEA;
+  border-radius: 20px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+/* Media area uses aspect-ratio instead of fixed px height */
+.rwu-course .media{
+  position: relative;
+  aspect-ratio: 4 / 3;    /* ~250px height equivalent, but responsive */
+  width: 100%;
+  isolation: isolate;
+}
+.rwu-course .media img{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* Body spacing scales down on small screens */
+.rwu-course .body{
+  padding: clamp(12px, 2.5vw, 20px);
+  gap: clamp(10px, 2vw, 16px);
+}
+
+/* Typography clamps to avoid wrapping explosions */
+.rwu-course .by   { font-size: clamp(13px, 1.9vw, 16px); line-height: 1.5; }
+.rwu-course .name { font-size: clamp(16px, 2.2vw, 20px); line-height: 1.2; }
+.rwu-course .meta { gap: clamp(10px, 3vw, 24px); font-size: clamp(12px, 1.9vw, 16px); }
+
+.rwu-course .price .was,
+.rwu-course .price .now-blue,
+.rwu-course .price .now-green,
+.rwu-course .more{
+  font-size: clamp(13px, 2vw, 18px);
+}
+
+/* Chip scales and stays inside media safely */
+.rwu-course .chip{
+  left: clamp(10px, 2.5vw, 20px);
+  top:  clamp(10px, 2.5vw, 20px);
+  height: clamp(28px, 6vw, 40px);
+  padding: 6px 10px;
+  font-size: clamp(12px, 2.2vw, 16px);
+  line-height: 1.2;
+}
+
+/* ----- Small phones (<= 380–400px) ----- */
+@media (max-width: 400px){
+  .rwu-trending .grid{
+    grid-template-columns: 1fr;       /* hard 1-col */
+    gap: 14px;
+  }
+  .rwu-course{ max-width: 100%;height: 90%; }     /* let it stretch edge-to-edge (with wrap padding) */
+  .rwu-trending .wrap{ width: calc(100% - 24px); }
+}
+
+/* Optional: slightly tighter top/bottom spacing for the whole section */
+.rwu-trending{ padding: clamp(32px, 6vw, 64px) 0 clamp(16px, 3.5vw, 24px); }

@@ -1,4 +1,9 @@
 /* ===== Revise-Topic modal polish ===== */
+.rw-about{
+  max-width: 90vw;
+  margin: 0 auto;
+  align-content: center;
+}
 .rw-modal .modal-content{
   border-radius: 16px;
   border: 1px solid #eaf2f8;
@@ -116,5 +121,17 @@
    .rw-card:hover {
     transform: translateY(-24px);
     box-shadow: 0 16px 40px rgba(95,45,237,0.15);
+  }
+}
+/* Center feature cards on mobile */
+@media (max-width: 720px){
+  .rw-features{
+    margin-left: 0;            /* stop pushing the grid right */
+    justify-items: center;     /* center items inside the single column */
+  }
+  .rw-card{
+    width: 78vw;               /* fill nicely but leave gutters */
+    max-width: 520px;          /* optional cap for big phones */
+    margin: 0 auto;            /* ensure centered if width < column */
   }
 }

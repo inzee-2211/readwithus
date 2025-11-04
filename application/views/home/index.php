@@ -25,7 +25,14 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
 <link rel="stylesheet" href="<?= asset_css('css/home.cta-banner.css') ?>">
 
 
-
+<?php
+  $siteLangId = MyUtility::getSiteLangId();
+  $countries  = Country::getAll($siteLangId);
+  $policyPageId = FatApp::getConfig('CONF_PRIVACY_POLICY_PAGE', FatUtility::VAR_INT, 0);
+  $termsPageId  = FatApp::getConfig('CONF_TERMS_AND_CONDITIONS_PAGE', FatUtility::VAR_INT, 0);
+  $privacyPolicyLink   = $policyPageId ? MyUtility::makeUrl('Cms', 'view', [$policyPageId]) : 'javascript:void(0)';
+  $termsConditionsLink = $termsPageId  ? MyUtility::makeUrl('Cms', 'view', [$termsPageId])  : 'javascript:void(0)';
+?>
 
 
 <section class="rw-hero">
@@ -66,14 +73,15 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <div class="rw-hero__art-inner">
         <img class="rw-hero__img" src="<?= $heroBase ?>hero-girl.svg" alt="Student with laptop">
 <!-- Connector lines (SVG) -->
-<svg class="rw-connectors" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <!-- top-left to girl -->
-  <path d="M100,140 C760,80 300,60 430,200" stroke="#ECECEC" stroke-width="2" fill="none"/>
-  <!-- left-middle to girl -->
-  <path d="M80,380 C220,400 360,360 460,420" stroke="#ECECEC" stroke-width="2" fill="none"/>
-  <!-- bottom-right to girl -->
-  <path d="M540,520 C620,580 700,620 760,700" stroke="#ECECEC" stroke-width="2" fill="none"/>
-</svg>
+<!-- <svg class="rw-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"> -->
+  <!-- Left curve: from BOOK (top:15%, left:-9%) to PERSON (top:50%, left:-7%) -->
+  <!-- <path d="M -6,15 C 06,25 0,45 -2,76" 
+        stroke="#ECECEC" stroke-width="0.7" fill="none" /> -->
+  
+  <!-- Right curve: from PRESENTATION (top:22%, right:25%) to BLOCKS (bottom:15%, right:10%) -->
+  <!-- <path d="M 65,29 C 69,45 80,70 83,76" 
+        stroke="#ECECEC" stroke-width="0.6" fill="none" />
+</svg> -->
 
         <!-- Floating cards -->
         <div class="rw-badge rw-badge--book">
@@ -139,7 +147,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <!-- Card 1 -->
       <article class="rw-card rw-card--raised">
         <div class="rw-card__icon">
-          <img src="<?php echo $secBase; ?>icon-analytics.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+          <img src="<?= $heroBase ?>light.svg" alt="icon" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
         </div>
         <h4>AI Tutoring &amp; Smart Learning</h4>
         <p>Learn smarter with personalized AI tutors that adapt to your pace and style.</p>
@@ -297,8 +305,8 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
         • Learn online, anytime flexible scheduling built around your routine.
       </p>
 
-      <a href="#" class="btn-main">
-        See Our Tutors
+    <a href="<?= MyUtility::makeUrl('Teachers'); ?>" class="btn-main">
+          Our Tutors
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -331,23 +339,88 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 
     <!-- RIGHT: Registration Form -->
     <div class="rwu-request-form">
-      <form>
-        <h3>Fill your Request</h3>
-        <input type="text" placeholder="Your Name" />
-        <div class="row">
-          <input type="email" placeholder="Email Address" />
-          <input type="tel" placeholder="Phone" />
-        </div>
-        <input type="text" placeholder="course list" />
-        <textarea placeholder="Preffered time"></textarea>
-        <button type="submit" class="btn-submit">
-          Sign Up
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </form>
+  <form action="<?= MyUtility::makeUrl('TutorRequest','create'); ?>" method="post" onsubmit="submitTutorReq(this); return false;">
+    <h3>Fill your Request</h3>
+<div id="tutreqAlert" class="rw-alert-slot" aria-live="polite"></div>
+
+    <div class="row">
+      <input type="text" name="tutreq_first_name" placeholder="First name *" required />
+      <input type="text" name="tutreq_last_name"  placeholder="Last name" />
     </div>
+
+    <div class="row">
+      <input type="email" name="tutreq_email" placeholder="Email Address *" required />
+    </div>
+
+    <div class="row">
+      <select name="tutreq_phone_code" required>
+        <option value=""><?= Label::getLabel('LBL_SELECT'); ?></option>
+        <?php foreach ($countries as $c): ?>
+          <option value="<?= $c['country_id']; ?>">+<?= $c['phone_code']; ?></option>
+        <?php endforeach; ?>
+      </select>
+      <input type="tel" name="tutreq_phone_number" placeholder="Phone *" required />
+    </div>
+
+    <!-- MULTI-SELECT COURSES -->
+<div class="row">
+  <label for="req_courses" class="label">Select Course(s)</label>
+  <div class="custom-select" id="courseDropdown">
+    <div class="select-trigger">Select Courses </div>
+    <div class="select-options">
+      <?php if (!empty($courses)): foreach ($courses as $crs): ?>
+        <label class="option">
+          <input type="checkbox" name="course_ids[]" value="<?= (int)$crs['course_id']; ?>">
+          <?= htmlspecialchars($crs['course_title']); ?>
+        </label>
+      <?php endforeach; endif; ?>
+    </div>
+  </div>
+</div>
+
+<!-- Selected courses chips (auto-filled by JS) -->
+<div class="row">
+  <div id="selectedCourses" class="selected-courses" aria-live="polite"></div>
+</div>
+
+  <div class="row">
+  <label for="start_time" class="label">Preferred Time</label>
+  <div class="time-selects">
+    <select id="start_time" class="time-select">
+      <option value="">Start Time</option>
+      <?php for ($h = 0; $h < 24; $h++): 
+        $time = date('g:i A', strtotime("$h:00"));
+      ?>
+        <option value="<?= $time ?>"><?= $time ?></option>
+      <?php endfor; ?>
+    </select>
+
+    <select id="end_time" class="time-select">
+      <option value="">End Time</option>
+      <?php for ($h = 0; $h < 24; $h++): 
+        $time = date('g:i A', strtotime("$h:00"));
+      ?>
+        <option value="<?= $time ?>"><?= $time ?></option>
+      <?php endfor; ?>
+    </select>
+
+    <!-- hidden field that backend expects -->
+    <input type="hidden" name="tutreq_preferred_time" id="tutreq_preferred_time">
+  </div>
+</div>
+
+    <label class="terms">
+      <input type="checkbox" required />
+      I accept the <a href="<?= $termsConditionsLink; ?>" target="_blank">Terms & Conditions</a> 
+      and <a href="<?= $privacyPolicyLink; ?>" target="_blank">Privacy Policy</a>
+    </label>
+
+    <button type="submit" class="btn-submit">
+      Send Request
+      <svg ...>...</svg>
+    </button>
+  </form>
+</div>
   </div>
 </section>
 
@@ -717,3 +790,216 @@ $(".faq__trigger-js").click(function(e) {
 
 <!-- then include your JS files -->
 <script src="<?= CONF_WEBROOT_URL ?>js/home.js"></script>
+<!-- <select name="course_ids[]" id="req_courses" multiple class="multi" required></select> -->
+<script>
+// Global so onsubmit="submitTutorReq(this)" still works
+window.submitTutorReq = async function(form) {
+  const alertSlot = form.querySelector('#tutreqAlert');
+  const submitBtn = form.querySelector('.btn-submit');
+  const emailVal = form.tutreq_email?.value || '';
+  const coursesEl = form.querySelector('#req_courses');
+
+  // Helper to show alert
+  const showAlert = (type, html) => {
+    alertSlot.innerHTML = `
+      <div class="rw-alert rw-alert--${type}" role="alert">
+        ${html}
+        <button type="button" class="rw-alert__close" aria-label="Close" onclick="this.parentNode.remove()">×</button>
+      </div>`;
+  };
+
+  try {
+    // UI: loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Sending… <span class="spinner"></span>';
+
+    // Build FormData
+    const formData = new FormData(form);
+
+    // Handle course selection when using <select multiple>
+    if (coursesEl && coursesEl.selectedOptions) {
+      const selectedCourses = Array.from(coursesEl.selectedOptions).map(option => option.value);
+      formData.delete('course_ids[]');
+      selectedCourses.forEach(courseId => formData.append('course_ids[]', courseId));
+    }
+
+    console.log('Submitting tutor request...');
+
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    });
+
+    console.log('Response status:', response.status);
+
+    let result;
+    try {
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      result = JSON.parse(responseText);
+      console.log('Parsed result:', result);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      showAlert('error', 'Invalid response from server. Please try again.');
+      return;
+    }
+
+    // Handle response
+    if (result.status === 1) {
+      showAlert(
+        'success',
+        ` ${result.msg || 'Request submitted successfully!'} Our team will contact you at <strong>${emailVal}</strong>.`
+      );
+      form.reset();
+
+      // Clear course chips
+      const chipsContainer = document.getElementById('selectedCourses');
+      if (chipsContainer) {
+        chipsContainer.innerHTML = '';
+      }
+
+      // Clear course selections if using <select multiple>
+      if (coursesEl) {
+        Array.from(coursesEl.options).forEach(option => {
+          option.selected = false;
+        });
+      }
+
+      // Scroll to show success message
+      alertSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      showAlert('error', result.msg || 'Something went wrong. Please try again.');
+      alertSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+  } catch (error) {
+    console.error('Request failed:', error);
+    showAlert('error', 'Network error. Please check your connection and try again.');
+  } finally {
+    // Restore button state
+    submitBtn.disabled = false;
+    submitBtn.innerHTML =
+      'Send Request <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  /* =========================================
+   * 1) Fetch courses into #req_courses (if present)
+   * ========================================= */
+  (async function(){
+    try {
+      const res = await fetch('<?= MyUtility::makeUrl('TutorRequest','courses'); ?>', {
+        credentials: 'same-origin'
+      });
+      const json = await res.json();
+      if (json.status == 1 && Array.isArray(json.data.courses)) {
+        const sel = document.getElementById('req_courses');
+        if (sel) {
+          json.data.courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.course_id;
+            opt.textContent = c.course_title;
+            sel.appendChild(opt);
+          });
+        }
+      }
+    } catch(e){
+      console.error('Error loading courses:', e);
+    }
+  })();
+
+  /* =========================================
+   * 2) Multi-select chips for <select id="req_courses" multiple>
+   * ========================================= */
+  (function(){
+    const sel  = document.getElementById('req_courses');
+    const list = document.getElementById('selectedCourses');
+    if(!sel || !list) return;
+
+    // Make <select multiple> behave like tag toggles
+    sel.addEventListener('mousedown', function(e){
+      const opt = e.target;
+      if (opt && opt.tagName === 'OPTION') {
+        e.preventDefault();                 // stop native selection behavior
+        opt.selected = !opt.selected;       // toggle
+        sel.focus();
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    function renderChips(){
+      list.innerHTML = '';
+      const selected = Array.from(sel.options).filter(o => o.selected);
+      selected.forEach(o => {
+        const chip = document.createElement('div');
+        chip.className = 'course-chip';
+        chip.dataset.value = o.value;
+        chip.innerHTML = `
+          <span class="label">${o.textContent}</span>
+          <button type="button" class="remove" aria-label="Remove ${o.textContent}">×</button>
+        `;
+        chip.querySelector('.remove').addEventListener('click', () => {
+          o.selected = false;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        list.appendChild(chip);
+      });
+    }
+
+    sel.addEventListener('change', renderChips);
+    renderChips();
+  })();
+
+  /* =========================================
+   * 3) Custom course dropdown + preferred time sync
+   *    (for your new UI)
+   * ========================================= */
+  // Course dropdown toggle (for .select-trigger / .select-options UI)
+  const trigger = document.querySelector('.select-trigger');
+  const options = document.querySelector('.select-options');
+
+  if (trigger && options) {
+    trigger.addEventListener('click', () => {
+      options.style.display = options.style.display === 'block' ? 'none' : 'block';
+    });
+
+    // Update trigger text dynamically when checkboxes change
+    options.addEventListener('change', () => {
+      const selected = Array.from(
+        options.querySelectorAll('input[type="checkbox"]:checked')
+      ).map(opt => opt.parentNode.textContent.trim());
+
+      trigger.textContent = selected.length
+        ? selected.join(', ')
+        : 'Select Courses ▼';
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#courseDropdown')) {
+        options.style.display = 'none';
+      }
+    });
+  }
+
+  // Time field synchronization (start_time + end_time → tutreq_preferred_time)
+  const startSelect = document.getElementById('start_time');
+  const endSelect = document.getElementById('end_time');
+  const hiddenTime = document.getElementById('tutreq_preferred_time');
+
+  function updatePreferredTime() {
+    if (!hiddenTime || !startSelect || !endSelect) return;
+    const start = startSelect.value;
+    const end = endSelect.value;
+    hiddenTime.value = start && end ? `${start} - ${end}` : '';
+  }
+
+  if (startSelect && endSelect && hiddenTime) {
+    startSelect.addEventListener('change', updatePreferredTime);
+    endSelect.addEventListener('change', updatePreferredTime);
+  }
+});
+
+</script>

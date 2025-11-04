@@ -4,7 +4,7 @@
   background: #fff;
 }
 .rwu-blogs__wrap{
-  max-width: 1420px;          /* wide, like the Figma frame */
+  max-width: 80vw;          /* wide, like the Figma frame */
   margin: 0 auto;
 }
 
