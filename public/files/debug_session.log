@@ -1,0 +1,143 @@
+Stripe\Checkout\Session Object
+(
+    [id] => cs_test_a1fP0wnq5REnG0ztDktIq1oSNV0j8KGHPJvvN1y19Kiqu4f4fW60wKe2co
+    [object] => checkout.session
+    [adaptive_pricing] => Stripe\StripeObject Object
+        (
+            [enabled] => 1
+        )
+
+    [after_expiration] => 
+    [allow_promotion_codes] => 
+    [amount_subtotal] => 10000
+    [amount_total] => 10000
+    [automatic_tax] => Stripe\StripeObject Object
+        (
+            [enabled] => 
+            [liability] => 
+            [provider] => 
+            [status] => 
+        )
+
+    [billing_address_collection] => 
+    [cancel_url] => http://www.readwithus.org.uk/payment/cancel/2950
+    [client_reference_id] => 
+    [client_secret] => 
+    [collected_information] => Stripe\StripeObject Object
+        (
+            [shipping_details] => 
+        )
+
+    [consent] => 
+    [consent_collection] => 
+    [created] => 1753121444
+    [currency] => gbp
+    [currency_conversion] => 
+    [custom_fields] => Array
+        (
+        )
+
+    [custom_text] => Stripe\StripeObject Object
+        (
+            [after_submit] => 
+            [shipping_address] => 
+            [submit] => 
+            [terms_of_service_acceptance] => 
+        )
+
+    [customer] => 
+    [customer_creation] => if_required
+    [customer_details] => Stripe\StripeObject Object
+        (
+            [address] => 
+            [email] => farhanali03118635144@gmail.com
+            [name] => 
+            [phone] => 
+            [tax_exempt] => none
+            [tax_ids] => 
+        )
+
+    [customer_email] => farhanali03118635144@gmail.com
+    [discounts] => Array
+        (
+        )
+
+    [expires_at] => 1753207844
+    [invoice] => 
+    [invoice_creation] => Stripe\StripeObject Object
+        (
+            [enabled] => 
+            [invoice_data] => Stripe\StripeObject Object
+                (
+                    [account_tax_ids] => 
+                    [custom_fields] => 
+                    [description] => 
+                    [footer] => 
+                    [issuer] => 
+                    [metadata] => Stripe\StripeObject Object
+                        (
+                        )
+
+                    [rendering_options] => 
+                )
+
+        )
+
+    [livemode] => 
+    [locale] => 
+    [metadata] => Stripe\StripeObject Object
+        (
+            [order_id] => 2950
+        )
+
+    [mode] => payment
+    [origin_context] => 
+    [payment_intent] => 
+    [payment_link] => 
+    [payment_method_collection] => if_required
+    [payment_method_configuration_details] => 
+    [payment_method_options] => Stripe\StripeObject Object
+        (
+            [card] => Stripe\StripeObject Object
+                (
+                    [request_three_d_secure] => automatic
+                )
+
+        )
+
+    [payment_method_types] => Array
+        (
+            [0] => card
+        )
+
+    [payment_status] => unpaid
+    [permissions] => 
+    [phone_number_collection] => Stripe\StripeObject Object
+        (
+            [enabled] => 
+        )
+
+    [recovered_from] => 
+    [saved_payment_method_options] => 
+    [setup_intent] => 
+    [shipping_address_collection] => 
+    [shipping_cost] => 
+    [shipping_options] => Array
+        (
+        )
+
+    [status] => open
+    [submit_type] => 
+    [subscription] => 
+    [success_url] => http://www.readwithus.org.uk/payment/callback/2950?session_id={CHECKOUT_SESSION_ID}
+    [total_details] => Stripe\StripeObject Object
+        (
+            [amount_discount] => 0
+            [amount_shipping] => 0
+            [amount_tax] => 0
+        )
+
+    [ui_mode] => hosted
+    [url] => https://checkout.stripe.com/c/pay/cs_test_a1fP0wnq5REnG0ztDktIq1oSNV0j8KGHPJvvN1y19Kiqu4f4fW60wKe2co#fidkdWxOYHwnPyd1blpxYHZxWjA0V2tIUjcxVUxyTn1HSHBXYmI9cFJcQEkyZ3VqcEhQbkBOcEQzfEtHNUR3QGRnTWFjPFVuX2xoPXBDQm1zb3U2dWZ8YUNifDd3SGdWdW5tQWdccX0wcVA1NTVMNXFPYms2aCcpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+    [wallet_options] => 
+)

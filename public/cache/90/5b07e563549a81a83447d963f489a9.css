@@ -1,0 +1,80 @@
+.img__thumb {
+    cursor: pointer;
+    padding: 5px;
+}
+/* .other-request{
+    border-left: 1px solid;
+    background: #f3f6f8;
+    padding-top: 10px;
+    padding-bottom: 2px;
+} */
+
+.attachment-file {
+    position: relative;
+    padding: 0 0 0 30px;
+    color: inherit;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 24px;
+    display: inline-block;
+}
+.-hide-desktop {
+    display: none !important;
+}
+
+.attachment-file .inline-icon {
+    position: absolute;
+    left: 0;
+    top: 2px;
+}
+
+.inline-icon {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.inline-icon .svg-icon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    height: 100%;
+    overflow: hidden;
+}
+
+.statustab.disabled-switch{
+    cursor: no-drop;
+    opacity: 0.5;
+}
+.statustab.disabled-switch .switch-handles
+{
+    cursor: no-drop;
+}
+
+.collapse-text 
+{
+    width:250px;
+    height:120px;
+    display:block; 
+    overflow:hidden;
+    word-break: break-word;
+    word-wrap: break-word;
+}
+
+.collapse-btn 
+{
+    display: none;
+    text-decoration: none; 
+}
+
+.status-field {
+    padding-right: 35px;
+    width: 114px;
+}

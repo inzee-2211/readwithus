@@ -27,18 +27,6 @@ yarn-error.log*
 pnpm-debug.log*
 package-lock.json        # ✅ For libraries ignore; for apps prefer committing (see note below)
 
-# ---- App runtime (cache, logs, sessions, temp)
-storage/
-runtime/
-tmp/
-temp/
-logs/
-log/
-*.log
-cache/
-application/cache/
-library/cache/
-public/cache/
 
 # ---- Uploads & generated media
 uploads/
