@@ -25,34 +25,53 @@ class HomeController extends MyAppController
      * Render Website Homepage
      */
     public function index()
-    {
-       $ll= $this->getLevelsFromDB();
+{
+    $ll= $this->getLevelsFromDB();
        
-        $slides = Slide::getSlides();
-        $this->sets([
-            'slides' => $slides,
-            'slideImages' => Slide::getSlideImages(array_keys($slides), $this->siteLangId),
-            'whyUsBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_US, $this->siteLangId),
-            'browseTutorPage' => ExtraPage::getBlockContent(ExtraPage::BLOCK_BROWSE_TUTOR, $this->siteLangId),
-            'startLearning' => ExtraPage::getBlockContent(ExtraPage::BLOCK_HOW_TO_START_LEARNING, $this->siteLangId),
-            'bookingBefore' => FatApp::getConfig('CONF_CLASS_BOOKING_GAP'),
-            'popularLanguages' => TeachLanguage::getPopularLangs($this->siteLangId),
-            'testmonialList' => Testimonial::getTestimonials($this->siteLangId),
-            'blogPostsList' => BlogPost::getBlogsForGrids($this->siteLangId),
-            'topRatedTeachers' => $this->getTopRatedTeachers(),
-            'levels' => $this->getLevelsFromDB(),
-            'popularFaqList' => $this->getPopularFaqs(),
-            'whyWeEffectiveBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_WE_ARE_EFFECTIVE, $this->siteLangId),
-        ]);
+    $slides = Slide::getSlides();
+    $this->sets([
+        'slides' => $slides,
+        'slideImages' => Slide::getSlideImages(array_keys($slides), $this->siteLangId),
+        'whyUsBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_US, $this->siteLangId),
+        'browseTutorPage' => ExtraPage::getBlockContent(ExtraPage::BLOCK_BROWSE_TUTOR, $this->siteLangId),
+        'startLearning' => ExtraPage::getBlockContent(ExtraPage::BLOCK_HOW_TO_START_LEARNING, $this->siteLangId),
+        'bookingBefore' => FatApp::getConfig('CONF_CLASS_BOOKING_GAP'),
+        'popularLanguages' => TeachLanguage::getPopularLangs($this->siteLangId),
+        'testmonialList' => Testimonial::getTestimonials($this->siteLangId),
+        'blogPostsList' => BlogPost::getBlogsForGrids($this->siteLangId),
+        'topRatedTeachers' => $this->getTopRatedTeachers(),
+        'levels' => $this->getLevelsFromDB(),
+        'popularFaqList' => $this->getPopularFaqs(),
+        'whyWeEffectiveBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_WE_ARE_EFFECTIVE, $this->siteLangId),
+    ]);
 
+    // ✅ ADD THIS BLOCK
+    $langId = $this->siteLangId;
 
-        
-        $class = new GroupClassSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-        $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);        
-        $this->set('classes', $class->getUpcomingClasses());
-        $this->set('courses', $course->getPopularCourses());
-        $this->_template->render();
-    }
+    $srch = Testimonial::getSearchObject($langId, false);
+    $srch->addCondition('testimonial_active', '=', AppConstant::YES);
+    $srch->addMultipleFields([
+        't.testimonial_id',
+        't.testimonial_user_name',
+        't.testimonial_identifier',
+        't_l.testimonial_text',
+        't.testimonial_added_on',
+    ]);
+    $srch->addOrder('testimonial_added_on', 'DESC');
+    $srch->setPageSize(2); // only 2 for homepage
+
+    $db = FatApp::getDb();
+    $homeTestimonials = $db->fetchAll($srch->getResultSet(), 'testimonial_id');
+    $this->set('homeTestimonials', $homeTestimonials);
+    // ✅ END OF ADD
+
+    $class = new GroupClassSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+    $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);        
+    $this->set('classes', $class->getUpcomingClasses());
+    $this->set('courses', $course->getPopularCourses());
+    $this->_template->render();
+}
+
 
     /**
      * Setup News Letter

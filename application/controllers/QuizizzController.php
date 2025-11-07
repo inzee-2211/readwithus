@@ -13,10 +13,9 @@ class QuizizzController extends MyAppController
         parent::__construct($action);
     }
 
-   
-public function index()
+  public function index()
 {
-    // 0) Require setup_id
+    // 0) Require setup_id from query string
     $setupId = isset($_GET['setup_id']) ? (int)$_GET['setup_id'] : 0;
     if ($setupId <= 0) {
         echo "Error: setup ID is missing or invalid in URL.";
@@ -25,71 +24,111 @@ public function index()
 
     $db = FatApp::getDb();
 
-    // 1) Fetch setup row (one topic context)
-    $setupSql = "SELECT id, topic_name, level_id, subject_id, examboard_id, tier_id, year_id
-                 FROM tbl_quiz_setup
-                 WHERE id = " . $setupId . " LIMIT 1";
-    $setupRs  = $db->query($setupSql);
-    $setup    = $db->fetch($setupRs);
-    if (!$setup) { echo "Error: setup not found."; exit; }
+    // 1) Fetch setup row + all display names in ONE query
+    //    We join levels, subjects, exam boards, tier, year to get their human-readable names.
+    $setupSql = "
+        SELECT 
+            qs.id,
+            qs.topic_name,
+            qs.level_id,
+            qs.subject_id,
+            qs.examboard_id,
+            qs.tier_id,
+            qs.year_id,
 
+            lvl.level_name      AS level_name,
+            subj.subject        AS subject_name,
+            eb.name             AS examboard_name,
+            tr.name             AS tier_name,
+            yr.name             AS year_name
+        FROM tbl_quiz_setup qs
+        LEFT JOIN course_levels     lvl   ON lvl.id  = qs.level_id
+        LEFT JOIN course_subjects   subj  ON subj.id = qs.subject_id
+        LEFT JOIN course_examboards eb    ON eb.id   = qs.examboard_id
+        LEFT JOIN course_tier       tr    ON tr.id   = qs.tier_id
+        LEFT JOIN course_year       yr    ON yr.id   = qs.year_id
+        WHERE qs.id = " . (int)$setupId . "
+        LIMIT 1
+    ";
+
+    $setupRs = $db->query($setupSql);
+    $setup   = $db->fetch($setupRs);
+
+    if (!$setup) {
+        echo "Error: setup not found.";
+        exit;
+    }
+
+    // IDs
     $subjectId   = (int)$setup['subject_id'];
     $examboardId = (int)$setup['examboard_id'];
     $yearId      = (int)$setup['year_id'];
-    $topicTitle  = (string)($setup['topic_name'] ?? 'Topic');
-    
 
-     $getName = function(string $table, string $nameColumn, int $id) use ($db) : string {
-        if ($id <= 0) return '';
-        $rs = $db->query("SELECT $nameColumn AS name FROM $table WHERE id = ? LIMIT 1", [$id]);
-        $row = $db->fetch($rs);
-        return $row['name'] ?? '';
-    };
+    // Display names
+    $topicTitle     = (string)($setup['topic_name']      ?? 'Topic');
+    $subjectName    = (string)($setup['subject_name']    ?? 'Subject');
+    $levelName      = (string)($setup['level_name']      ?? '');
+    $examboardName  = (string)($setup['examboard_name']  ?? '');
+    $tierName       = (string)($setup['tier_name']       ?? '');
+    $yearName       = (string)($setup['year_name']       ?? '');
 
     // 2) Session values used by view header
     $_SESSION['setupId']     = $setupId;
-    $_SESSION['subjectId']   = $subjectId;             // keep if you need elsewhere
-    $_SESSION['subjectName'] = $topicTitle;            // use topic_name in the header
+    $_SESSION['subjectId']   = $subjectId;
+    // IMPORTANT: now store the actual subject as the main heading
+    $_SESSION['subjectName'] = $subjectName;
 
     // 3) Search form (unchanged)
     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
     $srchFrm->fill([]);
     unset($_SESSION[AppConstant::SEARCH_SESSION]);
 
-    
-
     // 4) Centralized subtopic media & IDs for this setup
-    //    This is the single source of truth for: subtopic name, video url, pdf file, and the "subtopic id" (row id).
-    $mgmtSql = "SELECT id, subtopic_name, video_url, pdf_path
-                FROM tbl_quiz_management
-                WHERE quiz_setup_id = " . $setupId . "
-                ORDER BY position ASC, id ASC";
+    //    Also select answer_pdf_path so the Answer Paper button works.
+    $mgmtSql = "
+        SELECT 
+            id,
+            subtopic_name,
+            video_url,
+            pdf_path,
+            answer_pdf_path
+        FROM tbl_quiz_management
+        WHERE quiz_setup_id = " . (int)$setupId . "
+        ORDER BY position ASC, id ASC
+    ";
     $mgmtRs  = $db->query($mgmtSql);
+
     $subtopics = [];
     if ($mgmtRs) {
         foreach ($db->fetchAll($mgmtRs) as $r) {
             $subtopics[] = [
-                'id'                 => (int)$r['id'],         // <-- pass this as subtopic id when starting quiz
+                'id'                 => (int)$r['id'],           // subtopic ID (for quizfocus etc.)
                 'name'               => $r['subtopic_name'],
                 'video_url'          => $r['video_url'],
-                'previous_paper_pdf' => $r['pdf_path'],        // view expects this key for paper tab
+                'previous_paper_pdf' => $r['pdf_path'],          // QUESTION paper
+                'answer_pdf_path'    => $r['answer_pdf_path'] ?? '' // ANSWER paper
             ];
         }
     }
 
     // 5) Pass to view
-    $this->set('srchFrm', $srchFrm);
-    $this->set('setupId', $setupId);
-    $this->set('topicTitle', $topicTitle);         // << use in the accordion header
-    $this->set('examboardId', $examboardId);
-    $this->set('yearId', $yearId);
-    $this->set('subtopics', $subtopics);           // one list used for Video/Quiz/Paper
-    $this->set('filterTypes', Course::getFilterTypes());
+    $this->set('srchFrm',        $srchFrm);
+    $this->set('setupId',        $setupId);
+    $this->set('topicTitle',     $topicTitle);        // used in header + accordion
+    $this->set('examboardId',    $examboardId);
+    $this->set('yearId',         $yearId);
+    $this->set('subtopics',      $subtopics);         // used by Video/Quiz/Paper tabs
+
+    // NEW: pass the names for the header path
+    $this->set('levelName',      $levelName);
+    $this->set('examboardName',  $examboardName);
+    $this->set('tierName',       $tierName);
+    $this->set('yearName',       $yearName);
+
+    $this->set('filterTypes',    Course::getFilterTypes());
 
     $this->_template->render();
 }
-
-
 
 
     private function getCourseIdBySubtopic($subtopicId) {

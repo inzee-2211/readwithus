@@ -33,60 +33,63 @@ class TutorRequestController extends MyAppController
     /**
      * Create a tutor request (AJAX or POST)
      */
-    public function create()
-    {
-        $frm = $this->getRequestForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-
-        $courseIds = FatApp::getPostedData('course_ids', null, []);   // get raw
-$courseIds = array_values(array_unique(array_filter(array_map('intval', (array)$courseIds)))) ;
-
-if (empty($courseIds)) {
-    FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_AT_LEAST_ONE_COURSE'));
-}
-if ($courseIds) {
-    $srch = new SearchBase('tbl_courses', 'c');
-    $srch->addCondition('c.course_id', 'IN', $courseIds);
-    $srch->addCondition('c.course_active', '=', AppConstant::YES);
-    $srch->addMultipleFields(['c.course_id']);
-    $rs = $srch->getResultSet();
-    $validIds = array_map('intval', array_column(FatApp::getDb()->fetchAll($rs), 'course_id'));
-    $courseIds = array_values(array_intersect($courseIds, $validIds));
-    if (empty($courseIds)) {
-        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_COURSE_SELECTION'));
+  public function create()
+{
+    $frm = $this->getRequestForm();
+    $rawPost = FatApp::getPostedData();
+    if (!$post = $frm->getFormDataFromArray($rawPost)) {
+        FatUtility::dieJsonError(current($frm->getValidationErrors()));
     }
-}
-$userId = 0;
-if (class_exists('UserAuthentication') && method_exists('UserAuthentication', 'getLoggedUserId')) {
-    $userId = FatUtility::int(UserAuthentication::getLoggedUserId());
-}
 
-        $data = [
-            'tutreq_user_id'       => $userId,
-         
-            'tutreq_first_name'    => $post['tutreq_first_name'],
-            'tutreq_last_name'     => $post['tutreq_last_name'] ?? '',
-            'tutreq_email'         => $post['tutreq_email'],
-            'tutreq_phone_code'    => FatUtility::int($post['tutreq_phone_code']),
-            'tutreq_phone_number'  => $post['tutreq_phone_number'],
-            'tutreq_preferred_time'=> $post['tutreq_preferred_time'] ?? '',
-            'tutreq_status'        => 0,
-            'tutreq_added_on'      => date('Y-m-d H:i:s'),
-        ];
+    // identify source
+    $source = FatApp::getPostedData('source', FatUtility::VAR_STRING, '');
 
-        if (!TutorRequest::saveRequest($data, $courseIds)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_UNABLE_TO_SAVE_REQUEST'));
-        }
+    // normalise course IDs
+    $courseIds = FatApp::getPostedData('course_ids', null, []);
+    $courseIds = array_values(array_unique(array_filter(array_map('intval', (array)$courseIds))));
 
-        // $this->notifyAdmin($data, $courseIds);
- // ✅ Always return a canonical success payload (no extra output before/after).
-FatUtility::dieJsonSuccess(Label::getLabel('LBL_REQUEST_SUBMITTED_SUCCESSFULLY'));
-// This yields: {"status":1,"msg":"Request Submitted Successfully"}
-
-
+    // only enforce course selection for NON-quiz sources
+    if (empty($courseIds) && $source !== 'quiz') {
+        FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_AT_LEAST_ONE_COURSE'));
     }
+
+    if ($courseIds) {
+        $srch = new SearchBase('tbl_courses', 'c');
+        $srch->addCondition('c.course_id', 'IN', $courseIds);
+        $srch->addCondition('c.course_active', '=', AppConstant::YES);
+        $srch->addMultipleFields(['c.course_id']);
+        $rs = $srch->getResultSet();
+        $validIds = array_map('intval', array_column(FatApp::getDb()->fetchAll($rs), 'course_id'));
+        $courseIds = array_values(array_intersect($courseIds, $validIds));
+        if (empty($courseIds) && $source !== 'quiz') {
+            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_COURSE_SELECTION'));
+        }
+    }
+
+    $userId = 0;
+    if (class_exists('UserAuthentication') && method_exists('UserAuthentication', 'getLoggedUserId')) {
+        $userId = FatUtility::int(UserAuthentication::getLoggedUserId());
+    }
+
+    $data = [
+        'tutreq_user_id'        => $userId,
+        'tutreq_first_name'     => $post['tutreq_first_name'],
+        'tutreq_last_name'      => $post['tutreq_last_name'] ?? '',
+        'tutreq_email'          => $post['tutreq_email'],
+        'tutreq_phone_code'     => FatUtility::int($post['tutreq_phone_code']),
+        'tutreq_phone_number'   => $post['tutreq_phone_number'],
+        'tutreq_preferred_time' => $post['tutreq_preferred_time'] ?? '',
+        'tutreq_status'         => 0,
+        'tutreq_added_on'       => date('Y-m-d H:i:s'),
+    ];
+
+    if (!TutorRequest::saveRequest($data, $courseIds)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_UNABLE_TO_SAVE_REQUEST'));
+    }
+
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_REQUEST_SUBMITTED_SUCCESSFULLY'));
+}
+
 // private function notifyAdmin(array $data, array $courseIds): void
 // {
 //     $adminEmail = TutorRequest::getAdminEmail();

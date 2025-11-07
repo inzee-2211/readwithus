@@ -71,7 +71,3 @@ phpstan-baseline.neon
 # ---- Licenses/keys that are machine-bound
 license*.txt
 
-# ---- Apache / Nginx
-# NOTE: In most PHP apps, you SHOULD commit .htaccess.
-# If your project needs it, remove the next line.
-#.htaccess

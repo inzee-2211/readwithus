@@ -22,6 +22,9 @@
                         <?php }
                         if ($objPrivilege->canViewTeacherRequests(true)) { ?>
                             <li><a href="<?php echo MyUtility::makeUrl('TeacherRequests'); ?>"><?php echo Label::getLabel('LBL_TEACHER_REQUESTS'); ?></a></li>
+                               <?php }
+                        if ($objPrivilege->canViewTeacherRequests(true)) { ?>
+                            <li><a href="<?php echo MyUtility::makeUrl('TutorRequests'); ?>"><?php echo Label::getLabel('LBL_TUTOR_REQUESTS'); ?></a></li>
                         <?php }
                         if ($objPrivilege->canViewWithdrawRequests(true)) { ?>
                             <li><a href="<?php echo MyUtility::makeUrl('WithdrawRequests'); ?>"><?php echo Label::getLabel('LBL_WITHDRAW_REQUESTS'); ?></a></li>

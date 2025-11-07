@@ -4,7 +4,7 @@
   width: 100%;
   min-height: 800px;
   overflow: hidden;
-  border-radius: 24px;
+  /* border-radius: 24px; */
   background: linear-gradient(135deg, #26267e4a 0%, #1515e443 100%);
   color: #fff;
   display: flex;
@@ -394,7 +394,7 @@
 .rwu-request-form .btn-submit {
   margin-top: 8px;
   width: auto;
-  height: 100px!important; /* remove the forced height */
+  height: auto !important; /* remove the forced height */
   display: inline-flex;
   align-items: center;
   justify-content: center;

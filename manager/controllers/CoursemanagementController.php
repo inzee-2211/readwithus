@@ -52,6 +52,7 @@ class CoursemanagementController extends AdminBaseController
         'qm.subtopic_name',
         'qm.video_url',
         'qm.pdf_path',
+        'qm.answer_pdf_path',
         'qm.created_at',
         'qm.updated_at',
     ]);
@@ -161,11 +162,13 @@ private function getForm(int $id = 0): Form
     $frm->addTextBox('Subtopic Name', 'subtopic_name', '')->requirements()->setRequired();
     $frm->addTextBox('Video URL (optional)', 'video_url', '');
     $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
+    $frm->addFileUpload('Upload Answer Paper PDF', 'answer_pdf_path', ['accept' => '.pdf']);
     $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
 
     // Hidden fields
     $frm->addHiddenField('', 'id', $id);
     $frm->addHiddenField('', 'existing_pdf', '');
+    $frm->addHiddenField('', 'existing_answer_pdf', '');
 
     $frm->addSubmitButton('', 'btn_submit', $id > 0 ? 'Update Subtopic' : 'Save Subtopic');
     return $frm;
@@ -689,6 +692,16 @@ public function setup()
         $pdfPath = $uploadDir . uniqid('paper_') . '.' . $ext;
         move_uploaded_file($_FILES['pdf_path']['tmp_name'], $pdfPath);
     }
+// Answer paper PDF
+$answerPdfPath = '';
+if (!empty($_FILES['answer_pdf_path']['tmp_name']) && $_FILES['answer_pdf_path']['error'] === UPLOAD_ERR_OK) {
+    $ext = strtolower(pathinfo($_FILES['answer_pdf_path']['name'], PATHINFO_EXTENSION));
+    if ($ext !== 'pdf') FatUtility::dieJsonError('Only PDF allowed');
+    $uploadDir = 'uploads/past_papers/';
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    $answerPdfPath = $uploadDir . uniqid('answer_') . '.' . $ext;
+    move_uploaded_file($_FILES['answer_pdf_path']['tmp_name'], $answerPdfPath);
+}
 
     $db->startTransaction();
 
@@ -699,6 +712,7 @@ public function setup()
         'updated_at'    => date('Y-m-d H:i:s'),
     ];
     if ($pdfPath) { $payload['pdf_path'] = $pdfPath; }
+    if ($answerPdfPath)  { $payload['answer_pdf_path'] = $answerPdfPath; }
 
     // Insert/Update subtopic logic remains the same...
     if ($id > 0) {

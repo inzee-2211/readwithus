@@ -13,46 +13,85 @@ class BulkQuestionImporter
         $this->userType = $userType;
         $this->langId = $langId;
     }
+private function detectDelimiter($handle): string
+{
+    // Remember current position (should be 0 at start, but safe anyway)
+    $pos = ftell($handle);
 
-    public function import(array $csvFile, ?array $zipFile = null): array
-    {
-        if (($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            throw new Exception('CSV upload failed.');
-        }
-        $zipDir = $this->extractZipIfAny($zipFile);
-
-        $fh = fopen($csvFile['tmp_name'], 'r');
-        if (!$fh) throw new Exception('Could not open CSV.');
-
-        // header
-        $header = fgetcsv($fh);
-        if (!$header) throw new Exception('Empty CSV.');
-        $header = array_map([$this,'norm'], $header);
-
-        while (($row = fgetcsv($fh)) !== false) {
-            $this->stats['total']++;
-            $line = $this->stats['total'] + 1; // accounting header
-
-            // protect against malformed rows
-            if (count($row) != count($header)) {
-                $this->fail("Row $line: column count mismatch"); continue;
-            }
-
-            $data = array_combine($header, $row);
-            try {
-                $this->importRow($data, $zipDir, $line);
-                $this->stats['success']++;
-            } catch (Exception $e) {
-                $this->fail("Row $line: " . $e->getMessage());
-            }
-        }
-        fclose($fh);
-
-        // cleanup
-        if ($zipDir && is_dir($zipDir)) $this->rrmdir($zipDir);
-
-        return $this->stats;
+    $line = '';
+    // Read until we get a non-empty line or reach EOF
+    while ($line === '' && !feof($handle)) {
+        $line = trim((string) fgets($handle));
     }
+
+    // If file is empty or only blank lines -> fall back to comma
+    if ($line === '') {
+        fseek($handle, $pos);
+        return ',';
+    }
+
+    $commaCount = substr_count($line, ',');
+    $semiCount  = substr_count($line, ';');
+
+    // Choose the one that appears more often; default to comma
+    $delimiter = ($semiCount > $commaCount) ? ';' : ',';
+
+    // Reset file pointer so import() can read from the beginning
+    fseek($handle, $pos);
+
+    return $delimiter;
+}
+
+  public function import(array $csvFile, ?array $zipFile = null): array
+{
+    if (($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new Exception('CSV upload failed.');
+    }
+    $zipDir = $this->extractZipIfAny($zipFile);
+
+    $fh = fopen($csvFile['tmp_name'], 'r');
+    if (!$fh) {
+        throw new Exception('Could not open CSV.');
+    }
+
+    // 🔍 Auto-detect delimiter: supports both "," and ";"
+    $delimiter = $this->detectDelimiter($fh);
+
+    // header
+    $header = fgetcsv($fh, 0, $delimiter);
+    if (!$header) {
+        throw new Exception('Empty CSV.');
+    }
+    $header = array_map([$this, 'norm'], $header);
+
+    // rows
+    while (($row = fgetcsv($fh, 0, $delimiter)) !== false) {
+        $this->stats['total']++;
+        $line = $this->stats['total'] + 1; // accounting header
+
+        // protect against malformed rows
+        if (count($row) != count($header)) {
+            $this->fail("Row $line: column count mismatch");
+            continue;
+        }
+
+        $data = array_combine($header, $row);
+        try {
+            $this->importRow($data, $zipDir, $line);
+            $this->stats['success']++;
+        } catch (Exception $e) {
+            $this->fail("Row $line: " . $e->getMessage());
+        }
+    }
+    fclose($fh);
+
+    // cleanup
+    if ($zipDir && is_dir($zipDir)) {
+        $this->rrmdir($zipDir);
+    }
+
+    return $this->stats;
+}
 
     private function importRow(array $data, ?string $zipDir, int $line): void
     {
@@ -62,6 +101,8 @@ class BulkQuestionImporter
           error_log("Processing row $line: " . json_encode($data));
         $get = fn($keys, $default='') => $this->coalesce($data, $keys, $default);
 
+
+$typeRaw = $get(['type','question_type'], '');
       // Accept BOTH header styles; coalesce returns '' if nothing found
 $post = [
     'question_id'             => 0,
@@ -71,7 +112,7 @@ $post = [
     'grpcls_description'      => (string)$get(['description','question_desc']),
     'grpcls_description_math' => (string)$get(['math_equation','question_math_equation']),
     'grpcls_total_marks'      => (string)( (int)$get(['marks','question_marks'], 0) ),
-    'grpcls_tlang_id'         => (string)( (int)$get(['type','question_type'], 1) ), // 1/2/3
+    'grpcls_tlang_id'         => (string)$this->normalizeQuestionType($typeRaw), // 1/2/3
     'grpcls_hint'             => (string)$get(['hint','question_hint']),
 
     // IMPORTANT: MUST exist; pass strings, not null
@@ -169,6 +210,38 @@ if ((int)$post['course_cate_id'] <= 0) { throw new Exception('category_id/questi
         }
         return null;
     }
+private function normalizeQuestionType($raw): int
+{
+    $raw = trim((string) $raw);
+    if ($raw === '') {
+        // default: single choice
+        return 1;
+    }
+
+    // If it's a simple digit, validate 1–3
+    if (ctype_digit($raw)) {
+        $num = (int) $raw;
+        if ($num >= 1 && $num <= 3) {
+            return $num;
+        }
+    }
+
+    $lower = strtolower($raw);
+
+    // Common text values from your CSVs
+    if (in_array($lower, ['mcq', 'single', 'single_choice', 'single choice'], true)) {
+        return 1; // single choice
+    }
+    if (in_array($lower, ['multiple', 'multi', 'multiple_choice', 'multiple choice', 'mrq'], true)) {
+        return 2; // multiple choice
+    }
+    if (in_array($lower, ['text', 'short_text', 'short text', 'short answer', 'short_answer'], true)) {
+        return 3; // text
+    }
+
+    // If we get here, it's not valid – better to fail loudly
+    throw new Exception("Invalid question type '{$raw}'. Use 1, 2, 3 or MCQ/MULTIPLE/TEXT.");
+}
 
   private function coalesce(array $src, array $keys, $default = '')
 {
@@ -182,9 +255,14 @@ if ((int)$post['course_cate_id'] <= 0) { throw new Exception('category_id/questi
 }
 
     private function norm(string $h): string
-    {
-        return strtolower(trim(preg_replace('/\s+/', '_', $h)));
-    }
+{
+    // Remove UTF-8 BOM if present at the beginning
+    // (three bytes: 0xEF 0xBB 0xBF)
+    $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
+
+    // Normalize spaces → underscore, lowercase, trim
+    return strtolower(trim(preg_replace('/\s+/', '_', $h)));
+}
 
     private function mime(string $path): string
     {

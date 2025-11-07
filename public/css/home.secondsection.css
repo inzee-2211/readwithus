@@ -1,6 +1,6 @@
 /* ===== Revise-Topic modal polish ===== */
 .rw-about{
-  max-width: 90vw;
+  max-width: 100vw;
   margin: 0 auto;
   align-content: center;
 }
@@ -78,8 +78,8 @@
   min-height:240px; display:flex; flex-direction:column; gap:10px;
 }
 .rw-card__icon{
-  width:58px; height:58px; display:grid; place-items:center; border-radius:12px;
-  background:#EFF6FE; margin-bottom:6px;
+  width:90px; height:90px; display:grid; place-items:center; border-radius:12px;
+  margin-bottom:-8px;
 }
 .rw-card h4{ font-family:"Actor", Inter, system-ui; font-size:22px; font-weight:400; color:#000; margin:0 0 4px; }
 .rw-card p{ color:#5F6C76; font-size:14px; line-height:1.7; margin:0 0 10px; }
@@ -105,7 +105,7 @@
 .rw-badge--top    { top: 18px;  right: 8%; }
 .rw-badge--left   { top: 34%;   left: 2%; }
 .rw-badge--midR   { top: 40%;   right: 16%; }
-.rw-badge img { width: 56px; height: 56px; }
+.rw-badge img { width: 90px!important; height: 90px!important; }
 .rw-hero .course-drop-select { margin-top: 10px; }
 /* Raise the left-side cards slightly for a staggered layout */
 @media (min-width: 720px){

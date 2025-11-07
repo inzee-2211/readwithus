@@ -757,6 +757,8 @@ foreach ($submitted_answers as $questionId => $submittedAnswer) {
 
        
         $post = FatApp::getPostedData();
+         $db = FatApp::getDb();
+         $db->startTransaction();
        
         if(isset($post['options'][0]) && !empty($post['options'][0]))
         {
@@ -850,7 +852,7 @@ foreach ($submitted_answers as $questionId => $submittedAnswer) {
 
             // $post['image']=$filePath;
         }
-        $db = FatApp::getDb();
+        // $db = FatApp::getDb();
         $db->startTransaction();
         
          

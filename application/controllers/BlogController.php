@@ -70,45 +70,69 @@ class BlogController extends MyAppController
         $this->_template->render(true, true, 'blog/index.php');
     }
 
-    public function search()
-    {
-        $post = FatApp::getPostedData();
-        $page = (empty($post['page']) || $post['page'] <= 0) ? 1 : FatUtility::int($post['page']);
-        $pageSize = AppConstant::PAGESIZE;
-        $srch = BlogPost::getSearchObject($this->siteLangId, true, false, true);
-        $srch->joinTable(BlogPost::DB_LANG_TBL, 'INNER JOIN', 'bp_l.postlang_post_id = bp.post_id and bp_l.postlang_lang_id = ' . $this->siteLangId, 'bp_l');
-        $srch->addMultipleFields([
-            'bp.*', 'IFNULL(bp_l.post_title,post_identifier) as post_title',
-            'bp_l.post_author_name', 'bp_l.post_short_description', 'group_concat(bpcategory_id) categoryIds',
-            'group_concat(IFNULL(bpcategory_name, bpcategory_identifier) SEPARATOR "~") categoryNames',
-            'group_concat(GETBLOGCATCODE(bpcategory_id)) AS categoryCodes'
-        ]);
-        $srch->addCondition('postlang_post_id', 'is not', 'mysql_func_null', 'and', true);
-        if ($categoryId = FatApp::getPostedData('categoryId', FatUtility::VAR_INT, 0)) {
-            $srch->addCondition('ptc_bpcategory_id', '=', $categoryId);
-        }
-        $keyword = trim(FatApp::getPostedData('keyword', FatUtility::VAR_STRING, ''));
-        if (!empty($keyword)) {
-            $keywordCond = $srch->addCondition('post_title', 'like', "%$keyword%");
-            $keywordCond->attachCondition('post_short_description', 'like', "%$keyword%");
-            $keywordCond->attachCondition('post_description', 'like', "%$keyword%");
-        }
-        $srch->addCondition('post_published', '=', AppConstant::YES);
-        $srch->addOrder('post_added_on', 'desc');
-        $srch->setPageSize($pageSize);
-        $srch->setPageNumber($page);
-        $srch->addGroupby('post_id');
-        $rs = $srch->getResultSet();
-        $records = FatApp::getDb()->fetchAll($rs);
-        $this->set('page', $page);
-        $this->set('pageCount', $srch->pages());
-        $this->set("postList", $records);
-        $this->set('recordCount', $srch->recordCount());
-        $this->set('postedData', $post);
-        $json['html'] = $this->_template->render(false, false, 'blog/search.php', true);
-        $json['loadMoreBtnHtml'] = $this->_template->render(false, false, 'blog/load-more-btn.php', true, false);
-        FatUtility::dieJsonSuccess($json);
+public function search()
+{
+    $post = FatApp::getPostedData();
+    $page = (empty($post['page']) || $post['page'] <= 0) ? 1 : FatUtility::int($post['page']);
+    $pageSize = AppConstant::PAGESIZE;
+
+    $srch = BlogPost::getSearchObject($this->siteLangId, true, false, true);
+    $srch->joinTable(
+        BlogPost::DB_LANG_TBL,
+        'INNER JOIN',
+        'bp_l.postlang_post_id = bp.post_id and bp_l.postlang_lang_id = ' . $this->siteLangId,
+        'bp_l'
+    );
+
+    $srch->addMultipleFields([
+        'bp.*',
+        'IFNULL(bp_l.post_title,post_identifier) AS post_title',
+        'bp_l.post_author_name',
+        'bp_l.post_short_description',
+        'GROUP_CONCAT(bpcategory_id) AS categoryIds',
+        'GROUP_CONCAT(IFNULL(bpcategory_name, bpcategory_identifier) SEPARATOR "~") AS categoryNames',
+        // REPLACEMENT for GETBLOGCATCODE:
+        'GROUP_CONCAT(LPAD(bpcategory_id, 6, "0")) AS categoryCodes',
+    ]);
+
+    $srch->addCondition('postlang_post_id', 'is not', 'mysql_func_null', 'and', true);
+
+    if ($categoryId = FatApp::getPostedData('categoryId', FatUtility::VAR_INT, 0)) {
+        $srch->addCondition('ptc_bpcategory_id', '=', $categoryId);
     }
+
+    $keyword = trim(FatApp::getPostedData('keyword', FatUtility::VAR_STRING, ''));
+    if (!empty($keyword)) {
+        $keywordCond = $srch->addCondition('post_title', 'like', "%$keyword%");
+        $keywordCond->attachCondition('post_short_description', 'like', "%$keyword%");
+        $keywordCond->attachCondition('post_description', 'like', "%$keyword%");
+    }
+
+    $srch->addCondition('post_published', '=', AppConstant::YES);
+    $srch->addOrder('post_added_on', 'desc');
+    $srch->setPageSize($pageSize);
+    $srch->setPageNumber($page);
+    $srch->addGroupby('post_id');
+
+    $rs = $srch->getResultSet();
+    if ($rs === false) {
+        // extra safety – prevents "fetchAll on bool" and gives a clean JSON error
+        FatUtility::dieJsonError(Label::getLabel('MSG_UNABLE_TO_LOAD_BLOG_POSTS'));
+    }
+
+    $records = FatApp::getDb()->fetchAll($rs);
+
+    $this->set('page', $page);
+    $this->set('pageCount', $srch->pages());
+    $this->set("postList", $records);
+    $this->set('recordCount', $srch->recordCount());
+    $this->set('postedData', $post);
+
+    $json['html'] = $this->_template->render(false, false, 'blog/search.php', true);
+    $json['loadMoreBtnHtml'] = $this->_template->render(false, false, 'blog/load-more-btn.php', true, false);
+
+    FatUtility::dieJsonSuccess($json);
+}
 
     public function postDetail($blogPostId)
     {

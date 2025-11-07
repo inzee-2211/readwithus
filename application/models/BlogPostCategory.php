@@ -257,15 +257,31 @@ class BlogPostCategory extends MyAppModel
      * @param int $langId
      * @return array
      */
-    public function getFeaturedCategories(int $langId)
-    {
-        $srch = static::getSearchObject();
-        $srch->joinTable(static::DB_TBL_LANG, 'LEFT OUTER JOIN', 'bpcategorylang_bpcategory_id = bpcategory_id AND bpcategorylang_lang_id = ' . $langId);
-        $srch->addCondition('bpcategory_featured', '=', 1);
-        $srch->addMultipleFields(['bpcategory_id', 'IFNULL(bpcategory_name, bpcategory_identifier) AS bpcategory_name', 'GETBLOGCATCODE(bpcategory_id) AS bpcategory_code']);
-        $srch->addOrder('GETBLOGCATORDERCODE(bpcategory_id)');
-        return FatApp::getDb()->fetchAll($srch->getResultSet(), 'bpcategory_id');
-    }
+public function getFeaturedCategories(int $langId)
+{
+    $srch = static::getSearchObject();
+    $srch->joinTable(
+        static::DB_TBL_LANG,
+        'LEFT OUTER JOIN',
+        'bpc_l.bpcategorylang_bpcategory_id = bpc.bpcategory_id 
+         AND bpc_l.bpcategorylang_lang_id = ' . $langId,
+        'bpc_l'
+    );
+    $srch->addCondition('bpc.bpcategory_featured', '=', 1);
+
+    // simple ordering without stored functions
+    $srch->addMultipleFields([
+        'bpc.bpcategory_id',
+        'IFNULL(bpc_l.bpcategory_name, bpc.bpcategory_identifier) AS bpcategory_name',
+        // dummy value so makeAssociativeArray still has a code
+        'LPAD(bpc.bpcategory_id, 6, "0") AS bpcategory_code',
+    ]);
+    $srch->addOrder('bpc.bpcategory_order', 'ASC');
+
+    return FatApp::getDb()->fetchAll($srch->getResultSet(), 'bpcategory_id');
+}
+
+
 
     /**
      * Get Blog Post Category Tree Structure
@@ -312,40 +328,77 @@ class BlogPostCategory extends MyAppModel
      * @param bool $forSelectBox
      * @return type
      */
-    public static function getBlogPostCatParentChildWiseArr(int $langId = 0, int $parentId = 0, bool $includeChildCat = true, bool $forSelectBox = false)
-    {
-        $parentId = FatUtility::int($parentId);
-        $langId = FatUtility::int($langId);
-        if (!$langId) {
-            trigger_error(Label::getLabel('MSG_Language_not_specified'), E_USER_ERROR);
-        }
-        $bpCatSrch = new SearchBase(BlogPostCategory::DB_TBL, 'bpc');
-        $bpCatSrch->joinTable(BlogPostCategory::DB_TBL_LANG, 'LEFT OUTER JOIN', 'bpcategorylang_bpcategory_id = bpc.bpcategory_id AND bpcategorylang_lang_id = ' . $langId, 'bpc_l');
-        $bpCatSrch->addMultipleFields(['bpcategory_id', 'ifNull(bpcategory_name,bpcategory_identifier) as bpcategory_name']);
-        $bpCatSrch->addCondition('bpcategory_active', '=', AppConstant::ACTIVE);
-        $bpCatSrch->addOrder('GETBLOGCATORDERCODE(bpcategory_id)');
-        $bpCatSrch->addCondition('bpcategory_deleted', '=', 0);
-        $bpCatSrch->addCondition('bpcategory_parent', '=', $parentId);
-        $bpCatSrch->doNotCalculateRecords();
-        $bpCatSrch->doNotLimitRecords();
-        $bpCatSrch->addOrder('bpcategory_order', 'asc');
-        if ($forSelectBox) {
-            $categoriesArr = FatApp::getDb()->fetchAllAssoc($bpCatSrch->getResultSet());
-        } else {
-            $categoriesArr = FatApp::getDb()->fetchAll($bpCatSrch->getResultSet());
-        }
-        if (!$includeChildCat) {
-            return $categoriesArr;
-        }
-        if ($categoriesArr) {
-            foreach ($categoriesArr as &$cat) {
-                $cat['children'] = self::getBlogPostCatParentChildWiseArr($langId, $cat['bpcategory_id']);
-                $childPosts = BlogPost::getBlogPostsUnderCategory($langId, $cat['bpcategory_id']);
-                $cat['countChildBlogPosts'] = count($childPosts);
-            }
-        }
+   public static function getBlogPostCatParentChildWiseArr(
+    int $langId = 0,
+    int $parentId = 0,
+    bool $includeChildCat = true,
+    bool $forSelectBox = false
+) {
+    $parentId = FatUtility::int($parentId);
+    $langId   = FatUtility::int($langId);
+
+    if (!$langId) {
+        trigger_error(Label::getLabel('MSG_Language_not_specified'), E_USER_ERROR);
+    }
+
+    $bpCatSrch = new SearchBase(static::DB_TBL, 'bpc');
+
+    $bpCatSrch->joinTable(
+        static::DB_TBL_LANG,
+        'LEFT OUTER JOIN',
+        'bpc_l.bpcategorylang_bpcategory_id = bpc.bpcategory_id
+         AND bpc_l.bpcategorylang_lang_id = ' . $langId,
+        'bpc_l'
+    );
+
+    $bpCatSrch->addMultipleFields([
+        'bpc.bpcategory_id',
+        'IFNULL(bpc_l.bpcategory_name, bpc.bpcategory_identifier) AS bpcategory_name',
+    ]);
+
+    $bpCatSrch->addCondition('bpc.bpcategory_active',  '=', AppConstant::ACTIVE);
+    $bpCatSrch->addCondition('bpc.bpcategory_deleted', '=', 0);
+    $bpCatSrch->addCondition('bpc.bpcategory_parent',  '=', $parentId);
+
+    $bpCatSrch->doNotCalculateRecords();
+    $bpCatSrch->doNotLimitRecords();
+
+    // simple, safe ordering – no custom MySQL functions
+    $bpCatSrch->addOrder('bpc.bpcategory_order', 'ASC');
+
+    $db = FatApp::getDb();
+    $rs = $bpCatSrch->getResultSet();
+
+    // extra safety: if query fails, don't crash the whole page
+    if ($rs === false) {
+        return [];
+    }
+
+    if ($forSelectBox) {
+        $categoriesArr = $db->fetchAllAssoc($rs);
+    } else {
+        $categoriesArr = $db->fetchAll($rs);
+    }
+
+    if (!$includeChildCat || empty($categoriesArr)) {
         return $categoriesArr;
     }
+
+    // build children tree; for now we skip expensive post counting
+    foreach ($categoriesArr as &$cat) {
+        $cat['children'] = self::getBlogPostCatParentChildWiseArr(
+            $langId,
+            $cat['bpcategory_id'],
+            true,
+            $forSelectBox
+        );
+        // optional: basic placeholder count so template doesn't break
+        $cat['countChildBlogPosts'] = 0;
+    }
+
+    return $categoriesArr;
+}
+
 
     /**
      * Can Mark Record Delete

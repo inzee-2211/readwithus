@@ -82,6 +82,10 @@ class TestimonialsController extends AdminBaseController
         if ($testimonialId == 0) {
             $post['testimonial_added_on'] = date('Y-m-d H:i:s');
         }
+           $deletedFld = Testimonial::tblFld('deleted'); // returns 'testimonial_deleted'
+    if (!isset($post[$deletedFld])) {
+        $post[$deletedFld] = 0; // treat new/edited testimonials as not deleted
+    }
         $record = new Testimonial($testimonialId);
         $record->assignValues($post);
         if (!$record->save()) {
@@ -103,6 +107,8 @@ class TestimonialsController extends AdminBaseController
         $data = [
             'langId' => $newTabLangId,
             'testimonialId' => $testimonialId,
+               'testimonial_deleted' => 0,
+         
             'msg' => Label::getLabel('LBL_SETUP_SUCCESSFUL')
         ];
         if ($newTabLangId == 0) {

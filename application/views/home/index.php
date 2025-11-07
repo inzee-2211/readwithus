@@ -157,7 +157,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <!-- Card 2 -->
       <article class="rw-card">
         <div class="rw-card__icon">
-          <img src="<?php echo $secBase; ?>icon-quiz.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+          <img src="<?= $heroBase ?>light.svg" alt="" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
         </div>
         <h4>Quizzes &amp; Lectures</h4>
         <p>Practice with instant-feedback quizzes and access structured lecture content.</p>
@@ -167,7 +167,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <!-- Card 3 -->
       <article class="rw-card rw-card--raised">
         <div class="rw-card__icon">
-          <img src="<?php echo $secBase; ?>icon-video.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+          <img src="<?= $heroBase ?>light.svg" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
         </div>
         <h4>Interactive Video Lessons</h4>
         <p>Visual, story-driven lessons that make complex topics easy to understand.</p>
@@ -177,7 +177,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <!-- Card 4 -->
       <article class="rw-card">
         <div class="rw-card__icon">
-          <img src="<?php echo $secBase; ?>icon-live.png" alt="" style="width:36px;height:36px" onerror="this.style.display='none'">
+       <img src="<?= $heroBase ?>light.svg" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
         </div>
         <h4>Live Exams</h4>
         <p>Experience real-time exam sessions to prepare for the real world with confidence.</p>
@@ -209,15 +209,15 @@ if (empty($trendingCourses)) {
     </div>
     <!-- FILTER BAR -->
 <div class="rwu-trending__filters" id="courseFilters">
-  <button class="filter is-active" data-level="all">All</button>
+  <!-- <button class="filter is-active" data-level="all">All</button> -->
   <span class="sep" aria-hidden="true"></span>
   <button class="filter" data-level="gcse">GCSE</button>
-  <span class="sep" aria-hidden="true"></span>
+  <!-- <span class="sep" aria-hidden="true"></span>
   <button class="filter" data-level="ks1">KS1</button>
   <span class="sep" aria-hidden="true"></span>
   <button class="filter" data-level="ks2">KS2</button>
   <span class="sep" aria-hidden="true"></span>
-  <button class="filter" data-level="ks3">KS3</button>
+  <button class="filter" data-level="ks3">KS3</button> -->
 </div>
 
 
@@ -238,8 +238,12 @@ if (empty($trendingCourses)) {
             $students    = ($c['enrolled'] ?? 156) . ' Students';
             $oldPrice    = $c['old_price'] ?? null;       // e.g., 59.0
             $price       = $c['price']     ?? 0;          // 0 => Free
-            $viewLink    = MyUtility::makeUrl('Courses'); // safe: listing link (replace with detail if you have it)
+              $slug      = $c['course_slug'] ?? '';
+    $viewLink  = $slug
+      ? MyUtility::makeUrl('Courses', 'view', [$slug])
+      : MyUtility::makeUrl('Courses'); // fallback to listing if slug missing
           ?>
+          <!-- <a class="rwu-course" href="<?= $viewLink ?>"> -->
           <article class="rwu-course <?= $idx === 1 ? 'is-featured' : '' ?>">
             <div class="media">
               <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($title) ?>">
@@ -267,10 +271,11 @@ if (empty($trendingCourses)) {
                     <span class="now-green">Free</span>
                   <?php endif; ?>
                 </div>
-                <a class="more" href="<?= $viewLink ?>">View more</a>
+                <a class="more" href="<?= $viewLink ?>">View course</a>
               </div>
             </div>
           </article>
+          <!-- </a> -->
         <?php endforeach; ?>
       </div>
     
@@ -417,7 +422,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 
     <button type="submit" class="btn-submit">
       Send Request
-      <svg ...>...</svg>
+      <!-- <svg ...>...</svg> -->
     </button>
   </form>
 </div>
@@ -601,62 +606,65 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
         </p>
 
         <div class="rwu-t-cta">
-          <a class="rwu-btn" href="#all-testimonials">Read All Testimonials →</a>
+<a class="rwu-btn" href="<?= MyUtility::makeUrl('Testimonials'); ?>">
+  Read All Testimonials →
+</a>
         </div>
       </div>
 
       <!-- RIGHT GRID -->
-      <div class="rwu-t-right">
-        <!-- CARD 1 -->
-        <article class="rwu-quote-card">
-          <div class="rwu-quote-badge" aria-hidden="true">
-            <!-- quotation icon -->
-            <svg viewBox="0 0 24 24" class="rwu-quote-icon" aria-hidden="true">
-              <path d="M8.9 6C6.7 6 5 7.8 5 10v8h7v-8H9.9c.1-1.1.6-2 1.8-2V6H8.9zm9 0c-2.2 0-3.9 1.8-3.9 4v8H21v-8h-2.1c.1-1.1.6-2 1.8-2V6h-1.8z"/>
-            </svg>
-          </div>
+           <!-- RIGHT GRID -->
+    <div class="rwu-t-right">
+  <?php if (!empty($homeTestimonials)) { ?>
+      <?php foreach ($homeTestimonials as $t) {
 
-          <div class="rwu-quote-body">
-            “The tutors at ReadWithUs are amazing! My mentor helped me understand tough topics in a way
-            that finally made sense. The progress tracking and regular feedback made me feel supported
-            every step of the way.”
-          </div>
+          $imgUrl = FatCache::getCachedUrl(
+              MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_TESTIMONIAL_IMAGE, $t['testimonial_id'], Afile::SIZE_SMALL]),
+              CONF_DEF_CACHE_TIME,
+              '.jpg'
+          );
 
-          <div class="rwu-person">
-            <div class="rwu-avatar">
-              <img src="https://via.placeholder.com/80" alt="Photo of Robind Jon" />
+          if (empty($imgUrl)) {
+              $imgUrl = CONF_WEBROOT_URL . 'images/defaults/user.jpg';
+          }
+      ?>
+          <article class="rwu-quote-card">
+            <div class="rwu-quote-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="rwu-quote-icon" aria-hidden="true">
+                <path d="M8.9 6C6.7 6 5 7.8 5 10v8h7v-8H9.9c.1-1.1.6-2 1.8-2V6H8.9zm9 0c-2.2 0-3.9 1.8-3.9 4v8H21v-8h-2.1c.1-1.1.6-2 1.8-2V6h-1.8z"/>
+              </svg>
             </div>
-            <div class="rwu-person-meta">
-              <div class="rwu-name">Robind Jon</div>
-              <div class="rwu-role">Designer TechBoot</div>
-            </div>
-          </div>
-        </article>
 
-        <!-- CARD 2 -->
-        <article class="rwu-quote-card">
-          <div class="rwu-quote-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" class="rwu-quote-icon" aria-hidden="true">
-              <path d="M8.9 6C6.7 6 5 7.8 5 10v8h7v-8H9.9c.1-1.1.6-2 1.8-2V6H8.9zm9 0c-2.2 0-3.9 1.8-3.9 4v8H21v-8h-2.1c.1-1.1.6-2 1.8-2V6h-1.8z"/>
-            </svg>
-          </div>
-
-          <div class="rwu-quote-body">
-            “I’m truly impressed by how quickly ReadWithUs connected my daughter with the perfect tutor.
-            The human approach combined with progress reports gives us confidence that she’s in great hands.”
-          </div>
-
-          <div class="rwu-person">
-            <div class="rwu-avatar">
-              <img src="https://via.placeholder.com/80" alt="Photo of Robind Jon" />
+            <div class="rwu-quote-body">
+              “<?= nl2br(FatUtility::decodeHtmlEntities($t['testimonial_text'])) ?>”
             </div>
-            <div class="rwu-person-meta">
-              <div class="rwu-name">Robind Jon</div>
-              <div class="rwu-role">Designer TechBoot</div>
+
+            <div class="rwu-person">
+              <div class="rwu-avatar">
+                <img src="<?= $imgUrl; ?>" 
+                     alt="<?= htmlspecialchars($t['testimonial_user_name']); ?>" />
+              </div>
+              <div class="rwu-person-meta">
+                <div class="rwu-name">
+                  <?= htmlspecialchars($t['testimonial_user_name']); ?>
+                </div>
+                <div class="rwu-role">
+                  <?= htmlspecialchars($t['testimonial_identifier']); ?>
+                </div>
+              </div>
             </div>
-          </div>
-        </article>
-      </div>
+          </article>
+      <?php } ?>
+  <?php } else { ?>
+      <article class="rwu-quote-card">
+        <div class="rwu-quote-body">
+          <?= Label::getLabel('LBL_NO_TESTIMONIALS_TO_SHOW_YET'); ?>
+        </div>
+      </article>
+  <?php } ?>
+</div>
+
+
     </div>
   </section>
   <?php
