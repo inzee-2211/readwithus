@@ -238,8 +238,8 @@
         width: 100%;
         border-radius: 12px;
         border: none;
-        background: #ffffff;
-        color: #111827;
+        background: #2DADFF;
+        color: white;
         cursor: pointer;
         transition: background 0.25s ease, box-shadow 0.25s ease;
         margin-bottom: 1rem;
@@ -247,7 +247,7 @@
     }
 
     .topic-toggle:hover {
-        background: #f3f4f6;
+        background: #1194e8;
     }
 
     .topic-toggle .dropdown-indicator {
