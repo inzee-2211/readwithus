@@ -42,7 +42,6 @@ public/cache/
 
 # ---- Uploads & generated media
 uploads/
-user-uploads/
 public/uploads/
 public/user-uploads/
 public/media/

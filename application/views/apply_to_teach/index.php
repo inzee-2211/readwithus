@@ -640,12 +640,107 @@ s
 </style>
 <script>
   // simple accordion
-  document.querySelectorAll('.faq__q').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+  document.querySelectorAll('.faq__q').forEach(btn => {
+    btn.addEventListener('click', () => {
       const a = btn.nextElementSibling;
-      a.style.display = a.style.display === 'block' ? 'none':'block';
+      a.style.display = a.style.display === 'block' ? 'none' : 'block';
       btn.classList.toggle('is-open');
     });
   });
+
+  // ===== Animated counters for tutor-stats =====
+  (function () {
+    const counters = document.querySelectorAll('.tutor-stats .value');
+    if (!counters.length) return;
+
+    // Start counter when element is visible
+    const startWhenVisible = (el) => {
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              runCounter(el);
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.4 });
+        io.observe(el);
+      } else {
+        // Fallback: start immediately
+        runCounter(el);
+      }
+    };
+
+    counters.forEach(startWhenVisible);
+
+    function runCounter(el) {
+      const original = el.textContent.trim();
+
+      const meta = parseMeta(original); // figure out target number + type
+      const duration = 2500; // ms
+      const startTime = performance.now();
+
+      function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const current = meta.target * progress;
+
+        el.textContent = formatValue(current, meta);
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          // Snap to exact original value to avoid rounding differences
+          el.textContent = original;
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    // Turn "67.1k", "26k", "99.9%", "72" into a clean target number + flags
+    function parseMeta(text) {
+      let hasK = /k$/i.test(text);
+      let hasPercent = /%$/.test(text);
+
+      // Strip k, %, commas
+      let clean = text.replace(/[,k%]/gi, '');
+      let decimals = (clean.split('.')[1] || '').length;
+
+      let num = parseFloat(clean) || 0;
+      if (hasK) num = num * 1000;   // 67.1k -> 67100
+
+      return {
+        target: num,
+        hasK,
+        hasPercent,
+        decimals
+      };
+    }
+
+    // Format the animated value in the same style as original
+    function formatValue(value, meta) {
+      let v = value;
+
+      if (meta.hasK) {
+        // show as "xx.xk"
+        v = v / 1000;
+        return v.toFixed(meta.decimals || 1) + 'k';
+      }
+
+      if (meta.hasPercent) {
+        // show as "99.9%"
+        return v.toFixed(meta.decimals || 1) + '%';
+      }
+
+      if (meta.decimals > 0) {
+        // e.g. "12.3"
+        return v.toFixed(meta.decimals);
+      }
+
+      // plain integer with commas
+      return Math.round(v).toLocaleString();
+    }
+  })();
 </script>
+
 

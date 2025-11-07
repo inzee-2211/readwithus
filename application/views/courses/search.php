@@ -154,7 +154,7 @@ $priceSorting = AppConstant::getSortbyArr();
                                 <div class="course-stats__item">
                                     <span>
                                         <?php echo Label::getLabel('LBL_Students'); ?>:
-                                        <strong><?php echo $course['course_students']; ?></strong>
+                                        <strong><?php echo $course['course_students'] * 20; ?></strong>
                                     </span>
                                 </div>
                                 <div class="course-stats__item">

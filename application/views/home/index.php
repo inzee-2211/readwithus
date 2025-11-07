@@ -33,7 +33,13 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
   $privacyPolicyLink   = $policyPageId ? MyUtility::makeUrl('Cms', 'view', [$policyPageId]) : 'javascript:void(0)';
   $termsConditionsLink = $termsPageId  ? MyUtility::makeUrl('Cms', 'view', [$termsPageId])  : 'javascript:void(0)';
 ?>
-
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
 
 <section class="rw-hero">
   <div class="rw-hero__inner">
@@ -144,46 +150,46 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
 
     <!-- RIGHT: 2×2 cards -->
     <div class="rw-features">
-      <!-- Card 1 -->
-      <article class="rw-card rw-card--raised">
-        <div class="rw-card__icon">
-          <img src="<?= $heroBase ?>light.svg" alt="icon" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
-        </div>
-        <h4>AI Tutoring &amp; Smart Learning</h4>
-        <p>Learn smarter with personalized AI tutors that adapt to your pace and style.</p>
-        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
-      </article>
-
-      <!-- Card 2 -->
-      <article class="rw-card">
-        <div class="rw-card__icon">
-          <img src="<?= $heroBase ?>light.svg" alt="" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
-        </div>
-        <h4>Quizzes &amp; Lectures</h4>
-        <p>Practice with instant-feedback quizzes and access structured lecture content.</p>
-        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
-      </article>
-
-      <!-- Card 3 -->
-      <article class="rw-card rw-card--raised">
-        <div class="rw-card__icon">
-          <img src="<?= $heroBase ?>light.svg" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
-        </div>
-        <h4>Interactive Video Lessons</h4>
-        <p>Visual, story-driven lessons that make complex topics easy to understand.</p>
-        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
-      </article>
-
-      <!-- Card 4 -->
-      <article class="rw-card">
-        <div class="rw-card__icon">
-       <img src="<?= $heroBase ?>light.svg" style="width:100%!important;height:100%!important" onerror="this.style.display='none'">
-        </div>
-        <h4>Live Exams</h4>
-        <p>Experience real-time exam sessions to prepare for the real world with confidence.</p>
-        <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('group-classes'); ?>">View Course →</a>
-      </article>
+  <!-- Card 1: AI Tutoring & Smart Learning -->
+  <article class="rw-card rw-card--raised">
+    <div class="rw-card__icon">
+      <i class="fa-solid fa-robot" aria-hidden="true"></i>
     </div>
+    <h4>AI Tutoring &amp; Smart Learning</h4>
+    <p>Learn smarter with personalized AI tutors that adapt to your pace and style.</p>
+    <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+  </article>
+
+  <!-- Card 2: Quizzes & Lectures -->
+  <article class="rw-card">
+    <div class="rw-card__icon">
+      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+    </div>
+    <h4>Quizzes &amp; Lectures</h4>
+    <p>Practice with instant-feedback quizzes and access structured lecture content.</p>
+    <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+  </article>
+
+  <!-- Card 3: Interactive Video Lessons -->
+  <article class="rw-card rw-card--raised">
+    <div class="rw-card__icon">
+      <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+    </div>
+    <h4>Interactive Video Lessons</h4>
+    <p>Visual, story-driven lessons that make complex topics easy to understand.</p>
+    <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('courses'); ?>">View Course →</a>
+  </article>
+
+  <!-- Card 4: Live Exams -->
+  <article class="rw-card">
+    <div class="rw-card__icon">
+      <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
+    </div>
+    <h4>Live Exams</h4>
+    <p>Experience real-time exam sessions to prepare for the real world with confidence.</p>
+    <a class="rw-link" href="<?php echo MyUtility::makeFullUrl('group-classes'); ?>">View Course →</a>
+  </article>
+</div>
   </div>
 </section>
 

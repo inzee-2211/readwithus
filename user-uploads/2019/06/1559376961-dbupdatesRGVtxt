@@ -1,0 +1,141 @@
+DROP TABLE IF EXISTS `tbl_loyalty_point_constraints`;
+CREATE TABLE `tbl_loyalty_point_constraints` (
+  `loyalconst_id` int(11) NOT NULL,
+  `loyalconst_loyalpnt_id` int(11) NOT NULL,
+  `loyalconst_qty` int(11) NOT NULL,
+  `loyalconst_amt` decimal(10,2) NOT NULL,
+  `loyalconst_brand_id` int(11) NOT NULL,
+  `loyalconst_extension_id` int(11) NOT NULL,
+  `loyalconst_product_id` int(11) NOT NULL,
+  `loyalconst_variant` int(11) NOT NULL,
+  `loyalconst_deleted` tinyint(4) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `tbl_loyalty_point_constraints`
+--
+
+INSERT INTO `tbl_loyalty_point_constraints` (`loyalconst_id`, `loyalconst_loyalpnt_id`, `loyalconst_qty`, `loyalconst_amt`, `loyalconst_brand_id`, `loyalconst_extension_id`, `loyalconst_product_id`, `loyalconst_variant`, `loyalconst_deleted`) VALUES
+(1, 14, 100, '0.00', 0, 0, 0, 0, 1),
+(2, 15, 100, '10.00', 31, 3, 14, 0, 1),
+(3, 14, 100, '0.00', 0, 0, 0, 0, 1),
+(6, 14, 111, '0.00', 0, 0, 0, 0, 1),
+(7, 14, 1, '0.00', 0, 0, 0, 0, 1),
+(13, 14, 1, '1.00', 22, 0, 0, 0, 1),
+(14, 14, 0, '0.00', 0, 0, 35, 0, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_loyalty_point_settings`
+--
+
+DROP TABLE IF EXISTS `tbl_loyalty_point_settings`;
+CREATE TABLE `tbl_loyalty_point_settings` (
+  `loyalpnt_id` int(11) NOT NULL,
+  `loyalpnt_name` varchar(255) NOT NULL,
+  `loyalpnt_type` int(11) NOT NULL,
+  `loyalpnt_value` int(11) NOT NULL,
+  `loyalpnt_qty` int(11) NOT NULL,
+  `loyalpnt_amt` decimal(10,2) NOT NULL,
+  `loyalpnt_points` int(11) NOT NULL,
+  `loyalpnt_valid_till` date NOT NULL,
+  `loyalpnt_offer_starts` date NOT NULL,
+  `loyalpnt_offer_ends` date NOT NULL,
+  `loyalpnt_active` tinyint(4) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `tbl_loyalty_point_settings`
+--
+
+INSERT INTO `tbl_loyalty_point_settings` (`loyalpnt_id`, `loyalpnt_name`, `loyalpnt_type`, `loyalpnt_value`, `loyalpnt_qty`, `loyalpnt_amt`, `loyalpnt_points`, `loyalpnt_valid_till`, `loyalpnt_offer_starts`, `loyalpnt_offer_ends`, `loyalpnt_active`) VALUES
+(1, 'Buyer Registration', 1, 0, 0, '0.00', 50, '2018-07-31', '2018-06-11', '2018-06-30', 1),
+(2, 'Seller Registration', 2, 0, 0, '0.00', 1000, '2018-06-30', '2018-06-14', '2018-06-30', 1),
+(3, 'Seller Data update- Stock, pricing, promotions Weekly', 8, 11, 0, '0.00', 100, '0000-00-00', '2018-06-11', '2018-06-20', 1),
+(4, 'Seller Data update- Stock, pricing, promotions Monthly', 9, 1, 0, '0.00', 100, '0000-00-00', '0000-00-00', '0000-00-00', 0),
+(5, 'Seller orders completed in 24 Hrs - Monthly', 5, 1, 0, '0.00', 1000, '0000-00-00', '0000-00-00', '0000-00-00', 1),
+(8, 'Seller Average Monthly rating', 6, 4, 0, '0.00', 3000, '0000-00-00', '0000-00-00', '0000-00-00', 1),
+(14, 'Buy 1000 Quantity Get 200 Loyalty Points', 3, 2, 100, '600.00', 200, '2018-07-31', '2018-06-14', '2018-06-30', 1),
+(21, 'Seller orders completed in 24 Hrs - Weekly', 11, 0, 0, '0.00', 123, '0000-00-00', '2018-06-11', '2018-06-30', 0),
+(22, 'Seller orders completed in 24 Hrs - Daily', 12, 0, 0, '0.00', 143, '0000-00-00', '2018-06-11', '2018-06-30', 0),
+(23, 'Seller Data update- Stock, pricing, promotions Daily', 10, 11, 0, '0.00', 5, '0000-00-00', '2018-06-11', '2018-06-30', 1);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `tbl_loyalty_point_constraints`
+--
+ALTER TABLE `tbl_loyalty_point_constraints`
+  ADD PRIMARY KEY (`loyalconst_id`),
+  ADD KEY `loyalconst_loyalpnt_id` (`loyalconst_loyalpnt_id`);
+
+--
+-- Indexes for table `tbl_loyalty_point_settings`
+--
+ALTER TABLE `tbl_loyalty_point_settings`
+  ADD PRIMARY KEY (`loyalpnt_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `tbl_loyalty_point_constraints`
+--
+ALTER TABLE `tbl_loyalty_point_constraints`
+  MODIFY `loyalconst_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- AUTO_INCREMENT for table `tbl_loyalty_point_settings`
+--
+ALTER TABLE `tbl_loyalty_point_settings`
+  MODIFY `loyalpnt_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  
+  
+DROP TABLE IF EXISTS `tbl_cron_schedules`;
+CREATE TABLE `tbl_cron_schedules` (
+  `cron_id` int(11) NOT NULL,
+  `cron_name` varchar(255) NOT NULL,
+  `cron_command` varchar(255) NOT NULL,
+  `cron_duration` int(11) NOT NULL COMMENT 'Minutes',
+  `cron_active` tinyint(4) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `tbl_cron_schedules`
+--
+
+INSERT INTO `tbl_cron_schedules` (`cron_id`, `cron_name`, `cron_command`, `cron_duration`, `cron_active`) VALUES
+(1, 'Send LL reminders', 'UserLicense/sendRenewalReminders', 1440, 1),
+(2, 'Send Order Status Not Updated', 'Orders/sendOrderStatusNotChangedNotification', 1440, 1),
+(3, '\r\nProduct Image Upload', 'Importexport/autoDownloadProductImage', 1440, 1),
+(4, 'Loyalty Points For Orders Completed Monthly', 'LoyaltyPoint/addLoyaltyPointsForOrdersCompletedMonthly', 1440, 1),
+(5, 'Loyalty Points For Updates Weekly', 'LoyaltyPoint/addLoyaltyPointsForUpdatesWeekly', 1440, 1),
+(6, 'Loyalty Points For Avg Rating', 'LoyaltyPoint/addLoyaltyPointsForAvgRating', 1440, 1),
+(7, 'Loyalty Points For Updates Monthly', 'LoyaltyPoint/addLoyaltyPointsForUpdatesMonthly', 1440, 1),
+(8, 'Loyalty Points For Orders Completed Weekly', 'LoyaltyPoint/addLoyaltyPointsForOrdersCompletedWeekly', 1440, 1),
+(9, 'Loyalty Points For Orders Completed Daily', 'LoyaltyPoint/addLoyaltyPointsForOrdersCompletedDaily', 1440, 1),
+(10, 'Loyalty Points For Updates Daily', 'LoyaltyPoint/addLoyaltyPointsForUpdatesDaily', 1440, 1);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `tbl_cron_schedules`
+--
+ALTER TABLE `tbl_cron_schedules`
+  ADD PRIMARY KEY (`cron_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `tbl_cron_schedules`
+--
+ALTER TABLE `tbl_cron_schedules`
+  MODIFY `cron_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;  
