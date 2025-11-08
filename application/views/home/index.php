@@ -766,7 +766,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
         I’m A Student
       </a>
       <a class="btn-pill btn--primary" href="<?php echo getBaseUrl(); ?>/apply-to-teach">
-        Become An Instructor
+        Become  Instructor
       </a>
     </div>
   </div>

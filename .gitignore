@@ -26,9 +26,10 @@ npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 package-lock.json        # ✅ For libraries ignore; for apps prefer committing (see note below)
-
-
-# ---- Uploads & generated media
+public/settings.php
+public/.htaccess
+.htaccess
+license.txt
 uploads/
 public/uploads/
 public/user-uploads/
