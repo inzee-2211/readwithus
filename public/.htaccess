@@ -2,6 +2,7 @@
 Options +FollowSymlinks
 RewriteEngine on
 #RewriteBase /
+RewriteBase /readwithus/readwithus/public/
 
 
 RewriteRule ^admin$ admin.php [PT,L,QSA]
@@ -15,7 +16,6 @@ RewriteRule ^/?([a-zA-Z]+)/dashboard$ dashboard.php?url=$1/$2 [PT,L,QSA]
 
 # API rewrite rule
 RewriteRule ^api/(.*)$ api.php?url=$1 [PT,L,QSA]
-
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

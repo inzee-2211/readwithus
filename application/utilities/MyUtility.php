@@ -519,6 +519,10 @@ if ($frontPrefix && !preg_match('#^https?://#i', $path)) {
     // If the path already starts with '/', just join them cleanly
     $path = $frontPrefix . ltrim($path, '/');
 }
+   if (strpos($path, $host . '/' . $host) !== false) {
+        $path = preg_replace('#https?://' . preg_quote($host) . '/https?://' . preg_quote($host) . '#i', '', $path);
+    }
+
 
 
     return $scheme . '://' . $host . $path;
