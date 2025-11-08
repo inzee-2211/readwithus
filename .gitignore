@@ -39,6 +39,8 @@ public/sitemaps/
 cache/
 public/cache/
 useer-uploads/
+public/settings.php/
+
 # ---- DB dumps / local data
 *.sql
 *.sqlite

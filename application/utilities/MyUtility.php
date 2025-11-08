@@ -512,10 +512,14 @@ public static function makeFullUrl($controller = '', $action = '', $queryData = 
     if ($path === '' || $path[0] !== '/') { $path = '/' . $path; }
 
     // Avoid double-prefix: if CONF_WEBROOT_FRONT_URL is already in $path, don’t add it again
-    $frontPrefix = rtrim(CONF_WEBROOT_FRONT_URL ?: '', '/');
-    if ($frontPrefix && strpos($path, $frontPrefix) !== 0) {
-        $path = $frontPrefix . $path;
-    }
+   $frontPrefix = rtrim(CONF_WEBROOT_FRONT_URL ?: '', '/');
+
+// Only prepend the front prefix if the path is *not already absolute*
+if ($frontPrefix && !preg_match('#^https?://#i', $path)) {
+    // If the path already starts with '/', just join them cleanly
+    $path = $frontPrefix . ltrim($path, '/');
+}
+
 
     return $scheme . '://' . $host . $path;
 }
