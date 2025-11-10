@@ -493,44 +493,40 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     //     return $protocol . $_SERVER['SERVER_NAME'] . urldecode($url);
     // }
 
-$isFront = ($root === CONF_WEBROOT_FRONT_URL);
-if ($isFront && !in_array($controller, SeoUrl::staticControllers())) {
-    $langCode = '';
-    if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
-        $langCode = '/' . Language::getCodes(self::$siteLangId);
+public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
+{
+    // Build the path first (front/back aware)
+    $path = static::makeUrl($controller, $action, $queryData, $rootUrl);
+
+    // If it’s already absolute, return as-is
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
     }
 
-    // Normalize $url to a path only (strip host if generateUrl ever returns absolute)
-    if (preg_match('#^https?://#i', $url)) {
-        $parsed = parse_url($url);
-        if (!empty($parsed['path'])) {
-            $url = $parsed['path'];
-        }
-    }
+    // Scheme + host (port included if present)
+    $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || FatApp::getConfig('CONF_USE_SSL');
+    $scheme = $https ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
 
-    // Get SEO row based on the *path* part only
-    $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
+    // Ensure leading slash
+    if ($path === '' || $path[0] !== '/') { $path = '/' . $path; }
 
-    if (!empty($row['seourl_custom'])) {
-        $custom = $row['seourl_custom'];
+    // Avoid double-prefix: if CONF_WEBROOT_FRONT_URL is already in $path, don’t add it again
+   $frontPrefix = rtrim(CONF_WEBROOT_FRONT_URL ?: '', '/');
 
-        // If someone accidentally stored a full URL in seourl_custom, strip scheme + host
-        if (preg_match('#^https?://#i', $custom)) {
-            $parsedCustom = parse_url($custom);
-            if (!empty($parsedCustom['path'])) {
-                $custom = $parsedCustom['path'];
-            }
-        }
-
-        // Always treat it as a path/slug
-        $url = '/' . ltrim($custom, '/');
-    }
-
-    return urldecode($langCode . $url);
+// Only prepend the front prefix if the path is *not already absolute*
+if ($frontPrefix && !preg_match('#^https?://#i', $path)) {
+    // If the path already starts with '/', just join them cleanly
+    $path = $frontPrefix . ltrim($path, '/');
 }
+   if (strpos($path, $host . '/' . $host) !== false) {
+        $path = preg_replace('#https?://' . preg_quote($host) . '/https?://' . preg_quote($host) . '#i', '', $path);
+    }
 
-return $url;
 
+
+    return $scheme . '://' . $host . $path;
+}
     /**
      * Format money
      * 
