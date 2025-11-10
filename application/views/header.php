@@ -218,7 +218,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                                                         </li>
                                                     <?php } ?>
                                                         <li class="menu__item">
-                                                            <a href="/apply-to-teach">Apply to Teach</a>
+                                                            <a href="//apply-to-teach">Apply to Teach</a>
                                                         </li>
                                                         <li class="menu__item">
                                                             <a href="/partner">Partner</a>

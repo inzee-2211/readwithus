@@ -350,6 +350,11 @@ if (!empty($subtopicids)) {
         </div>
     </div>
 </section>
+<script>
+    // Front webroot e.g. "http://localhost/readwithus/readwithus/public/"
+    // or "https://readwithus.org.uk/"
+    var FRONT_WEBROOT = '<?php echo CONF_WEBROOT_FRONTEND; ?>';
+</script>
 
 <script>
     // Show / hide video inside cards
@@ -375,29 +380,77 @@ if (!empty($subtopicids)) {
     });
 
     // AJAX submit for quiz signup (single handler, your old logic)
-    if (typeof $ !== 'undefined' && typeof fcom !== 'undefined') {
-        $('.start-quiz-btn').on('click', function () {
-            const form     = $('#quizSignupForm');
-            const formData = form.serialize();
+ if (typeof $ !== 'undefined' && typeof fcom !== 'undefined') {
+    $('.start-quiz-btn').on('click', function () {
+        const form = $('#quizSignupForm');
+        const formData = form.serialize();
 
-            fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
-                try {
-                    if (typeof response === 'string') {
-                        response = JSON.parse(response);
-                    }
+        // ---- FRONTEND VALIDATION ----
+        let valid = true;
+        const nameField   = form.find('[name="full_name"]');
+        const emailField  = form.find('[name="email"]');
+        const pEmailField = form.find('[name="parent_email"]');
+        const phoneField  = form.find('[name="phone"]');
 
-                    if (response.status == 1 && response.subtopicid) {
-                        window.location.href = '/quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
-                    } else {
-                        alert(response.msg || "Something went wrong.");
-                    }
-                } catch (e) {
-                    console.error("Invalid JSON:", e);
-                    alert("Failed to parse server response.");
+        // Helper regex patterns
+        const emailRegex  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex  = /^[0-9]{10,15}$/;
+
+        // Reset previous errors
+        form.find('.form-control').removeClass('is-invalid');
+
+        // Name
+        if (nameField.val().trim().length < 3) {
+            nameField.addClass('is-invalid');
+            valid = false;
+        }
+
+        // Student email
+        if (!emailRegex.test(emailField.val().trim())) {
+            emailField.addClass('is-invalid');
+            valid = false;
+        }
+
+        // Parent email
+        if (!emailRegex.test(pEmailField.val().trim())) {
+            pEmailField.addClass('is-invalid');
+            valid = false;
+        }
+
+        // Phone
+        if (!phoneRegex.test(phoneField.val().trim())) {
+            phoneField.addClass('is-invalid');
+            valid = false;
+        }
+
+        if (!valid) {
+            // Add a little feedback animation
+            form.addClass('shake');
+            setTimeout(() => form.removeClass('shake'), 500);
+            alert('Please enter valid information before starting the quiz.');
+            return; // stop submission
+        }
+
+        // ---- AJAX SUBMIT (same as before) ----
+        fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
+            try {
+                if (typeof response === 'string') {
+                    response = JSON.parse(response);
                 }
-            });
+
+                if (response.status == 1 && response.subtopicid) {
+                    window.location.href =
+                        'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
+                } else {
+                    alert(response.msg || "Something went wrong.");
+                }
+            } catch (e) {
+                console.error("Invalid JSON:", e);
+                alert("Failed to parse server response.");
+            }
         });
-    }
+    });
+}
 
     // keep your existing globals
     var questions     = <?php echo json_encode($questionData ?? []); ?>;

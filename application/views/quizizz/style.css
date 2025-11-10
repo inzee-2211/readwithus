@@ -300,43 +300,90 @@
         margin-bottom: 1rem;
         font-size: 1.05rem;
     }
+/* Primary action buttons – generic blue buttons (video + links + modal + past paper) */
+.watch-video-btn,
+.paper-list-download a,
+.modal .start-quiz-btn,
+#paper .card-body .start-quiz-btn {
+    height: auto;
+    background: #2DADFF!important;
+    border: 1px solid #2DADFF;
+    color: #fff;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 6px rgba(45, 173, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-weight: 600;
+    display: inline-block;
+    text-decoration: none;
+    font-size: 13px;
+}
 
-    /* Primary action buttons */
-    .card .btn-primary,
-    .watch-video-btn,
-    .paper-list-download a,
-    .start-quiz-btn {
-        height: auto;
-        background: #2DADFF;
-        border: 1px solid #2DADFF;
-        color: #fff;
-        transition: all 0.25s ease;
-        box-shadow: 0 4px 6px rgba(45, 173, 255, 0.3);
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-weight: 600;
-        display: inline-block;
-        text-decoration: none;
-        font-size: 13px;
-    }
+.watch-video-btn:hover,
+.paper-list-download a:hover,
+.modal .start-quiz-btn:hover,
+#paper .card-body .start-quiz-btn:hover {
+    background: #1194e8;
+    border-color: #1194e8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(17, 148, 232, 0.4);
+    color: #fff;
+    text-decoration: none;
+}
 
-    .card .btn-primary:hover,
-    .watch-video-btn:hover,
-    .paper-list-download a:hover,
-    .start-quiz-btn:hover {
-        background: #1194e8;
-        border-color: #1194e8;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 12px rgba(17, 148, 232, 0.4);
-        color: #fff;
-        text-decoration: none;
-    }
+/* Full width only where we want it:
+   - modal submit button
+   - past paper download buttons
+   - watch video button */
+.watch-video-btn,
+.modal .start-quiz-btn,
+#paper .card-body .start-quiz-btn {
+    width: 100%;
+    text-align: center;
+}
 
-    .watch-video-btn,
-    .start-quiz-btn {
-        width: 100%;
-        text-align: center;
-    }
+/* Card "Start quiz" button (parent button) – compact, own style */
+/* CARD "Start quiz" (parent) button – clean pill style */
+.card .btn-prnt-inner {
+    all: unset; /* resets Bootstrap .btn styles */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(90deg, #2DADFF 0%, #1A9CFF 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 6px 10px rgba(45, 173, 255, 0.3);
+    transition: all 0.25s ease;
+    width: auto; /* stays compact */
+    text-align: center;
+}
+
+.card .btn-prnt-inner:hover {
+    background: linear-gradient(90deg, #1194e8 0%, #008ae6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 14px rgba(17, 148, 232, 0.4);
+}
+
+.card .btn-prnt-inner:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 6px rgba(17, 148, 232, 0.3);
+}
+
+.card .btn-primary:hover,
+.card .btn-prnt-inner:hover {
+    background: #1194e8;
+    border-color: #1194e8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(17, 148, 232, 0.4);
+    color: #fff;
+    text-decoration: none;
+}
+
 
     /* Video container */
     .video-container {
@@ -426,3 +473,19 @@
             transform: translateY(0);
         }
     }
+/* Highlight invalid fields */
+.form-control.is-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+/* Shake animation for form */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shake 0.4s ease;
+}
