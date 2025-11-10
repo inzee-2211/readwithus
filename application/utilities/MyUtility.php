@@ -463,18 +463,45 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
 
     // Only front site needs language/SEO decoration
-    $isFront = ($root === CONF_WEBROOT_FRONT_URL);
-    if ($isFront && !in_array($controller, SeoUrl::staticControllers())) {
-        $langCode = '';
-        if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
-            $langCode = '/' . Language::getCodes(self::$siteLangId);
-        }
-        $row = SeoUrl::getCustomUrl(self::$siteLangId, trim($url, '/'));
-        if (!empty($row['seourl_custom'])) { $url = '/' . $row['seourl_custom']; }
-        return urldecode($langCode . $url);
+   $isFront = ($root === CONF_WEBROOT_FRONT_URL);
+if ($isFront && !in_array($controller, SeoUrl::staticControllers())) {
+    $langCode = '';
+    if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
+        $langCode = '/' . Language::getCodes(self::$siteLangId);
     }
-    return $url;
+
+    // Normalize $url to a path only (strip host if generateUrl ever returns absolute)
+    if (preg_match('#^https?://#i', $url)) {
+        $parsed = parse_url($url);
+        if (!empty($parsed['path'])) {
+            $url = $parsed['path'];
+        }
+    }
+
+    // Get SEO row based on the *path* part only
+    $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
+
+    if (!empty($row['seourl_custom'])) {
+        $custom = $row['seourl_custom'];
+
+        // If someone accidentally stored a full URL in seourl_custom, strip scheme + host
+        if (preg_match('#^https?://#i', $custom)) {
+            $parsedCustom = parse_url($custom);
+            if (!empty($parsedCustom['path'])) {
+                $custom = $parsedCustom['path'];
+            }
+        }
+
+        // Always treat it as a path/slug
+        $url = '/' . ltrim($custom, '/');
+    }
+
+    return urldecode($langCode . $url);
 }
+
+return $url;
+}
+
 
 
     /**
