@@ -447,7 +447,15 @@ class MyUtility extends FatUtility
      */
 public static function makeUrl($controller = '', $action = '', $queryData = [], $root = ''): string
 {
-    // Decide base root by area if caller didn’t pass it
+    $controllerLower = strtolower((string) $controller);
+
+    /* 1️⃣ Technical controllers – early return, no SEO, no special roots */
+    if (in_array($controllerLower, ['image', 'js-css', 'jscss'], true)) {
+        // Root = '' lets .htaccess + index.php handle routing as before
+        return FatUtility::generateUrl($controller, $action, $queryData, '', CONF_URL_REWRITING_ENABLED);
+    }
+
+    /* 2️⃣ Decide base root by area (front / admin / dashboard) */
     if ($root === '' || $root === null) {
         if (defined('SYSTEM_ADMIN')) {
             $root = CONF_WEBROOT_BACKEND;          // admin
@@ -463,14 +471,12 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     // Raw URL from framework
     $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
 
-    /* ----------------- FRONT + SEO HANDLING ----------------- */
+    /* 3️⃣ FRONT + SEO HANDLING (for normal content controllers only) */
 
     $isFront = ($root === CONF_WEBROOT_FRONT_URL);
 
     // Controllers that must NEVER be SEO-rewritten
-    $controllerLower = strtolower((string) $controller);
-    $skipSeo = in_array($controller, SeoUrl::staticControllers(), true)
-        || in_array($controllerLower, ['image', 'js-css', 'jscss']);
+    $skipSeo = in_array($controller, SeoUrl::staticControllers(), true);
 
     if ($isFront && !$skipSeo) {
         $langCode = '';
@@ -492,7 +498,7 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
         if (!empty($row['seourl_custom'])) {
             $custom = $row['seourl_custom'];
 
-            // If someone accidentally saved full URL in seourl_custom, strip host
+            // If someone accidentally saved a full URL in seourl_custom, strip host
             if (preg_match('#^https?://#i', $custom)) {
                 $parsedCustom = parse_url($custom);
                 if (!empty($parsedCustom['path'])) {
@@ -510,6 +516,7 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     // Admin / dashboard / static controllers just use raw URL
     return $url;
 }
+
 
 
 
