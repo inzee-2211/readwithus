@@ -196,13 +196,10 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                                     </svg>
                                 </a>
                                 <div class="header__logo">
-                                    <a href="<?php echo MyUtility::makeUrl(); ?>" title="<?php echo $websiteName; ?>">
-                                        <?php if (MyUtility::isDemoUrl()) { ?>
-                                            <img src="<?php echo CONF_WEBROOT_FRONTEND . 'images/readwithuslogo.png'; ?>" alt="<?php echo $websiteName; ?>" />
-                                        <?php } else { ?>
-                                            <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_FRONT_LOGO, 0, Afile::SIZE_LARGE]), CONF_IMG_CACHE_TIME, '.jpg'); ?>" alt="<?php echo $websiteName; ?>">
-                                        <?php } ?>
-                                    </a>
+                                   <a href="<?php echo MyUtility::makeUrl(); ?>" title="<?php echo $websiteName; ?>">
+        <img src="<?php echo CONF_WEBROOT_FRONT_URL . 'images/logo.png'; ?>"
+             alt="<?php echo $websiteName; ?>">
+    </a>
                                 </div>
 
                                 
