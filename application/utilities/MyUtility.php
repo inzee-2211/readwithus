@@ -493,27 +493,43 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     //     return $protocol . $_SERVER['SERVER_NAME'] . urldecode($url);
     // }
 
-public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
-{
-    // 1. Let makeUrl build a path appropriate for front/admin/dashboard
-    $path = static::makeUrl($controller, $action, $queryData, $rootUrl);
-
-    // 2. If it's already an absolute URL (starts with http/https), just return it
-    if (preg_match('#^https?://#i', $path)) {
-        return $path;
+$isFront = ($root === CONF_WEBROOT_FRONT_URL);
+if ($isFront && !in_array($controller, SeoUrl::staticControllers())) {
+    $langCode = '';
+    if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
+        $langCode = '/' . Language::getCodes(self::$siteLangId);
     }
 
-    // 3. Decide scheme and host
-    $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || FatApp::getConfig('CONF_USE_SSL');
-    $scheme = $https ? 'https' : 'http';
-    $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    // Normalize $url to a path only (strip host if generateUrl ever returns absolute)
+    if (preg_match('#^https?://#i', $url)) {
+        $parsed = parse_url($url);
+        if (!empty($parsed['path'])) {
+            $url = $parsed['path'];
+        }
+    }
 
-    // 4. Ensure leading slash
-    $path = '/' . ltrim($path, '/');
+    // Get SEO row based on the *path* part only
+    $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
 
-    // 5. Build full URL
-    return $scheme . '://' . $host . $path;
+    if (!empty($row['seourl_custom'])) {
+        $custom = $row['seourl_custom'];
+
+        // If someone accidentally stored a full URL in seourl_custom, strip scheme + host
+        if (preg_match('#^https?://#i', $custom)) {
+            $parsedCustom = parse_url($custom);
+            if (!empty($parsedCustom['path'])) {
+                $custom = $parsedCustom['path'];
+            }
+        }
+
+        // Always treat it as a path/slug
+        $url = '/' . ltrim($custom, '/');
+    }
+
+    return urldecode($langCode . $url);
 }
+
+return $url;
 
     /**
      * Format money
