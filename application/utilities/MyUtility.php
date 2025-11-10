@@ -447,58 +447,77 @@ class MyUtility extends FatUtility
      */
 public static function makeUrl($controller = '', $action = '', $queryData = [], $root = ''): string
 {
-    /* 1. Decide base root by area if caller didn’t pass it */
+    $controllerLower = strtolower((string) $controller);
+
+    /* 1️⃣ Technical controllers – early return, no SEO, no special roots */
+    if (in_array($controllerLower, ['image', 'js-css', 'jscss'], true)) {
+        // Root = '' lets .htaccess + index.php handle routing as before
+        return FatUtility::generateUrl($controller, $action, $queryData, '', CONF_URL_REWRITING_ENABLED);
+    }
+
+    /* 2️⃣ Decide base root by area (front / admin / dashboard) */
     if ($root === '' || $root === null) {
         if (defined('SYSTEM_ADMIN')) {
-            $root = CONF_WEBROOT_BACKEND;          // admin area
+            $root = CONF_WEBROOT_BACKEND;          // admin
         } elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard/') !== false) {
             $root = CONF_WEBROOT_DASHBOARD;        // learner/teacher dashboard
         } elseif (defined('SYSTEM_FRONT')) {
             $root = CONF_WEBROOT_FRONT_URL;        // public site
         } else {
-            $root = CONF_WEBROOT_URL;              // generic fallback
+            $root = CONF_WEBROOT_URL;              // fallback
         }
     }
 
-    /* 2. Let FatUtility build the raw URL */
+    // Raw URL from framework
     $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
 
-    /* 3. FRONT-site SEO handling (same idea as stock Yo!Coach) */
+    /* 3️⃣ FRONT + SEO HANDLING (for normal content controllers only) */
+
     $isFront = ($root === CONF_WEBROOT_FRONT_URL);
 
-    // staticControllers() already includes technical controllers like Image, JsCss, etc.
-    if ($isFront && !in_array($controller, SeoUrl::staticControllers(), true)) {
+    // Controllers that must NEVER be SEO-rewritten
+    $skipSeo = in_array($controller, SeoUrl::staticControllers(), true);
+
+    if ($isFront && !$skipSeo) {
         $langCode = '';
         if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
             $langCode = '/' . Language::getCodes(self::$siteLangId);
         }
 
-        // Find SEO row using the path part only
-        $pathForSeo = trim($url, '/');
-        $row = SeoUrl::getCustomUrl(self::$siteLangId, $pathForSeo);
+        // Normalize $url to a path (strip scheme/host if somehow present)
+        if (preg_match('#^https?://#i', $url)) {
+            $parsed = parse_url($url);
+            if (!empty($parsed['path'])) {
+                $url = $parsed['path'];
+            }
+        }
+
+        // Look up SEO row based on the *path* only
+        $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
 
         if (!empty($row['seourl_custom'])) {
             $custom = $row['seourl_custom'];
 
-            // SAFETY PATCH:
-            // If someone mistakenly stored a full URL in seourl_custom,
-            // strip scheme + host and keep only the path.
+            // If someone accidentally saved a full URL in seourl_custom, strip host
             if (preg_match('#^https?://#i', $custom)) {
-                $parsed = parse_url($custom);
-                if (!empty($parsed['path'])) {
-                    $custom = $parsed['path'];
+                $parsedCustom = parse_url($custom);
+                if (!empty($parsedCustom['path'])) {
+                    $custom = $parsedCustom['path'];
                 }
             }
 
+            // Always treat SEO value as a slug/path
             $url = '/' . ltrim($custom, '/');
         }
 
         return urldecode($langCode . $url);
     }
 
-    // Admin, dashboard and static controllers: raw URL
+    // Admin / dashboard / static controllers just use raw URL
     return $url;
 }
+
+
 
 
 
@@ -520,10 +539,10 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
 
 public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
 {
-    // Full URLs don’t need SEO decoration, just the framework path.
+    // For full URLs we do NOT need SEO decoration – just the framework path.
     $path = FatUtility::generateUrl($controller, $action, $queryData, $rootUrl, CONF_URL_REWRITING_ENABLED);
 
-    // If already absolute, just return it
+    // If already absolute, return as-is
     if (preg_match('#^https?://#i', $path)) {
         return $path;
     }
@@ -537,7 +556,6 @@ public static function makeFullUrl($controller = '', $action = '', $queryData = 
 
     return $scheme . '://' . $host . urldecode($path);
 }
-
 
     /**
      * Format money
