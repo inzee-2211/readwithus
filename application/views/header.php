@@ -150,7 +150,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
             "logo": {
                 "@type": "ImageObject",
                 "caption": "Read With Us",
-                "contentUrl": "http://readwithus.org.uk/image/site-logo/1"
+                "contentUrl": ""
             },
             "address": {
                 "@type": "PostalAddress",
@@ -198,7 +198,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                                 <div class="header__logo">
                                     <a href="<?php echo MyUtility::makeUrl(); ?>" title="<?php echo $websiteName; ?>">
                                         <?php if (MyUtility::isDemoUrl()) { ?>
-                                            <img src="<?php echo CONF_WEBROOT_FRONTEND . 'images/readwithuslogo.png'; ?>" alt="<?php echo $websiteName; ?>" />
+                                            <img src="<?php echo CONF_WEBROOT_FRONTEND . 'public/images/readwithuslogo.png'; ?>" alt="<?php echo $websiteName; ?>" />
                                         <?php } else { ?>
                                             <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_FRONT_LOGO, 0, Afile::SIZE_LARGE]), CONF_IMG_CACHE_TIME, '.jpg'); ?>" alt="<?php echo $websiteName; ?>">
                                         <?php } ?>

@@ -495,38 +495,26 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
 
 public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
 {
-    // Build the path first (front/back aware)
+    // 1. Let makeUrl build a path appropriate for front/admin/dashboard
     $path = static::makeUrl($controller, $action, $queryData, $rootUrl);
 
-    // If it’s already absolute, return as-is
+    // 2. If it's already an absolute URL (starts with http/https), just return it
     if (preg_match('#^https?://#i', $path)) {
         return $path;
     }
 
-    // Scheme + host (port included if present)
+    // 3. Decide scheme and host
     $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || FatApp::getConfig('CONF_USE_SSL');
     $scheme = $https ? 'https' : 'http';
     $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
 
-    // Ensure leading slash
-    if ($path === '' || $path[0] !== '/') { $path = '/' . $path; }
+    // 4. Ensure leading slash
+    $path = '/' . ltrim($path, '/');
 
-    // Avoid double-prefix: if CONF_WEBROOT_FRONT_URL is already in $path, don’t add it again
-   $frontPrefix = rtrim(CONF_WEBROOT_FRONT_URL ?: '', '/');
-
-// Only prepend the front prefix if the path is *not already absolute*
-if ($frontPrefix && !preg_match('#^https?://#i', $path)) {
-    // If the path already starts with '/', just join them cleanly
-    $path = $frontPrefix . ltrim($path, '/');
-}
-   if (strpos($path, $host . '/' . $host) !== false) {
-        $path = preg_replace('#https?://' . preg_quote($host) . '/https?://' . preg_quote($host) . '#i', '', $path);
-    }
-
-
-
+    // 5. Build full URL
     return $scheme . '://' . $host . $path;
 }
+
     /**
      * Format money
      * 
