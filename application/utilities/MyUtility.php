@@ -445,37 +445,125 @@ class MyUtility extends FatUtility
      * @param string $root
      * @return string
      */
+// public static function makeUrl($controller = '', $action = '', $queryData = [], $root = ''): string
+// {
+//     $controllerLower = strtolower((string) $controller);
+
+//     /* 1️⃣ Technical controllers – early return, no SEO, no special roots */
+//     if (in_array($controllerLower, ['image', 'js-css', 'jscss'], true)) {
+//         // Root = '' lets .htaccess + index.php handle routing as before
+//         return FatUtility::generateUrl($controller, $action, $queryData, '', CONF_URL_REWRITING_ENABLED);
+//     }
+
+//     /* 2️⃣ Decide base root by area (front / admin / dashboard) */
+//     if ($root === '' || $root === null) {
+//         if (defined('SYSTEM_ADMIN')) {
+//             $root = CONF_WEBROOT_BACKEND;          // admin
+//         } elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard/') !== false) {
+//             $root = CONF_WEBROOT_DASHBOARD;        // learner/teacher dashboard
+//         } elseif (defined('SYSTEM_FRONT')) {
+//             $root = CONF_WEBROOT_FRONT_URL;        // public site
+//         } else {
+//             $root = CONF_WEBROOT_URL;              // fallback
+//         }
+//     }
+
+//     // Raw URL from framework
+//     $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
+
+//     /* 3️⃣ FRONT + SEO HANDLING (for normal content controllers only) */
+
+//     $isFront = ($root === CONF_WEBROOT_FRONT_URL);
+
+//     // Controllers that must NEVER be SEO-rewritten
+//     $skipSeo = in_array($controller, SeoUrl::staticControllers(), true);
+
+//     if ($isFront && !$skipSeo) {
+//         $langCode = '';
+//         if (CONF_LANGCODE_URL && CONF_DEFAULT_LANG != self::$siteLangId) {
+//             $langCode = '/' . Language::getCodes(self::$siteLangId);
+//         }
+
+//         // Normalize $url to a path (strip scheme/host if somehow present)
+//         if (preg_match('#^https?://#i', $url)) {
+//             $parsed = parse_url($url);
+//             if (!empty($parsed['path'])) {
+//                 $url = $parsed['path'];
+//             }
+//         }
+
+//         // Look up SEO row based on the *path* only
+//         $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
+
+//         if (!empty($row['seourl_custom'])) {
+//             $custom = $row['seourl_custom'];
+
+//             // If someone accidentally saved a full URL in seourl_custom, strip host
+//             if (preg_match('#^https?://#i', $custom)) {
+//                 $parsedCustom = parse_url($custom);
+//                 if (!empty($parsedCustom['path'])) {
+//                     $custom = $parsedCustom['path'];
+//                 }
+//             }
+
+//             // Always treat SEO value as a slug/path
+//             $url = '/' . ltrim($custom, '/');
+//         }
+
+//         return urldecode($langCode . $url);
+//     }
+
+//     // Admin / dashboard / static controllers just use raw URL
+//     return $url;
+// }
+
+
 public static function makeUrl($controller = '', $action = '', $queryData = [], $root = ''): string
 {
-    $controllerLower = strtolower((string) $controller);
+    $controller = (string)$controller;
+    $controllerLower = strtolower($controller);
 
-    /* 1️⃣ Technical controllers – early return, no SEO, no special roots */
+    /**
+     * 1️⃣ Technical controllers (image, js-css) → always use FRONT root,
+     *    never /dashboard or /admin.
+     */
     if (in_array($controllerLower, ['image', 'js-css', 'jscss'], true)) {
-        // Root = '' lets .htaccess + index.php handle routing as before
-        return FatUtility::generateUrl($controller, $action, $queryData, '', CONF_URL_REWRITING_ENABLED);
+        // If caller passed a definitely-wrong root (dashboard/backend) or nothing,
+        // override with front root which is where Image controller is mounted.
+        if (
+            $root === '' || $root === null ||
+            (defined('CONF_WEBROOT_DASHBOARD') && $root === CONF_WEBROOT_DASHBOARD) ||
+            (defined('CONF_WEBROOT_BACKEND')   && $root === CONF_WEBROOT_BACKEND)
+        ) {
+            $root = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : CONF_WEBROOT_URL;
+        }
+
+        return FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
     }
 
-    /* 2️⃣ Decide base root by area (front / admin / dashboard) */
+    /**
+     * 2️⃣ Decide base root (front / admin / dashboard) for normal controllers
+     */
     if ($root === '' || $root === null) {
         if (defined('SYSTEM_ADMIN')) {
             $root = CONF_WEBROOT_BACKEND;          // admin
-        } elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard/') !== false) {
+        } elseif (defined('CONF_WEBROOT_DASHBOARD') &&
+                  strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard/') !== false) {
             $root = CONF_WEBROOT_DASHBOARD;        // learner/teacher dashboard
         } elseif (defined('SYSTEM_FRONT')) {
             $root = CONF_WEBROOT_FRONT_URL;        // public site
         } else {
-            $root = CONF_WEBROOT_URL;              // fallback
+            $root = CONF_WEBROOT_URL;              // safe fallback
         }
     }
 
-    // Raw URL from framework
+    // Raw path from framework
     $url = FatUtility::generateUrl($controller, $action, $queryData, $root, CONF_URL_REWRITING_ENABLED);
 
-    /* 3️⃣ FRONT + SEO HANDLING (for normal content controllers only) */
-
+    /**
+     * 3️⃣ FRONT + SEO handling (only for real front controllers, not image/js-css)
+     */
     $isFront = ($root === CONF_WEBROOT_FRONT_URL);
-
-    // Controllers that must NEVER be SEO-rewritten
     $skipSeo = in_array($controller, SeoUrl::staticControllers(), true);
 
     if ($isFront && !$skipSeo) {
@@ -484,7 +572,7 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
             $langCode = '/' . Language::getCodes(self::$siteLangId);
         }
 
-        // Normalize $url to a path (strip scheme/host if somehow present)
+        // Normalize $url to a path
         if (preg_match('#^https?://#i', $url)) {
             $parsed = parse_url($url);
             if (!empty($parsed['path'])) {
@@ -492,13 +580,13 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
             }
         }
 
-        // Look up SEO row based on the *path* only
+        // Look up SEO row based on the plain path
         $row = SeoUrl::getCustomUrl(self::$siteLangId, ltrim($url, '/'));
 
         if (!empty($row['seourl_custom'])) {
             $custom = $row['seourl_custom'];
 
-            // If someone accidentally saved a full URL in seourl_custom, strip host
+            // If a full URL was stored by mistake, drop scheme+host
             if (preg_match('#^https?://#i', $custom)) {
                 $parsedCustom = parse_url($custom);
                 if (!empty($parsedCustom['path'])) {
@@ -506,18 +594,15 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
                 }
             }
 
-            // Always treat SEO value as a slug/path
             $url = '/' . ltrim($custom, '/');
         }
 
         return urldecode($langCode . $url);
     }
 
-    // Admin / dashboard / static controllers just use raw URL
+    // Admin / dashboard / static controllers
     return $url;
 }
-
-
 
 
 
@@ -537,12 +622,44 @@ public static function makeUrl($controller = '', $action = '', $queryData = [], 
     //     return $protocol . $_SERVER['SERVER_NAME'] . urldecode($url);
     // }
 
+// public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
+// {
+//     // For full URLs we do NOT need SEO decoration – just the framework path.
+//     $path = FatUtility::generateUrl($controller, $action, $queryData, $rootUrl, CONF_URL_REWRITING_ENABLED);
+
+//     // If already absolute, return as-is
+//     if (preg_match('#^https?://#i', $path)) {
+//         return $path;
+//     }
+
+//     $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || FatApp::getConfig('CONF_USE_SSL');
+//     $scheme = $https ? 'https' : 'http';
+//     $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+
+//     // Ensure leading slash
+//     $path = '/' . ltrim($path, '/');
+
+//     return $scheme . '://' . $host . urldecode($path);
+// }
 public static function makeFullUrl($controller = '', $action = '', $queryData = [], $rootUrl = '')
 {
-    // For full URLs we do NOT need SEO decoration – just the framework path.
+    $controllerLower = strtolower((string)$controller);
+
+    // For technical controllers, force front root (no /dashboard, no /admin)
+    if (in_array($controllerLower, ['image', 'js-css', 'jscss'], true)) {
+        if (
+            $rootUrl === '' || $rootUrl === null ||
+            (defined('CONF_WEBROOT_DASHBOARD') && $rootUrl === CONF_WEBROOT_DASHBOARD) ||
+            (defined('CONF_WEBROOT_BACKEND')   && $rootUrl === CONF_WEBROOT_BACKEND)
+        ) {
+            $rootUrl = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : CONF_WEBROOT_URL;
+        }
+    }
+
+    // Just get the raw path from framework
     $path = FatUtility::generateUrl($controller, $action, $queryData, $rootUrl, CONF_URL_REWRITING_ENABLED);
 
-    // If already absolute, return as-is
+    // If it's already absolute, return it
     if (preg_match('#^https?://#i', $path)) {
         return $path;
     }
@@ -556,6 +673,7 @@ public static function makeFullUrl($controller = '', $action = '', $queryData = 
 
     return $scheme . '://' . $host . urldecode($path);
 }
+
 
     /**
      * Format money

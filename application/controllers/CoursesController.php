@@ -92,18 +92,43 @@ class CoursesController extends MyAppController
         
         $recordCount = $srch->recordCount();
         /* checkout form */
-        $cart = new Cart($this->siteUserId, $this->siteLangId);
-        $checkoutForm = $cart->getCheckoutForm([0 => Label::getLabel('LBL_NA')]);
-        $checkoutForm->fill(['order_type' => Order::TYPE_COURSE]);
+        // $cart = new Cart($this->siteUserId, $this->siteLangId);
+        // $checkoutForm = $cart->getCheckoutForm([0 => Label::getLabel('LBL_NA')]);
+        // $checkoutForm->fill(['order_type' => Order::TYPE_COURSE]);
+        $hasActiveSub = false;
+$activeSubRow = ($this->siteUserId > 0) ? UserSubscription::getActiveByUser($this->siteUserId) : null;
+if ($activeSubRow) { $hasActiveSub = true; }
+
+$pricingUrl = MyUtility::makeUrl('Subscription', 'pricing');
+$manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
+
+        // $this->sets([
+        //     'post' => $post,
+        //     'courses' => $courses,
+        //     'recordCount' => $recordCount,
+        //     'pageCount' => ceil($recordCount / $posts['pagesize']),
+        //     'levels' => Course::getCourseLevels(),
+        //     'types' => Course::getTypes(),
+        //     'checkoutForm' => $checkoutForm
+        // ]);
+
         $this->sets([
-            'post' => $post,
-            'courses' => $courses,
-            'recordCount' => $recordCount,
-            'pageCount' => ceil($recordCount / $posts['pagesize']),
-            'levels' => Course::getCourseLevels(),
-            'types' => Course::getTypes(),
-            'checkoutForm' => $checkoutForm
-        ]);
+    'post' => $post,
+    'courses' => $courses,
+    'recordCount' => $recordCount,
+    'pageCount' => ceil($recordCount / $posts['pagesize']),
+    'levels' => Course::getCourseLevels(),
+    'types' => Course::getTypes(),
+
+    // 👇 subscription-mode flags for the view layer
+    'subscriptionMode' => true,       // tell the view to hide “Buy” and show “Subscribe”
+    'hasActiveSub'     => $hasActiveSub,
+    'pricingUrl'       => $pricingUrl,
+    'manageUrl'        => $manageUrl,
+
+    // 'checkoutForm' => $checkoutForm   // removed
+]);
+
         $this->_template->render(false, false);
     }
 
@@ -186,7 +211,10 @@ class CoursesController extends MyAppController
                 $course['section_count'] = 0; // Default if course ID is missing
             }
       
- 
+ // inside CoursesController::view($slug) after $course is resolved (and before $this->sets([...]))
+$gate = $this->subGateForCourse($course['course_id']); // uses your helper below
+$subscriptionMode = true; // turn on subscription UI on the detail page
+
         $this->sets([
             'course' => $course,
             'moreCourses' => $moreCourses,
@@ -198,6 +226,8 @@ class CoursesController extends MyAppController
             'reviews' => $reviews,
             'canRate' => $canRate,
             'checkoutForm' => $checkoutForm,
+             'subGate'          => $gate,
+    'subscriptionMode' => true,
         ]);
         $this->_template->render();
     }
@@ -508,5 +538,81 @@ class CoursesController extends MyAppController
         }
         return [];
     }
+//subscription model files below
+/**
+ * Subscription gate (non-throwing): tells the view what to show.
+ * - If no active sub → prompt to subscribe
+ * - If active but subject not selected → prompt to manage subjects
+ * - If allowed → access=true
+ */
+private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
+{
+    $courseId = FatUtility::int($courseId);
+    $db = FatApp::getDb();
+
+    // Resolve subject if not provided
+    if ($subjectId === null || $subjectId < 1) {
+        $row = $db->fetch($db->query(
+            "SELECT course_subject_id FROM tbl_courses WHERE course_id = " . $courseId . " LIMIT 1"
+        ));
+        $subjectId = FatUtility::int($row['course_subject_id'] ?? 0);
+    }
+
+    // If course has no subject linked, treat as freely accessible (or lock — your call)
+    if ($subjectId < 1) {
+        return [
+            'access' => true,
+            'reason' => 'no_subject',
+            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
+            'hasActive'  => false,
+        ];
+    }
+
+    // Logged out → show subscribe prompt (let them view the marketing page)
+    if ($this->siteUserId < 1) {
+        return [
+            'access' => false,
+            'reason' => 'guest',
+            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
+            'hasActive'  => false,
+        ];
+    }
+
+    // Check active sub
+    $sub = UserSubscription::getActiveByUser($this->siteUserId);
+    if (!$sub) {
+        return [
+            'access' => false,
+            'reason' => 'no_active_sub',
+            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
+            'hasActive'  => false,
+        ];
+    }
+
+    // Subject allow-list
+    $allowed = array_filter(array_map('trim', explode(',', (string)$sub['usubs_subject_ids'])));
+    $allowedSet = array_flip($allowed);
+
+    if (!isset($allowedSet[(string)$subjectId])) {
+        return [
+            'access' => false,
+            'reason' => 'subject_not_selected',
+            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
+            'hasActive'  => true,
+        ];
+    }
+
+    return [
+        'access' => true,
+        'reason' => 'ok',
+        'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+        'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
+        'hasActive'  => true,
+    ];
+}
 
 }

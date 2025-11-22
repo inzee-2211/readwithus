@@ -3,15 +3,16 @@
   <!-- Header -->
   <div class="aiTutor__header">
     <div>
-      <h5 class="aiTutor__title m-0"><?php echo Label::getLabel('LBL_AI_TUTOR'); ?></h5>
+      <h5 class="aiTutor__title m-0"><?php echo Label::getLabel('LBL_AVA'); ?></h5>
       <small class="aiTutor__subtitle text-muted">
         <?php echo Label::getLabel('LBL_ASK_ANYTHING_ABOUT_THIS_LECTURE_,_ONLY_100_CHATS_ARE_ALLOWED_YOU_WILL_BE_CHARGED_FOR_MORE'); ?>
       </small>
     </div>
-    <div class="aiTutor__actions">
+       <div class="aiTutor__actions">
+ 
       <button type="button" class="btn btn--sm btn--light" id="aiClearBtn">
-        <i class="fa fa-eraser"></i> <?php echo Label::getLabel('LBL_CLEAR_CHAT'); ?>
-      </button>
+    <i class="fa fa-eraser"></i> <?php echo Label::getLabel('LBL_NEW_CHAT'); ?>
+  </button>
     </div>
   </div>
 
@@ -31,7 +32,7 @@
           <i class="fa fa-robot"></i>
         </div>
         <div class="ai-msg__bubble">
-          <?php echo Label::getLabel('LBL_HI_I_AM_YOUR_AI_TUTOR_ASK_ME_ANYTHING_ABOUT_THIS_LECTURE_OR_SECTION'); ?>
+          <?php echo Label::getLabel('LBL_HI_I_AM_AVA'); ?>
         </div>
       </div>
     </div>

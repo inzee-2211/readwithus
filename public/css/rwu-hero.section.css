@@ -5,7 +5,7 @@
   position: relative;
   overflow: hidden;
   
-  margin-top: -1%;  /* fix gap issue with header */
+  margin-top: -3%;  /* fix gap issue with header */
   background: linear-gradient(180deg,#F5FAFF 0%,#FFFFFF 100%);
 }
 
@@ -18,7 +18,7 @@
   padding: clamp(4px, 1.4vw, 16px) 2vw clamp(10px, 1.8vw, 22px);
   /* padding: 0vw 2vw 3vw;        scale spacing with screen */
   display: grid;
-  grid-template-columns: 56% 40%;  /* content/art split using % */
+  grid-template-columns: 50% 57%;  /* content/art split using % */
   /* gap: 2.2vw;                  proportional gap */
   align-items: center;
 }

@@ -40,6 +40,25 @@
                         <?php } ?>
                     </ul>
                 </li>
+                <?php if ($objPrivilege->canViewGeneralSettings(true)) { ?>
+<li class="haschild"><a href="javascript:void(0);"><?php echo Label::getLabel('LBL_SUBSCRIPTIONS'); ?></a>
+    <ul>
+        <li><a href="<?php echo MyUtility::makeUrl('SubscriptionPackages'); ?>">
+            <?php echo Label::getLabel('LBL_SUBSCRIPTION_PACKAGES'); ?>
+        </a></li>
+        <li><a href="<?php echo MyUtility::makeUrl('SubscriptionOrders'); ?>">
+            <?php echo Label::getLabel('LBL_SUBSCRIPTION_ORDERS'); ?>
+        </a></li>
+        <li>
+            <a href="<?php echo MyUtility::makeUrl('SubscriptionOrders', 'stats'); ?>">
+        <?php echo Label::getLabel('LBL_Subscription_Analytics'); ?>
+    </a>
+        </li>
+    </ul>
+</li>
+
+<?php } ?>
+
             <?php }
             if ($objPrivilege->canViewGroupClasses(true) || $objPrivilege->canViewPackageClasses(true)) { ?>
                 <li class="haschild"><a href="javascript:void(0);"><?php echo Label::getLabel('LBL_GROUP_CLASSES'); ?></a>

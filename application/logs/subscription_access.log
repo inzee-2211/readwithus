@@ -1,0 +1,91 @@
+[2025-11-15 13:47:40] === STARTING COURSE ===
+[2025-11-15 13:47:40] User ID: 999, Course ID: 20
+[2025-11-15 13:47:40] Checking subscription access...
+[2025-11-15 13:47:40] ✅ Subscription access granted
+[2025-11-15 13:47:40] Getting or creating progress record...
+[2025-11-15 13:47:40] ❌ FAILED to create progress record
+[2025-11-15 13:47:45] === STARTING COURSE ===
+[2025-11-15 13:47:45] User ID: 999, Course ID: 21
+[2025-11-15 13:47:45] Checking subscription access...
+[2025-11-15 13:47:45] ✅ Subscription access granted
+[2025-11-15 13:47:45] Getting or creating progress record...
+[2025-11-15 13:47:45] ❌ FAILED to create progress record
+[2025-11-15 13:52:53] === STARTING COURSE ===
+[2025-11-15 13:52:53] User ID: 999, Course ID: 19
+[2025-11-15 13:52:53] Checking subscription access...
+[2025-11-15 13:52:53] ✅ Subscription access granted
+[2025-11-15 13:52:53] Getting or creating progress record...
+[2025-11-15 13:52:53] ❌ FAILED to create progress record
+[2025-11-15 13:56:37] === STARTING COURSE ===
+[2025-11-15 13:56:37] User ID: 999, Course ID: 20
+[2025-11-15 13:56:37] Checking subscription access...
+[2025-11-15 13:56:37] ✅ Subscription access granted
+[2025-11-15 13:56:37] Getting or creating progress record...
+[2025-11-15 13:56:37] ✅ Progress record created/found - Progress ID: 329
+[2025-11-15 13:56:37] Verifying database record...
+[2025-11-15 13:56:37] ✅ Database record found:
+[2025-11-15 13:56:37]    - Progress ID: 329
+[2025-11-15 13:56:37]    - User ID: 999
+[2025-11-15 13:56:37]    - Course ID: 20
+[2025-11-15 13:56:37]    - Order Course ID: 
+[2025-11-15 13:56:37] Redirecting to course index with progress ID: 329
+[2025-11-15 13:56:51] === STARTING COURSE ===
+[2025-11-15 13:56:51] User ID: 999, Course ID: 15
+[2025-11-15 13:56:51] Checking subscription access...
+[2025-11-15 13:56:51] ✅ Subscription access granted
+[2025-11-15 13:56:51] Getting or creating progress record...
+[2025-11-15 13:56:51] ✅ Progress record created/found - Progress ID: 330
+[2025-11-15 13:56:51] Verifying database record...
+[2025-11-15 13:56:51] ✅ Database record found:
+[2025-11-15 13:56:51]    - Progress ID: 330
+[2025-11-15 13:56:51]    - User ID: 999
+[2025-11-15 13:56:51]    - Course ID: 15
+[2025-11-15 13:56:51]    - Order Course ID: 
+[2025-11-15 13:56:51] Redirecting to course index with progress ID: 330
+[2025-11-15 13:57:52] === STARTING COURSE ===
+[2025-11-15 13:57:52] User ID: 999, Course ID: 21
+[2025-11-15 13:57:52] Checking subscription access...
+[2025-11-15 13:57:52] ✅ Subscription access granted
+[2025-11-15 13:57:52] Getting or creating progress record...
+[2025-11-15 13:57:52] ✅ Progress record created/found - Progress ID: 331
+[2025-11-15 13:57:52] Verifying database record...
+[2025-11-15 13:57:52] ✅ Database record found:
+[2025-11-15 13:57:52]    - Progress ID: 331
+[2025-11-15 13:57:52]    - User ID: 999
+[2025-11-15 13:57:52]    - Course ID: 21
+[2025-11-15 13:57:52]    - Order Course ID: 
+[2025-11-15 13:57:52] Redirecting to course index with progress ID: 331
+[2025-11-15 13:58:08] === STARTING COURSE ===
+[2025-11-15 13:58:08] User ID: 999, Course ID: 15
+[2025-11-15 13:58:08] Checking subscription access...
+[2025-11-15 13:58:08] ✅ Subscription access granted
+[2025-11-15 13:58:08] Getting or creating progress record...
+[2025-11-15 13:58:08] ✅ Progress record created/found - Progress ID: 330
+[2025-11-15 13:58:08] Verifying database record...
+[2025-11-15 13:58:08] ✅ Database record found:
+[2025-11-15 13:58:08]    - Progress ID: 330
+[2025-11-15 13:58:08]    - User ID: 999
+[2025-11-15 13:58:08]    - Course ID: 15
+[2025-11-15 13:58:08]    - Order Course ID: 
+[2025-11-15 13:58:08] Redirecting to course index with progress ID: 330
+[2025-11-15 14:00:38] === STARTING COURSE ===
+[2025-11-15 14:00:38] User ID: 999, Course ID: 27
+[2025-11-15 14:00:38] Checking subscription access...
+[2025-11-15 14:00:38] ❌ Subscription access DENIED
+[2025-11-15 14:00:47] === STARTING COURSE ===
+[2025-11-15 14:00:47] User ID: 999, Course ID: 27
+[2025-11-15 14:00:47] Checking subscription access...
+[2025-11-15 14:00:47] ❌ Subscription access DENIED
+[2025-11-15 14:01:15] === STARTING COURSE ===
+[2025-11-15 14:01:15] User ID: 999, Course ID: 21
+[2025-11-15 14:01:15] Checking subscription access...
+[2025-11-15 14:01:15] ✅ Subscription access granted
+[2025-11-15 14:01:15] Getting or creating progress record...
+[2025-11-15 14:01:15] ✅ Progress record created/found - Progress ID: 331
+[2025-11-15 14:01:15] Verifying database record...
+[2025-11-15 14:01:15] ✅ Database record found:
+[2025-11-15 14:01:15]    - Progress ID: 331
+[2025-11-15 14:01:15]    - User ID: 999
+[2025-11-15 14:01:15]    - Course ID: 21
+[2025-11-15 14:01:15]    - Order Course ID: 
+[2025-11-15 14:01:15] Redirecting to course index with progress ID: 331

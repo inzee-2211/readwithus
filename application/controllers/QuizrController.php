@@ -18,95 +18,122 @@ class QuizrController extends MyAppController
      *
      * @return void
      */
-    public function index()
+  public function index()
 {
-    $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
+    /* -------------------------------------------------------------
+       1. Popular course (unchanged)
+    -------------------------------------------------------------- */
+    $course  = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
     $courses = $course->getPopularCourses();
     $courses = array_slice($courses, 0, 1);
 
-    if (isset($_GET['attempt'])) {
-        $attempt = $_GET['attempt'];
-    } else {
-        $attempt = null;
+    /* -------------------------------------------------------------
+       2. Get attempt id from query string
+    -------------------------------------------------------------- */
+    $attemptId = isset($_GET['attempt']) ? (int) $_GET['attempt'] : 0;
+
+    $db                = FatApp::getDb();
+    $attemptresult     = [];
+    $attemptquestions  = [];
+    $resultText        = '';
+    $currentSubtopicId = null;
+
+    /* -------------------------------------------------------------
+       3. Load attempt row (header)
+    -------------------------------------------------------------- */
+    if ($attemptId > 0) {
+        $sqlAttempt = "SELECT * FROM tbl_quiz_attempts WHERE id = " . (int)$attemptId . " LIMIT 1";
+        $rsAttempt  = $db->query($sqlAttempt);
+
+        if ($rsAttempt) {
+            $row = $db->fetch($rsAttempt);
+            if ($row) {
+                $attemptresult[]   = $row;
+                $resultText        = strtolower($row['result'] ?? '');
+                $currentSubtopicId = $row['subtopic_id'] ?? null;
+            }
+        }
     }
 
-    $db = FatApp::getDb();
-    $query = "SELECT * FROM tbl_quiz_attempts WHERE id = $attempt";
-    $result = $db->query($query);
+    /* -------------------------------------------------------------
+       4. Load attempt answers + question_title + explanation - FIXED VERSION
+    -------------------------------------------------------------- */
+    if ($attemptId > 0) {
+        // CORRECTED TABLE NAME: tbl_quaestion_bank (not tbl_queastion_bank)
+        $sqlAnswers = "
+            SELECT
+                ans.*,
+                qb.question_title,
+                qb.explanation,
+                qb.correct_answer
+            FROM tbl_quiz_attempt_answers AS ans
+            LEFT JOIN tbl_quaestion_bank AS qb ON qb.id = ans.question_id
+            WHERE ans.attempt_id = " . (int)$attemptId . "
+            ORDER BY ans.id ASC
+        ";
 
-    if (!$result) {
-        echo "Error executing query: " . $db->errorInfo();
-        die();
+        $rsAnswers = $db->query($sqlAnswers);
+        if ($rsAnswers) {
+            $attemptquestions = $db->fetchAll($rsAnswers);
+            
+            // Debug: Check if we're getting the explanation data
+            error_log("Fetched " . count($attemptquestions) . " questions with explanations");
+            foreach ($attemptquestions as $index => $q) {
+                error_log("Question " . ($index + 1) . ": " . 
+                    ($q['question_title'] ?? 'No title') . " | " . 
+                    ($q['explanation'] ?? 'No explanation'));
+            }
+        } else {
+            error_log("Query failed: " . $db->getError());
+        }
     }
 
-    $attemptresult = [];
-    if ($result) {
-        $attemptresult = $db->fetchAll($result);
-    }
-
-    $query = "SELECT * FROM tbl_quiz_attempt_answers WHERE attempt_id = $attempt";
-    $result = $db->query($query);
-
-    if (!$result) {
-        echo "Error executing query: " . $db->errorInfo();
-        die();
-    }
-
-    $attemptquestions = [];
-    if ($result) {
-        $attemptquestions = $db->fetchAll($result);
-    }
-
-    // ✅ Fail hone par parent ko mail bhejna
-    if (!empty($attemptresult[0]['result'])) {
-        $resultText = strtolower($attemptresult[0]['result']);
-	$parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
-	$currentSubtopicId = $attemptresult[0]['subtopic_id'];
+    /* -------------------------------------------------------------
+       5. Email parent if result = fail
+    -------------------------------------------------------------- */
+    if (!empty($resultText)) {
+        $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
 
         if ($resultText === 'fail' && !empty($parentEmail)) {
-            $to = $parentEmail;
+            $to      = $parentEmail;
             $subject = "Quiz Result Notification";
-            $message = "Subject: Your’s child Recent Results & How We Can Help Them Improve
-        Dear Parent,
-        We hope this message finds you well.
-        We’re writing to inform you about [Student Name]’s recent performance in their quiz assessment. Unfortunately, they did not achieve a passing grade this time. Their result was:
 
-        We understand how concerning this can be, and we want to assure you that this does not define their potential. At Read With Us, we believe that every setback is a setup for a stronger comeback — with the right support.
+            $message = "Subject: Your child's recent results & how we can help them improve
 
-        ✅ Let’s Turn Things Around — Together
-        To help your child catch up and build confidence, we offer:
-        Interactive Topic Quizzes – Practice core concepts in a fun, engaging way
+Dear Parent,
 
+We're writing to inform you about your child's recent performance in their quiz assessment. Unfortunately, they did not achieve a passing grade this time.
 
-        Revision Modules – Focused content on areas where your child struggled
+We understand this can be worrying, but this result does NOT define their potential. At Read With Us, every setback is a chance to rebuild confidence with the right support.
 
+We offer:
+• Interactive topic quizzes  
+• Revision modules focused on weaker areas  
+• Full course access guided by expert educators  
 
-        Full Course Access – Structured lessons guided by expert educators
+\"It's not about being the best, it's about being better than you were yesterday.\"
 
+We recommend revisiting the topic and retrying the quiz to strengthen understanding.
 
-        “It’s not about being the best, it’s about being better than you were yesterday.”
+Warm regards,
+The Read With Us Team
+support@readwithus.org.uk
+www.readwithus.org.uk";
 
-        📅 Ready to Restart?
-        Give your child the tools they need to succeed.
-        👉 Revisit Topics Now | Start Quiz Practice | View Courses
-        If you’d like tailored guidance, our team is always here to help.
-        Thank you for your continued support in your child’s learning journey.
-        Warm regards,
-        The Read With Us Team
-        📬 [support@readwithus.org.uk] | 🌐 [www.readwithus.org.uk]
-        Empowering learners, one lesson at a time.";
-            $headers = "From: support@readwithus.org.uk\r\n" .
-                       "Reply-To: no-reply@yourdomain.com\r\n" .
-                       "X-Mailer: PHP/" . phpversion();
+            $headers  = "From: support@readwithus.org.uk\r\n";
+            $headers .= "Reply-To: no-reply@readwithus.org.uk\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion();
 
-            mail($to, $subject, $message, $headers);
+            @mail($to, $subject, $message, $headers);
         }
-      }
+    }
 
-
+    /* -------------------------------------------------------------
+       6. Prepare data for the view
+    -------------------------------------------------------------- */
     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-
     unset($_SESSION[AppConstant::SEARCH_SESSION]);
+
     $this->set('srchFrm', $srchFrm);
     $this->set('attemptresult', $attemptresult);
     $this->set('attemptquestions', $attemptquestions);

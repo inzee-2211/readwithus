@@ -6,16 +6,139 @@ function asset_css($file){
 }
 $symbolLeft  = $siteCurrency['currency_symbol_left'] ?? '';
 $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
+$levels          = $levels ?? [];
+$selectedLevelId = $selectedLevelId ?? 0;
+$hasActiveSubscription = $hasActiveSubscription ?? false;
+$currentPackageId      = $currentPackageId ?? 0;
+
+
+
+// Normalize $plans:
+// - If controller already mapped (name, price_month, price_year...), this is a no-op.
+// - If controller passed DB rows (spackage_*), map them to your old shape.
+if (isset($plans) && is_array($plans)) {
+  // First pass: map fields if needed
+  foreach ($plans as $idx => $p) {
+    if (isset($p['spackage_id'])) {
+      // preserve flags from controller
+      $isCurrent = !empty($p['is_current']);
+      $isUpgrade = !empty($p['is_upgrade']);
+
+      $plans[$idx] = [
+        'id'          => (int)$p['spackage_id'],
+        'name'        => (string)$p['spackage_name'],
+        'tag'         => (string)($p['spackage_description'] ?? ''),
+        'price_month' => (float)$p['spackage_price_monthly'],
+        'price_year'  => (float)$p['spackage_price_yearly'],
+        'features'    => [
+          'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
+          'Unlimited courses in selected subjects',
+          'Email/priority support',
+        ],
+        'is_popular'  => false,
+        'is_current'  => $isCurrent,
+        'is_upgrade'  => $isUpgrade,
+      ];
+    } else {
+      // ensure expected keys exist for seeded data
+      $plans[$idx]['id']          = $plans[$idx]['id']          ?? ($idx+1);
+      $plans[$idx]['name']        = $plans[$idx]['name']        ?? ('Plan '.($idx+1));
+      $plans[$idx]['tag']         = $plans[$idx]['tag']         ?? '';
+      $plans[$idx]['price_month'] = (float)($plans[$idx]['price_month'] ?? 0);
+      $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month']*12));
+      $plans[$idx]['features']    = $plans[$idx]['features']    ?? [];
+      $plans[$idx]['is_popular']  = (bool)($plans[$idx]['is_popular'] ?? false);
+      $plans[$idx]['is_current']  = (bool)($plans[$idx]['is_current'] ?? false);
+      $plans[$idx]['is_upgrade']  = (bool)($plans[$idx]['is_upgrade'] ?? false);
+    }
+  }
+
+  // Second pass: mark a "Most Popular" if none specified (pick middle when 3 plans)
+  $anyPopular = false;
+  foreach ($plans as $p) { if (!empty($p['is_popular'])) { $anyPopular = true; break; } }
+  if (!$anyPopular && count($plans) >= 3) {
+    $plans[1]['is_popular'] = true; // middle plan
+  }
+
+  // Third pass: add monthly/yearly checkout URLs (keeps your single CTA; JS switches href)
+  foreach ($plans as $idx => $p) {
+    $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'monthly' ]);
+    $plans[$idx]['cta_year_url']  = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'yearly' ]);
+  }
+}
+
 ?>
 <link rel="stylesheet" href="<?= asset_css('css/home.pricing.css') ?>">
 
 <style>
-/* ===== Page extras for Pricing ===== */
-.pricing-hero{
+  .pricing-hero{
   background: linear-gradient(180deg,#F5FAFF 0%,#FFFFFF 100%);
   padding: 64px 16px 28px;
   text-align:center;
 }
+/* Level selector pill (matches ReadWithUs style) */
+.level-filter {
+  margin: 24px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.level-filter label {
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6B7280;          /* soft grey like filters */
+  font-weight: 700;
+}
+
+/* -------- LEVEL TABS -------- */
+.level-tabs {
+ 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  margin: 22px 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.level-tab {
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 500;
+  padding: 8px 4px;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.level-tab:hover {
+  color: #1d9cfd;
+}
+
+.level-tab.active {
+   background: #F5FAFF;
+  color: #1d9cfd;
+  font-weight: 600;
+}
+
+.level-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: 40px;
+  height: 3px;
+  background-color: #1d9cfd;
+  border-radius: 2px;
+}
+
+
 .pricing-hero .eyebrow{ display:inline-flex; gap:8px; align-items:center; padding:8px 14px; border-radius:999px; background:#C2E6FF; color:#1D9CFD; font-weight:600; margin-bottom:12px;}
 .pricing-hero h1{ font:700 clamp(28px,3.6vw,44px)/1.2 Poppins,system-ui; color:#0A033C; margin:0 0 10px;}
 .pricing-hero p{ max-width:820px; margin:0 auto; color:#5F6C76; line-height:1.7;}
@@ -51,11 +174,28 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
 </style>
 
 <section class="pricing-hero">
-
   <h1>Simple pricing for every learner</h1>
   <p>Choose a plan that matches your goals. Switch or cancel anytime. Save more with annual billing.</p>
+  
+  <div class="level-filter">
+  <?php if (!empty($levels)): ?>
+    <label for="levelSelect">Select your level</label>
+    <div class="level-tabs">
+      
+  <?php foreach ($levels as $lvl): ?>
+    <?php 
+      $active = ($selectedLevelId == $lvl['id']) ? 'active' : '';
+      $url = MyUtility::makeUrl('Pricing', null, [], CONF_WEBROOT_FRONT_URL) . '?level_id=' . (int)$lvl['id'];
+    ?>
+    <a href="<?= $url ?>" class="level-tab <?= $active ?>">
+      <?= htmlspecialchars($lvl['level_name']) ?>
+    </a>
+  <?php endforeach; ?>
+</div>
+</div>
+<?php endif; ?>
 
-  <!-- Billing Toggle -->
+
   <div class="billing-toggle">
     <span>Monthly</span>
     <label>
@@ -63,23 +203,28 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
       <div class="switch"><div class="knob"></div></div>
     </label>
     <span>Yearly</span>
-    <span class="save">Save up to 20%</span>
+    <span class="save">Save up to 10%</span>
   </div>
 </section>
+
 
 <!-- Plans -->
 <section class="rwu-pricing">
   <div class="wrap">
     <div class="pill">Choose Your Plan</div>
-    <!-- <h2 class="title">Transparent <span style="color:#1D9CFD">pricing</span>, real value</h2>
-    <div class="sub">All plans include access to expert-led courses and AI-assisted practice features.</div> -->
 
     <div class="grid" id="plansGrid">
       <?php foreach ($plans as $p): ?>
-      <article class="rwu-plan<?= $p['is_popular'] ? ' is-popular' : '' ?>" data-month="<?= (float)$p['price_month'] ?>" data-year="<?= (float)$p['price_year'] ?>">
-        <?php if ($p['is_popular']): ?><div class="badge-pop">Most Popular</div><?php endif; ?>
+      <article
+        class="rwu-plan<?= !empty($p['is_popular']) ? ' is-popular' : '' ?>"
+        data-month="<?= (float)$p['price_month'] ?>"
+        data-year="<?= (float)$p['price_year'] ?>"
+        data-month-url="<?= htmlspecialchars($p['cta_month_url']) ?>"
+        data-year-url="<?= htmlspecialchars($p['cta_year_url']) ?>"
+      >
+        <?php if (!empty($p['is_popular'])): ?><div class="badge-pop">Most Popular</div><?php endif; ?>
         <h3 class="rwu-plan__name"><?= htmlspecialchars($p['name']) ?></h3>
-        <div class="rwu-plan__tag"><?= htmlspecialchars($p['tag']) ?></div>
+        <?php if (!empty($p['tag'])): ?><div class="rwu-plan__tag"><?= htmlspecialchars($p['tag']) ?></div><?php endif; ?>
 
         <div class="rwu-price">
           <div class="rwu-price__currency"><?= $symbolLeft ?></div>
@@ -89,7 +234,7 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
         </div>
 
         <ul class="rwu-list">
-          <?php foreach ($p['features'] as $f): ?>
+          <?php foreach (($p['features'] ?? []) as $f): ?>
             <li class="rwu-li">
               <span class="rwu-bullet rwu-bullet--ok">
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 13.5l-3-3 1.4-1.4 1.6 1.6 4.9-4.9 1.4 1.4z" fill="currentColor"/></svg>
@@ -99,11 +244,44 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
           <?php endforeach; ?>
         </ul>
 
-        <a class="rwu-plan__cta" href="<?= htmlspecialchars($p['cta_url']) ?>">
-          Get Started
+        <!-- Single CTA that switches href when billing toggle changes -->
+               <?php
+          $hasSub   = !empty($hasActiveSubscription);
+          $isCurrent = !empty($p['is_current']);
+          $isUpgrade = !empty($p['is_upgrade']);
+
+          // Defaults for guests / no active subscription
+          $ctaLabel = 'Get Started';
+          $ctaHref  = htmlspecialchars($p['cta_month_url']);
+          $ctaClass = 'rwu-plan__cta js-cta';
+          $fineText = 'No contracts. Cancel anytime.';
+
+          if ($hasSub && $isCurrent) {
+              // Current plan: send user to their courses/dashboard
+              $ctaLabel = 'Go to my courses';
+              $ctaHref  = MyUtility::makeUrl('Courses'); // change to your dashboard route if needed
+              $ctaClass = 'rwu-plan__cta';               // no js-cta => JS won't override href
+              $fineText = 'Already subscribed – explore your courses.';
+          } elseif ($hasSub) {
+              // Other plans: user already has a subscription
+              $ctaLabel = $isUpgrade ? 'Upgrade subscription' : 'Change plan';
+              // href remains the selectSubjects flow
+              $fineText = 'You can change your plan anytime.';
+          }
+        ?>
+
+        <?php if ($hasSub && $isCurrent): ?>
+          <div class="rwu-plan__status" style="margin-bottom:6px;color:#16a34a;font-weight:700;font-size:17px;">
+            Your current plan
+          </div>
+        <?php endif; ?>
+
+        <a class="<?= $ctaClass ?>" href="<?= $ctaHref ?>">
+          <?= $ctaLabel ?>
           <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 4l10 8-10 8V4z" fill="currentColor"/></svg>
         </a>
-        <div class="rwu-plan__fine">No contracts. Cancel anytime.</div>
+        <div class="rwu-plan__fine"><?= $fineText; ?></div>
+
       </article>
       <?php endforeach; ?>
     </div>
@@ -141,24 +319,24 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
   <div class="a">Yes. You can switch at any time from your account billing page. We prorate automatically.</div>
 
   <div class="q">Do you offer refunds?</div>
-  <div class="a">We provide a 7-day money-back guarantee on new subscriptions. Cancel within 7 days for a full refund.</div>
+  <div class="a">We provide a 1-day money-back guarantee on new subscriptions. Cancel within 1 days for a full refund.</div>
 
   <div class="q">Is there a plan for schools?</div>
   <div class="a">Yes. The Teams plan includes admin controls and analytics. Contact us to tailor for your institution.</div>
 </section>
 
 <!-- Final CTA -->
-<section class="cta-final">
+<!-- <section class="cta-final">
   <h3 style="color:#0A033C;margin-bottom:10px;">Ready to level up?</h3>
   <p style="color:#5F6C76;margin-bottom:18px;">Start today—cancel anytime.</p>
   <a class="btn" href="<?= MyUtility::makeUrl('Signup') ?>">
     Get Started
     <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 4l10 8-10 8V4z" fill="currentColor"/></svg>
   </a>
-</section>
+</section> -->
 
 <script>
-// Monthly / Yearly toggle (pure front-end)
+// Monthly / Yearly toggle (pure front-end) + switch CTA hrefs
 (function(){
   const chk = document.getElementById('billYearly');
   const cards = document.querySelectorAll('.rwu-plan');
@@ -167,14 +345,20 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
     cards.forEach(card => {
       const amt = card.querySelector('.js-amount');
       const period = card.querySelector('.js-period');
+      const cta = card.querySelector('.js-cta');
       const m = parseFloat(card.dataset.month || '0');
       const y = parseFloat(card.dataset.year || '0');
+      const mUrl = card.dataset.monthUrl || '#';
+      const yUrl = card.dataset.yearUrl || '#';
+
       if (chk.checked) {
-        amt.textContent = (y).toFixed(0);
+        amt.textContent = (y || 0).toFixed(0);
         period.textContent = '/year';
+        if (cta) cta.href = yUrl;
       } else {
-        amt.textContent = (m).toFixed(0);
+        amt.textContent = (m || 0).toFixed(0);
         period.textContent = '/month';
+        if (cta) cta.href = mUrl;
       }
     });
   }
@@ -189,4 +373,11 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
     });
   });
 })();
+ const levelSelect = document.getElementById('levelSelect');
+  if (levelSelect) {
+    levelSelect.addEventListener('change', function () {
+      const form = document.getElementById('levelFilterForm');
+      if (form) form.submit();
+    });
+  }
 </script>

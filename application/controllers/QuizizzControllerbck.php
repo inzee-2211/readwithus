@@ -18,53 +18,205 @@ class QuizizzController extends MyAppController
      *
      * @return void
      */
-    public function index()
-    {
-$subtopic = isset($_GET['subtopic']) ? (int)$_GET['subtopic'] : 0;
+//     public function index()
+//     {
+// $subtopic = isset($_GET['subtopic']) ? (int)$_GET['subtopic'] : 0;
 
-    if ($subtopic <= 0) {
-        echo "Error: subtopic ID is missing or invalid in URL.";
-        exit;
+//     if ($subtopic <= 0) {
+//         echo "Error: subtopic ID is missing or invalid in URL.";
+//         exit;
+//     }
+
+//         $courseId = $this->getCourseIdBySubtopic($subtopic); 
+//         $this->set('courseId', $courseId);
+
+//         $subtopicNAme = $this->getSubjectNameById($subtopic);
+
+//         $alltopics = $this->getTopicnames($subtopic);
+//         $previouspapers = $this->getPreviouspapers($subtopic);
+
+//         $params = FatApp::getQueryStringData();
+//         $data = [];
+//         if (isset($params['catg']) && $params['catg'] > 0) {
+//             $data['course_cate_id'] = [$params['catg']];
+//         }
+//         $searchSession = $_SESSION[AppConstant::SEARCH_SESSION] ?? [];
+//         // $subtopicId = $_SESSION[$subtopicId] ?? [];
+//         $_SESSION['subtopicId'] = $subtopic;
+//         $_SESSION['subtopicName'] = $subtopicNAme;
+
+
+
+//         $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
+//         $srchFrm->fill($data + $searchSession);
+//         unset($_SESSION[AppConstant::SEARCH_SESSION]);
+//         $this->set('srchFrm', $srchFrm);
+//         $this->set('subtopicId', $subtopic);
+//         $this->set('alltopics', $alltopics);
+//         $this->set('previouspapers', $previouspapers);
+//         $this->set('filterTypes', Course::getFilterTypes());
+//         $this->_template->render();
+//     }
+
+
+//     private function getCourseIdBySubtopic($subtopicId) {
+//     $db = FatApp::getDb();
+//     $query = "SELECT course_id FROM course_subtopics WHERE id = " . (int)$subtopicId;
+//     $result = $db->fetch($db->query($query));
+//     return $result['course_id'] ?? 0;
+//     }
+
+public function index()
+{
+    // 0) Require setup_id from query string (used to know which path we are on)
+    $setupId = isset($_GET['setup_id']) ? (int)$_GET['setup_id'] : 0;
+    if ($setupId <= 0) {
+        FatUtility::exitWithErrorCode(404);
     }
 
-        $courseId = $this->getCourseIdBySubtopic($subtopic); 
-        $this->set('courseId', $courseId);
-
-        $subtopicNAme = $this->getSubjectNameById($subtopic);
-
-        $alltopics = $this->getTopicnames($subtopic);
-        $previouspapers = $this->getPreviouspapers($subtopic);
-
-        $params = FatApp::getQueryStringData();
-        $data = [];
-        if (isset($params['catg']) && $params['catg'] > 0) {
-            $data['course_cate_id'] = [$params['catg']];
-        }
-        $searchSession = $_SESSION[AppConstant::SEARCH_SESSION] ?? [];
-        // $subtopicId = $_SESSION[$subtopicId] ?? [];
-        $_SESSION['subtopicId'] = $subtopic;
-        $_SESSION['subtopicName'] = $subtopicNAme;
-
-
-
-        $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-        $srchFrm->fill($data + $searchSession);
-        unset($_SESSION[AppConstant::SEARCH_SESSION]);
-        $this->set('srchFrm', $srchFrm);
-        $this->set('subtopicId', $subtopic);
-        $this->set('alltopics', $alltopics);
-        $this->set('previouspapers', $previouspapers);
-        $this->set('filterTypes', Course::getFilterTypes());
-        $this->_template->render();
-    }
-
-
-    private function getCourseIdBySubtopic($subtopicId) {
     $db = FatApp::getDb();
-    $query = "SELECT course_id FROM course_subtopics WHERE id = " . (int)$subtopicId;
-    $result = $db->fetch($db->query($query));
-    return $result['course_id'] ?? 0;
+
+    // 1) Fetch the selected setup row (to get subject/level/examboard/tier/year + names)
+    $setupSql = "
+        SELECT 
+            qs.id,
+            qs.topic_name,
+            qs.level_id,
+            qs.subject_id,
+            qs.examboard_id,
+            qs.tier_id,
+            qs.year_id,
+
+            lvl.level_name      AS level_name,
+            subj.subject        AS subject_name,
+            eb.name             AS examboard_name,
+            tr.name             AS tier_name,
+            yr.name             AS year_name
+        FROM tbl_quiz_setup qs
+        LEFT JOIN course_levels     lvl   ON lvl.id  = qs.level_id
+        LEFT JOIN course_subjects   subj  ON subj.id = qs.subject_id
+        LEFT JOIN course_examboards eb    ON eb.id   = qs.examboard_id
+        LEFT JOIN course_tier       tr    ON tr.id   = qs.tier_id
+        LEFT JOIN course_year       yr    ON yr.id   = qs.year_id
+        WHERE qs.id = " . (int)$setupId . "
+        LIMIT 1
+    ";
+    $setupRs = $db->query($setupSql);
+    $setup   = $db->fetch($setupRs);
+
+    if (!$setup) {
+        FatUtility::exitWithErrorCode(404);
     }
+
+    // IDs / names for header
+    $subjectId   = (int)$setup['subject_id'];
+    $examboardId = (int)$setup['examboard_id'];
+    $yearId      = (int)$setup['year_id'];
+
+    $subjectName    = (string)($setup['subject_name']    ?? 'Subject');
+    $levelName      = (string)($setup['level_name']      ?? '');
+    $examboardName  = (string)($setup['examboard_name']  ?? '');
+    $tierName       = (string)($setup['tier_name']       ?? '');
+    $yearName       = (string)($setup['year_name']       ?? '');
+
+    // 2) Session values used by view header
+    $_SESSION['setupId']     = $setupId;
+    $_SESSION['subjectId']   = $subjectId;
+    $_SESSION['subjectName'] = $subjectName;
+
+    // 3) Search form (unchanged)
+    $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
+    $srchFrm->fill([]);
+    unset($_SESSION[AppConstant::SEARCH_SESSION]);
+
+    // 4) Fetch **all topics** (all setup rows) for this path (level+subject+examboard+tier+year)
+    $topicsSqlWhere  = [
+        'qs.level_id    = ' . (int)$setup['level_id'],
+        'qs.subject_id  = ' . (int)$setup['subject_id'],
+        'qs.year_id     = ' . (int)$setup['year_id'],
+    ];
+    if (!empty($setup['examboard_id'])) {
+        $topicsSqlWhere[] = 'qs.examboard_id = ' . (int)$setup['examboard_id'];
+    }
+    if (!empty($setup['tier_id'])) {
+        $topicsSqlWhere[] = 'qs.tier_id      = ' . (int)$setup['tier_id'];
+    }
+
+    $topicsSql = "
+        SELECT qs.id, qs.topic_name
+        FROM tbl_quiz_setup qs
+        WHERE " . implode(' AND ', $topicsSqlWhere) . "
+        ORDER BY qs.topic_name ASC
+    ";
+
+    $topicsRs = $db->query($topicsSql);
+    $allTopics = $db->fetchAll($topicsRs) ?: [];
+
+    // 5) For each topic, fetch its subtopics from tbl_quiz_management
+    $topics = [];
+    foreach ($allTopics as $tRow) {
+        $tid   = (int)$tRow['id'];
+        $tName = (string)$tRow['topic_name'];
+
+        $mgmtSql = "
+            SELECT 
+                id,
+                subtopic_name,
+                video_url,
+                pdf_path,
+                answer_pdf_path
+            FROM tbl_quiz_management
+            WHERE quiz_setup_id = " . $tid . "
+            ORDER BY position ASC, id ASC
+        ";
+        $mgmtRs = $db->query($mgmtSql);
+
+        $subtopics = [];
+        if ($mgmtRs) {
+            foreach ($db->fetchAll($mgmtRs) as $r) {
+                $subtopics[] = [
+                    'id'                 => (int)$r['id'],
+                    'name'               => $r['subtopic_name'],
+                    'video_url'          => $r['video_url'],
+                    'previous_paper_pdf' => $r['pdf_path'],
+                    'answer_pdf_path'    => $r['answer_pdf_path'] ?? ''
+                ];
+            }
+        }
+
+        $topics[] = [
+            'setup_id'   => $tid,
+            'topic_name' => $tName,
+            'subtopics'  => $subtopics,
+        ];
+    }
+
+    // Optional: keep subtopics for the currently selected topic if you still need them elsewhere
+    $currentSubtopics = [];
+    foreach ($topics as $t) {
+        if ($t['setup_id'] === $setupId) {
+            $currentSubtopics = $t['subtopics'];
+            break;
+        }
+    }
+
+    // 6) Pass data to view
+    $this->set('srchFrm',        $srchFrm);
+    $this->set('setupId',        $setupId);
+    $this->set('topics',         $topics);          // <- NEW: all topics + subtopics
+    $this->set('subtopics',      $currentSubtopics); // if you still want single-topic data
+    $this->set('examboardId',    $examboardId);
+    $this->set('yearId',         $yearId);
+
+    $this->set('levelName',      $levelName);
+    $this->set('examboardName',  $examboardName);
+    $this->set('tierName',       $tierName);
+    $this->set('yearName',       $yearName);
+
+    $this->set('filterTypes',    Course::getFilterTypes());
+
+    $this->_template->render();
+}
 
     public function submitSignup()
     {

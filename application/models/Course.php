@@ -169,15 +169,38 @@ class Course extends MyAppModel
      * @param integer $key
      * @return string|array
      */
-    public static function getCourseLevels(int $key = null)
-    {
-        $levelList = json_decode(FatApp::getConfig('CONF_COURSE_LEVELS'));
-        $arr = [];
-        foreach ($levelList as $level) {
-            $arr[$level->id] = Label::getLabel('LBL_' . $level->name);
+// In Course class
+public static function getCourseLevels(int $key = null)
+{
+    $db   = FatApp::getDb();
+    $srch = new SearchBase('course_levels', 'cl');
+    $srch->addMultipleFields(['cl.id', 'cl.level_name']);
+    $srch->addOrder('cl.id', 'ASC');
+    $rs   = $srch->getResultSet();
+
+    $arr = [];
+    while ($row = $db->fetch($rs)) {
+        // Try to use label system like before, but fall back to plain text.
+        $labelKey = 'LBL_' . strtoupper(preg_replace('/\s+/', '_', $row['level_name']));
+        $label    = Label::getLabel($labelKey);
+        if (empty($label)) {
+            $label = $row['level_name']; // fallback
         }
-        return AppConstant::returArrValue($arr, $key);
+        $arr[(int)$row['id']] = $label;
     }
+
+    // Fallback to old JSON config if table is empty (for safety / backward compat)
+    if (empty($arr)) {
+        $levelList = json_decode(FatApp::getConfig('CONF_COURSE_LEVELS'));
+        if (is_array($levelList)) {
+            foreach ($levelList as $level) {
+                $arr[$level->id] = Label::getLabel('LBL_' . $level->name);
+            }
+        }
+    }
+
+    return AppConstant::returArrValue($arr, $key);
+}
 
     /**
      * Get Course Filter Types

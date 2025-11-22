@@ -1,6 +1,7 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 $priceSorting = AppConstant::getSortbyArr();
+
 ?>
 <div class="page-listing__head">
     <div class="row justify-content-between align-items-center">
@@ -132,10 +133,14 @@ $priceSorting = AppConstant::getSortbyArr();
                                         </span>
                                     </div>
                                 </div>
+                                <?php
+    $levelId   = (int)$course['course_level'];
+    $levelName = isset($levels[$levelId]) ? $levels[$levelId] : Label::getLabel('LBL_LEVEL_NOT_SET');
+?>
                                 <div class="course-stats__item">
                                     <span>
                                         <?php echo Label::getLabel('LBL_LEVEL:') ?>
-                                        <strong><?php echo $levels[$course['course_level']]; ?></strong>
+                                      <strong><?php echo $levelName; ?></strong>
                                     </span>
                                 </div>
                                 <div class="course-stats__item">
@@ -185,7 +190,7 @@ $priceSorting = AppConstant::getSortbyArr();
                                     </a>
                                 </div>
                                 <div class="course-actions__grid course-actions__grid-right">
-                                    <div class="course-controls">
+                                    <!-- <div class="course-controls">
                                         <div class="course-controls__item">
                                             <?php if (!$course['is_purchased']) { ?>
                                                 <?php if ($course['course_type'] == Course::TYPE_FREE) { ?>
@@ -223,7 +228,88 @@ $priceSorting = AppConstant::getSortbyArr();
                                                 </span>
                                             </a>
                                         </div>
-                                    </div>
+                                    </div> -->
+
+                                    <div class="course-controls">
+
+  <?php if (!empty($subscriptionMode) && $subscriptionMode === true): ?>
+      <!-- Subscription UI -->
+      <div class="course-controls__item">
+        <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
+          <h4 class="free-text"><?php echo Label::getLabel('LBL_FREE'); ?></h4>
+        <?php else: ?>
+          <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;padding:6px 10px;font-weight:600;">
+            <?php echo Label::getLabel('LBL_INCLUDED_IN_SUBSCRIPTION'); ?>
+          </span>
+        <?php endif; ?>
+      </div>
+<div class="course-controls__item">
+  <?php if (empty($hasActiveSub)): ?>
+    <?php
+      // Build level-aware pricing URL per course
+      $courseLevelId = (int)$course['course_level'];   // this is already available in $course
+      $levelPricingUrl = MyUtility::makeUrl('Pricing', 'index') . '?level_id=' . $courseLevelId;
+    ?>
+    <a href="<?php echo $levelPricingUrl; ?>" class="btn btn--primary">
+      <?php echo Label::getLabel('LBL_SUBSCRIBE_TO_UNLOCK'); ?>
+    </a>
+  <?php else: ?>
+ <a href="<?php echo MyUtility::makeUrl(
+                        'Tutorials',
+                        'startByCourse',
+                        [ $course['course_id'] ],   // ← you MUST pass courseId as param
+                        CONF_WEBROOT_DASHBOARD
+                ); ?>" class="btn btn--primary">
+      <?php echo Label::getLabel('LBL_GO_TO_COURSE'); ?>
+    </a>
+  <?php endif; ?>
+</div>
+
+      <div class="course-controls__item">
+        <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$course['course_slug']]); ?>" class="btn btn--bordered color-gray-500">
+          <span class="color-black"><?php echo Label::getLabel('LBL_VIEW_DETAILS'); ?></span>
+        </a>
+      </div>
+
+  <?php else: ?>
+      <!-- Legacy buy/enroll UI -->
+      <div class="course-controls__item">
+        <?php if (!$course['is_purchased']): ?>
+          <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
+            <h4 class="free-text color-red"><?php echo Label::getLabel('LBL_FREE'); ?></h4>
+          <?php else: ?>
+            <h4 class="color-primary bold-700"><?php echo CourseUtility::formatMoney($course['course_price']); ?></h4>
+          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+
+      <div class="course-controls__item">
+        <?php if (!$course['is_purchased']): ?>
+          <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
+            <a href="javascript:void(0);" onclick="cart.addFreeCourse('<?php echo $course['course_id'] ?>');" class="btn btn--primary">
+              <?php echo Label::getLabel('LBL_ENROLL_NOW'); ?>
+            </a>
+          <?php else: ?>
+            <a href="javascript:void(0);" onclick="cart.addCourse('<?php echo $course['course_id'] ?>');" class="btn btn--primary">
+              <?php echo Label::getLabel('LBL_ENROLL_NOW'); ?>
+            </a>
+          <?php endif; ?>
+        <?php else: ?>
+          <a href="<?php echo MyUtility::makeUrl('Tutorials', 'start', [$course['ordcrs_id']], CONF_WEBROOT_DASHBOARD); ?>" class="btn btn--primary">
+            <?php echo Label::getLabel('LBL_GO_TO_COURSE'); ?>
+          </a>
+        <?php endif; ?>
+      </div>
+
+      <div class="course-controls__item">
+        <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$course['course_slug']]); ?>" class="btn btn--bordered color-gray-500">
+          <span class="color-black"><?php echo Label::getLabel('LBL_VIEW_DETAILS'); ?></span>
+        </a>
+      </div>
+  <?php endif; ?>
+
+</div>
+
                                 </div>
                             </div>
                         </div>
@@ -253,12 +339,12 @@ $priceSorting = AppConstant::getSortbyArr();
         $this->includeTemplate('_partial/pagination.php', $pagingArr, false);
         ?>
     </div>
-    <?php
+    <!-- <?php
     $checkoutForm->setFormTagAttribute('class', 'd-none');
     $checkoutForm->setFormTagAttribute('name', 'frmCheckout');
     $checkoutForm->setFormTagAttribute('id', 'frmCheckout');
     echo $checkoutForm->getFormHtml();
-    ?>
+    ?> -->
 </div>
 <script>
     var _body = $('body');

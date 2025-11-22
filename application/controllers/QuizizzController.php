@@ -13,19 +13,36 @@ class QuizizzController extends MyAppController
         parent::__construct($action);
     }
 
-  public function index()
+ public function index()
 {
-    // 0) Require setup_id from query string
-    $setupId = isset($_GET['setup_id']) ? (int)$_GET['setup_id'] : 0;
-    if ($setupId <= 0) {
-        echo "Error: setup ID is missing or invalid in URL.";
-        exit;
-    }
-
     $db = FatApp::getDb();
 
-    // 1) Fetch setup row + all display names in ONE query
-    //    We join levels, subjects, exam boards, tier, year to get their human-readable names.
+    /**
+     * 1) Read setup IDs from querystring
+     *    - preferred: setup_ids=30,31,32
+     *    - fallback:  setup_id=30 (old behaviour)
+     */
+    $setupIdsParam = FatApp::getQueryStringData('setup_ids', FatUtility::VAR_STRING, '');
+    $setupIds      = array_filter(array_map('intval', explode(',', (string)$setupIdsParam)));
+
+    if (empty($setupIds)) {
+        $singleSetupId = FatApp::getQueryStringData('setup_id', FatUtility::VAR_INT, 0);
+        if ($singleSetupId > 0) {
+            $setupIds = [(int)$singleSetupId];
+        }
+    }
+
+    if (empty($setupIds)) {
+        // nothing to resolve → 404
+        FatUtility::exitWithErrorCode(404);
+    }
+
+    /**
+     * 2) Fetch ALL matching setup rows (topics)
+     *    We also join levels/subjects/etc to get display names.
+     */
+    $idsSql = implode(',', array_map('intval', $setupIds));
+
     $setupSql = "
         SELECT 
             qs.id,
@@ -47,79 +64,112 @@ class QuizizzController extends MyAppController
         LEFT JOIN course_examboards eb    ON eb.id   = qs.examboard_id
         LEFT JOIN course_tier       tr    ON tr.id   = qs.tier_id
         LEFT JOIN course_year       yr    ON yr.id   = qs.year_id
-        WHERE qs.id = " . (int)$setupId . "
-        LIMIT 1
+        WHERE qs.id IN ($idsSql)
+        ORDER BY qs.topic_name ASC
     ";
 
-    $setupRs = $db->query($setupSql);
-    $setup   = $db->fetch($setupRs);
+    $setupRs  = $db->query($setupSql);
+    $setups   = $db->fetchAll($setupRs);
 
-    if (!$setup) {
-        echo "Error: setup not found.";
-        exit;
+    if (empty($setups)) {
+        FatUtility::exitWithErrorCode(404);
     }
 
-    // IDs
-    $subjectId   = (int)$setup['subject_id'];
-    $examboardId = (int)$setup['examboard_id'];
-    $yearId      = (int)$setup['year_id'];
+    // Use the FIRST setup row as the “anchor” for header + session
+    $firstSetup = reset($setups);
 
-    // Display names
-    $topicTitle     = (string)($setup['topic_name']      ?? 'Topic');
-    $subjectName    = (string)($setup['subject_name']    ?? 'Subject');
-    $levelName      = (string)($setup['level_name']      ?? '');
-    $examboardName  = (string)($setup['examboard_name']  ?? '');
-    $tierName       = (string)($setup['tier_name']       ?? '');
-    $yearName       = (string)($setup['year_name']       ?? '');
+    $subjectId   = (int)$firstSetup['subject_id'];
+    $examboardId = (int)$firstSetup['examboard_id'];
+    $yearId      = (int)$firstSetup['year_id'];
 
-    // 2) Session values used by view header
-    $_SESSION['setupId']     = $setupId;
+    $subjectName   = (string)($firstSetup['subject_name']   ?? 'Subject');
+    $levelName     = (string)($firstSetup['level_name']     ?? '');
+    $examboardName = (string)($firstSetup['examboard_name'] ?? '');
+    $tierName      = (string)($firstSetup['tier_name']      ?? '');
+    $yearName      = (string)($firstSetup['year_name']      ?? '');
+    $topicTitle    = (string)($firstSetup['topic_name']     ?? 'Topic'); // kept for backwards compatibility
+
+    /**
+     * 3) Session values used by the header / other places
+     */
+    $_SESSION['setupId']     = (int)$firstSetup['id'];   // keep old behaviour
     $_SESSION['subjectId']   = $subjectId;
-    // IMPORTANT: now store the actual subject as the main heading
     $_SESSION['subjectName'] = $subjectName;
 
-    // 3) Search form (unchanged)
+    /**
+     * 4) Search form (unchanged)
+     */
     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
     $srchFrm->fill([]);
     unset($_SESSION[AppConstant::SEARCH_SESSION]);
 
-    // 4) Centralized subtopic media & IDs for this setup
-    //    Also select answer_pdf_path so the Answer Paper button works.
+    /**
+     * 5) Fetch all subtopics for ALL these setups in one go
+     *    from tbl_quiz_management.
+     */
     $mgmtSql = "
         SELECT 
+            quiz_setup_id,
             id,
             subtopic_name,
             video_url,
             pdf_path,
             answer_pdf_path
         FROM tbl_quiz_management
-        WHERE quiz_setup_id = " . (int)$setupId . "
-        ORDER BY position ASC, id ASC
+        WHERE quiz_setup_id IN ($idsSql)
+        ORDER BY quiz_setup_id ASC, position ASC, id ASC
     ";
-    $mgmtRs  = $db->query($mgmtSql);
+    $mgmtRs   = $db->query($mgmtSql);
+    $mgmtRows = $mgmtRs ? $db->fetchAll($mgmtRs) : [];
 
-    $subtopics = [];
-    if ($mgmtRs) {
-        foreach ($db->fetchAll($mgmtRs) as $r) {
-            $subtopics[] = [
-                'id'                 => (int)$r['id'],           // subtopic ID (for quizfocus etc.)
-                'name'               => $r['subtopic_name'],
-                'video_url'          => $r['video_url'],
-                'previous_paper_pdf' => $r['pdf_path'],          // QUESTION paper
-                'answer_pdf_path'    => $r['answer_pdf_path'] ?? '' // ANSWER paper
-            ];
+    // Group subtopics by quiz_setup_id
+    $subtopicsBySetup = [];
+    foreach ($mgmtRows as $row) {
+        $sid = (int)$row['quiz_setup_id'];
+        if (!isset($subtopicsBySetup[$sid])) {
+            $subtopicsBySetup[$sid] = [];
         }
+        $subtopicsBySetup[$sid][] = [
+            'id'                 => (int)$row['id'],
+            'name'               => $row['subtopic_name'],
+            'video_url'          => $row['video_url'],
+            'previous_paper_pdf' => $row['pdf_path'],                 // question paper
+            'answer_pdf_path'    => $row['answer_pdf_path'] ?? '',    // answer paper
+        ];
     }
 
-    // 5) Pass to view
+    /**
+     * 6) Build topics array for the view
+     *    Each "topic" = one row in tbl_quiz_setup with its own subtopics.
+     */
+    $topics = [];
+    foreach ($setups as $sRow) {
+        $sid = (int)$sRow['id'];
+        $topics[] = [
+            'setup_id'   => $sid,
+            'topic_name' => $sRow['topic_name'],
+            'subtopics'  => $subtopicsBySetup[$sid] ?? [],
+        ];
+    }
+
+    // For backwards compatibility with your existing view which expects $subtopics:
+    $currentSubtopics = [];
+    if (!empty($topics)) {
+        $currentSubtopics = $topics[0]['subtopics'];  // first topic’s subtopics
+    }
+
+    /**
+     * 7) Pass everything to the template
+     */
     $this->set('srchFrm',        $srchFrm);
-    $this->set('setupId',        $setupId);
-    $this->set('topicTitle',     $topicTitle);        // used in header + accordion
+    $this->set('setupId',        (int)$firstSetup['id']); // primary id
+    $this->set('topics',         $topics);    
+    $this->set('setupIdsParam',  $setupIdsParam);             // NEW: all topics + subtopics
+    $this->set('subtopics',      $currentSubtopics);      // legacy single-topic data
+    $this->set('topicTitle',     $topicTitle);
     $this->set('examboardId',    $examboardId);
     $this->set('yearId',         $yearId);
-    $this->set('subtopics',      $subtopics);         // used by Video/Quiz/Paper tabs
 
-    // NEW: pass the names for the header path
     $this->set('levelName',      $levelName);
     $this->set('examboardName',  $examboardName);
     $this->set('tierName',       $tierName);

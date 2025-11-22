@@ -6,12 +6,25 @@ if (count($courses) == 0) {
 }
 $requestStatuses = Course::getRefundStatuses();
 ?>
+
+ 
 <div class="course-group">
     <!-- [ COURSE CARD ========= -->
     <?php 
     
    
-    foreach ($courses as $course) { ?>
+    foreach ($courses as $course) {
+            $course['can_view_course'] = $course['can_view_course'] ?? true;
+        $course['can_edit_course'] = $course['can_edit_course'] ?? false;
+        $course['can_delete_course'] = $course['can_delete_course'] ?? false;
+        $course['can_cancel_course'] = $course['can_cancel_course'] ?? false;
+        $course['can_rate_course'] = $course['can_rate_course'] ?? false;
+        $course['can_retake_course'] = $course['can_retake_course'] ?? false;
+        $course['can_download_certificate'] = $course['can_download_certificate'] ?? false;
+        $course['crspro_progress'] = $course['crspro_progress'] ?? 0;
+        $course['crspro_status'] = $course['crspro_status'] ?? CourseProgress::PENDING;
+        $course['ordcrs_id'] = $course['ordcrs_id'] ?? 0;
+        $course['crspro_id'] = $course['crspro_id'] ?? 0; ?>
         <div class="card-course">
             <div class="card-course__colum card-course__colum--first">
                 <div class="ratio ratio--16by9">
@@ -154,7 +167,7 @@ $requestStatuses = Course::getRefundStatuses();
                             </a>
                         <?php } ?>
                     <?php } elseif ($course['can_view_course']) { ?>
-                        <a href="<?php echo MyUtility::makeUrl('Tutorials', 'start', [$course['ordcrs_id']]); ?>" title="<?php echo Label::getLabel('LBL_VIEW'); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
+                       <a href="<?php echo MyUtility::makeUrl('Tutorials', 'startByCourse', [$course['course_id']]); ?>" title="<?php echo Label::getLabel('LBL_VIEW'); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                             <svg class="icon icon--enter icon--18">
                                 <use xlink:href="<?php echo CONF_WEBROOT_URL; ?>images/sprite.svg#view-icon"></use>
                             </svg>

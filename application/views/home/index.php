@@ -77,7 +77,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
     <!-- RIGHT: Art -->
     <div class="rw-hero__art">
       <div class="rw-hero__art-inner">
-        <img class="rw-hero__img" src="<?= $heroBase ?>hero-girl.svg" alt="Student with laptop">
+        <img class="rw-hero__img" src="<?= $heroBase ?>Hero-section.png" alt="Student with laptop">
 <!-- Connector lines (SVG) -->
 <!-- <svg class="rw-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"> -->
   <!-- Left curve: from BOOK (top:15%, left:-9%) to PERSON (top:50%, left:-7%) -->
@@ -90,7 +90,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
 </svg> -->
 
         <!-- Floating cards -->
-        <div class="rw-badge rw-badge--book">
+        <!-- <div class="rw-badge rw-badge--book">
           <img src="<?= $heroBase ?>book.svg" alt="Book">
         </div>
         <div class="rw-badge rw-badge--presentation">
@@ -101,7 +101,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
         </div>
         <div class="rw-badge rw-badge--blocks">
           <img src="<?= $heroBase ?>dice.svg" alt="Blocks">
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
@@ -437,6 +437,55 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 
 
 
+<?php
+// --- Pricing data wiring (same idea as pricing/index.php) ---
+
+$symbolLeft  = $siteCurrency['currency_symbol_left'] ?? '£';
+$symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
+
+$plans             = $plans ?? [];
+$hasActiveSubscription = $hasActiveSubscription ?? false;
+$currentPackageId      = $currentPackageId ?? 0;
+
+// Base path for decorative images used in home hero cards
+// (adjust if your assets live somewhere else)
+$heroBase = $heroBase ?? CONF_WEBROOT_URL . 'images/home/';
+
+// Normalize $plans:
+// If controller passed DB rows (spackage_*), map them to card shape.
+if (!empty($plans) && is_array($plans)) {
+    foreach ($plans as $idx => $p) {
+        if (isset($p['spackage_id'])) {
+            $plans[$idx] = [
+                'id'          => (int)$p['spackage_id'],
+                'name'        => (string)$p['spackage_name'],
+                'tag'         => (string)($p['spackage_description'] ?? ''),
+                'price_month' => (float)$p['spackage_price_monthly'],
+                'price_year'  => (float)$p['spackage_price_yearly'],
+                'features'    => [
+                    'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
+                    'Unlimited courses in selected subjects',
+                    'Email/priority support',
+                ],
+            ];
+        } else {
+            // seeded / static data safety
+            $plans[$idx]['id']          = $plans[$idx]['id']          ?? ($idx+1);
+            $plans[$idx]['name']        = $plans[$idx]['name']        ?? ('Plan '.($idx+1));
+            $plans[$idx]['tag']         = $plans[$idx]['tag']         ?? '';
+            $plans[$idx]['price_month'] = (float)($plans[$idx]['price_month'] ?? 0);
+            $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month']*12));
+            $plans[$idx]['features']    = $plans[$idx]['features']    ?? [];
+        }
+    }
+
+    // Add checkout URL (monthly only, home page is a simple entry point)
+    foreach ($plans as $idx => $p) {
+        $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'monthly' ]);
+    }
+}
+?>
+
 <section class="rwu-pricing" aria-labelledby="pricing-title">
   <div class="wrap">
     <div class="pill">Our Packages</div>
@@ -449,147 +498,111 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
       Explore flexible plans crafted for every learner – from quick revisions to full-length courses, all at affordable rates.
     </p>
 
+    <?php if (!empty($levels)): ?>
+        <div class="level-filter">
+    <label for="levelSelect">Select your level</label>
+      <div class="level-tabs">
+        <?php foreach ($levels as $levelId => $levelName): ?>
+          <?php
+            $active = ((int)$selectedLevelId === (int)$levelId) ? 'active' : '';
+            // home URL with level_id param
+            $url = MyUtility::makeUrl('Home') . '?level_id=' . (int)$levelId;
+          ?>
+          <a href="<?= $url; ?>" class="level-tab <?= $active; ?>">
+            <?= htmlspecialchars($levelName); ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
+      </div>
+    <?php endif; ?>
+
+
     <div class="grid">
-      <!-- FREE -->
-      <article class="rwu-plan" aria-labelledby="plan-free">
-        <!-- Optional decorative art -->
-        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__1.png" alt="" role="presentation" />
-        <h3 id="plan-free" class="rwu-plan__name">FREE</h3>
+      <?php if (!empty($plans)): ?>
+        <?php foreach ($plans as $idx => $p): ?>
+          <?php
+            // Pick decorative image by index (1,2,3...) – fallback safe
+            $artIndex = $idx + 1;
+            $artSrc   = $heroBase . 'price__' . $artIndex . '.png';
 
-        <div class="rwu-price" aria-label="$0 per month">
-          <span class="rwu-price__currency">$</span>
-          <span class="rwu-price__amount">0</span>
-          <span class="rwu-price__period">/ month</span>
-        </div>
+            $planId   = (int)$p['id'];
+            $price    = (float)$p['price_month'];
+            $name     = (string)$p['name'];
+            $tag      = (string)($p['tag'] ?? '');
+            $features = $p['features'] ?? [];
 
-        <p class="rwu-plan__tag">Perfect for startup</p>
+            // CTA defaults
+            $ctaHref  = htmlspecialchars($p['cta_month_url'] ?? '#');
+            $ctaLabel = 'Get Started';
+            $fineText = 'No credit card required';
 
-        <ul class="rwu-list">
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
-              <!-- check -->
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="rwu-li__text">2 user</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="rwu-li__text">Learning Scope</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="rwu-li__text">Team collaboration</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="rwu-li__text">Export HTML code</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="rwu-li__text">Upload Your Logo</span>
-          </li>
-        </ul>
+            if (!empty($hasActiveSubscription) && $planId === (int)$currentPackageId) {
+                $ctaHref  = MyUtility::makeUrl('Courses');
+                $ctaLabel = 'Go to my courses';
+                $fineText = 'You’re currently on this plan.';
+            }
+          ?>
 
-        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Free">
-          Get Started
-        </button>
-        <div class="rwu-plan__fine">No credit card required</div>
-      </article>
+          <article class="rwu-plan" aria-labelledby="plan-<?= $planId; ?>">
+            <img class="rwu-plan__art"
+                 src="<?= $artSrc; ?>"
+                 alt=""
+                 role="presentation" />
 
-      <!-- BASIC -->
-      <article class="rwu-plan" aria-labelledby="plan-basic">
-        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__2.png" alt="" role="presentation" />
-        <h3 id="plan-basic" class="rwu-plan__name">BASIC</h3>
+            <h3 id="plan-<?= $planId; ?>" class="rwu-plan__name">
+              <?= htmlspecialchars($name); ?>
+            </h3>
 
-        <div class="rwu-price" aria-label="$29 per month">
-          <span class="rwu-price__currency">$</span>
-          <span class="rwu-price__amount">29</span>
-          <span class="rwu-price__period">/ month</span>
-        </div>
+            <div class="rwu-price" aria-label="<?= $symbolLeft . $price ?> per month">
+              <span class="rwu-price__currency"><?= $symbolLeft; ?></span>
+              <span class="rwu-price__amount">
+                <?= number_format($price, 0); ?>
+              </span>
+              <span class="rwu-price__period">/ month</span>
+            </div>
 
-        <p class="rwu-plan__tag">Perfect for startup</p>
+            <?php if ($tag !== ''): ?>
+              <p class="rwu-plan__tag"><?= htmlspecialchars($tag); ?></p>
+            <?php else: ?>
+              <p class="rwu-plan__tag">Perfect for focused study</p>
+            <?php endif; ?>
 
-        <ul class="rwu-list">
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">5 user</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Learning Scope</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Team collaboration</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Export HTML code</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Upload Your Logo</span>
-          </li>
-        </ul>
+            <ul class="rwu-list">
+              <?php foreach ($features as $feat): ?>
+                <li class="rwu-li">
+                  <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17l-5-5"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span class="rwu-li__text"><?= htmlspecialchars($feat); ?></span>
+                </li>
+              <?php endforeach; ?>
+            </ul>
 
-        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Basic">
-          Get Started
-        </button>
-        <div class="rwu-plan__fine">No credit card required</div>
-      </article>
+            <a class="rwu-plan__cta"
+               href="<?= $ctaHref; ?>"
+               aria-label="<?= $ctaLabel; ?> for <?= htmlspecialchars($name); ?>">
+              <?= $ctaLabel; ?>
+            </a>
 
-      <!-- PRO -->
-      <article class="rwu-plan" aria-labelledby="plan-pro">
-        <img class="rwu-plan__art" src="<?= $heroBase ?? '' ?>price__3.png" alt="" role="presentation" />
-        <h3 id="plan-pro" class="rwu-plan__name">PRO</h3>
-
-        <div class="rwu-price" aria-label="$59 per month">
-          <span class="rwu-price__currency">$</span>
-          <span class="rwu-price__amount">59</span>
-          <span class="rwu-price__period">/ month</span>
-        </div>
-
-        <p class="rwu-plan__tag">Perfect for startup</p>
-
-        <ul class="rwu-list">
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">2 user</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Learning Scope</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Team collaboration</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--muted" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Export HTML code</span>
-          </li>
-          <li class="rwu-li">
-            <span class="rwu-bullet rwu-bullet--ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="rwu-li__text">Upload Your Logo</span>
-          </li>
-        </ul>
-
-        <button class="rwu-plan__cta" type="button" aria-label="Get Started with Pro">
-          Get Started
-        </button>
-        <div class="rwu-plan__fine">No credit card required</div>
-      </article>
+            <div class="rwu-plan__fine"><?= $fineText; ?></div>
+          </article>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <!-- Fallback if no plans yet -->
+        <p style="text-align:center; width:100%; margin-top:24px;">
+          Subscription plans are being updated. Please check back shortly.
+        </p>
+      <?php endif; ?>
     </div>
   </div>
 </section>
+
 
   <!-- TESTIMONIALS / WHAT THEY SAY -->
   <section class="rwu-testimonials" aria-label="What they say about us">
@@ -1016,4 +1029,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+</script>
+<script>
+document.getElementById("rwSearchBtn").addEventListener("click", function () {
+    window.location.href = "<?php echo MyUtility::makeUrl('Courses'); ?>";
+});
 </script>

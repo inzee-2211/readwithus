@@ -1,5 +1,69 @@
 <?php
+if (!function_exists('app_require')) {
+    function app_require(string $relativePath): void
+    {
+        // Normalize incoming relative path and block traversal
+        $rel = ltrim(str_replace(['\\', '//'], '/', $relativePath), '/');
+        if (strpos($rel, '..') !== false) {
+            throw new InvalidArgumentException('Invalid path: traversal not allowed.');
+        }
 
+        // Figure out project root and common bases
+        $dashboardDir = realpath(__DIR__ . '/..');          // .../dashboard
+        $projectRoot  = $dashboardDir ? realpath($dashboardDir . '/..') : null; // repo root
+        $application  = $projectRoot ? $projectRoot . '/application' : null;
+
+        // Build candidate bases to try (in order)
+        $bases = [];
+        if ($application && is_dir($application)) $bases[] = $application;
+        if ($projectRoot && is_dir($projectRoot)) $bases[] = $projectRoot;
+
+        // Consider CONF_APPLICATION_PATH only if it’s a dir
+        if (defined('CONF_APPLICATION_PATH') && is_dir(CONF_APPLICATION_PATH)) {
+            $bases[] = rtrim(CONF_APPLICATION_PATH, "/\\");
+            // Also try the parent of CONF_APPLICATION_PATH (sometimes points to project root)
+            $bases[] = rtrim(dirname(CONF_APPLICATION_PATH), "/\\");
+        }
+
+        // Try both the raw relative and an application-prefixed variant
+        $relatives = [$rel];
+        if (strpos($rel, 'application/') !== 0) {
+            $relatives[] = 'application/' . $rel;
+        }
+
+        // Attempt in order; return on first hit
+        $attempted = [];
+        foreach ($bases as $base) {
+            foreach ($relatives as $r) {
+                $full = rtrim($base, "/\\") . '/' . $r;
+                $attempted[] = $full;
+                if (is_file($full)) {
+                    require_once $full;
+                    return;
+                }
+            }
+        }
+
+        // Final: also try relative to THIS file’s grandparent (as a hard fallback)
+        $fallback = realpath(__DIR__ . '/../../') ?: null; // project root guess
+        if ($fallback) {
+            foreach ($relatives as $r) {
+                $full = rtrim($fallback, "/\\") . '/' . $r;
+                $attempted[] = $full;
+                if (is_file($full)) {
+                    require_once $full;
+                    return;
+                }
+            }
+        }
+
+        // No luck – show all attempts for quick diagnosis
+        throw new RuntimeException(
+            "Required file not found. Tried:\n- " . implode("\n- ", $attempted)
+        );
+    }
+}
+app_require('library/services/UnifiedCourseAccess.php');
 /**
  * This Controller is used for handling courses
  *
@@ -34,53 +98,152 @@ class CoursesController extends DashboardController
     /**
      * Search & List Plans
      */
-    public function search()
-    {
-        $frm = $this->getSearchForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid'])) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        /* get courses list */
-        if ($this->siteUserType == User::LEARNER) {
-            $srch = new OrderCourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-            $srch->addCondition('course.course_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
-            $srch->addCondition('orders.order_payment_status', '=', Order::ISPAID);
-            $srch->addSearchListingFields();
-            $srch->applyPrimaryConditions();
-            $srch->applySearchConditions($post);
-            $srch->addMultipleFields([
-                'course.course_id',
-                'course.course_price',
-                'course.course_currency_id',
-                'course.course_lectures',
-                'course.course_type',
-                'course.course_students',
-                'crsdetail.course_subtitle',
-                'crsdetail.course_title',
-                'course.course_ratings',
-                'ordcrs.ordcrs_teacher_paid',
-            ]);
-            $srch->addOrder('crspro_status', 'ASC');
-            $srch->addOrder('ordcrs_id', 'DESC');
-        } else {
-            $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-            $srch->addOrder('course_id', 'DESC');
-            $srch->applyPrimaryConditions();
-            $srch->addSearchListingFields();
-            $srch->applySearchConditions($post);
-        }
-        $srch->setPageSize($post['pagesize']);
-        $srch->setPageNumber($post['page']);
-        $this->sets([
-            'courses' => $srch->fetchAndFormat(),
-            'post' => $post,
-            'recordCount' => $srch->recordCount(),
-            'courseStatuses' => Course::getStatuses(),
-            'courseTypes' => Course::getTypes(),
-            'orderStatuses' => CourseProgress::getStatuses(),
-        ]);
-        $this->_template->render(false, false);
+   /**
+ * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+ */
+/**
+ * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+ */
+/**
+ * Search & List Courses - SUBSCRIPTION-AWARE (subjects → courses)
+ */
+/**
+ * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+ */
+public function search()
+{
+    $frm = $this->getSearchForm();
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid'])) {
+        FatUtility::dieJsonError(current($frm->getValidationErrors()));
     }
+
+    if ($this->siteUserType == User::LEARNER) {
+
+        $db = FatApp::getDb();
+
+        // 1) Get active user subscriptions with subject IDs (CSV)
+        $subscriptionSrch = new SearchBase('tbl_user_subscriptions', 'usubs');
+        $subscriptionSrch->addCondition('usubs_user_id', '=', $this->siteUserId);
+        $subscriptionSrch->addCondition('usubs_status', '=', 'active');
+        $subscriptionSrch->addMultipleFields(['usubs_subject_ids']);
+        $subscriptionRs = $subscriptionSrch->getResultSet();
+        $subscriptions = $db->fetchAll($subscriptionRs);
+
+        // Collect all subject IDs from all active subscriptions
+        $allSubjectIds = [];
+        foreach ($subscriptions as $subscription) {
+            if (!empty($subscription['usubs_subject_ids'])) {
+                $subjectIds = array_filter(
+                    array_map('intval', explode(',', $subscription['usubs_subject_ids']))
+                );
+                $allSubjectIds = array_merge($allSubjectIds, $subjectIds);
+            }
+        }
+
+        // Remove duplicates and ensure we have valid IDs
+        $allSubjectIds = array_unique(array_filter($allSubjectIds));
+
+        if (empty($allSubjectIds)) {
+            // No subjects in subscriptions - return empty results
+            $this->sets([
+                'courses'        => [],
+                'post'           => $post,
+                'recordCount'    => 0,
+                'courseStatuses' => Course::getStatuses(),
+                'courseTypes'    => Course::getTypes(),
+                'orderStatuses'  => CourseProgress::getStatuses(),
+            ]);
+            $this->_template->render(false, false);
+            return;
+        }
+
+        // 2) Derive allowed level_ids from these subjects
+        $allowedLevels = [];
+        $subjSrch = new SearchBase('course_subjects', 'sub');
+        $subjSrch->addCondition('sub.id', 'IN', $allSubjectIds);
+        $subjSrch->addMultipleFields(['sub.id', 'sub.level_id']);
+        $subjRs = $subjSrch->getResultSet();
+        $subjRows = $db->fetchAll($subjRs) ?: [];
+
+        foreach ($subjRows as $row) {
+            if (!empty($row['level_id'])) {
+                $allowedLevels[] = (int)$row['level_id'];
+            }
+        }
+        $allowedLevels = array_unique(array_filter($allowedLevels));
+
+        // 3) Build course search (subject + level filtered)
+        $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+        $srch->applyPrimaryConditions();
+
+        // Filter by subjects from subscription
+        $srch->addCondition('course.course_subject_id', 'IN', $allSubjectIds);
+
+        // Join course_subjects to enforce level consistency
+        $srch->joinTable('course_subjects', 'LEFT JOIN', 'sub.id = course.course_subject_id', 'sub');
+
+        if (!empty($allowedLevels)) {
+            // Filter by level as well (KCSE vs GCSE etc.)
+            $srch->addCondition('sub.level_id', 'IN', $allowedLevels);
+        }
+
+        // Apply existing search filters (keyword, status, etc.)
+        $srch->applySearchConditions($post);
+        $srch->addSearchListingFields();
+
+        // Legacy progress joins (if you still need them – kept as-is)
+        $srch->joinTable(
+            OrderCourse::DB_TBL,
+            'LEFT JOIN',
+            'ordcrs.ordcrs_course_id = course.course_id AND ordcrs.ordcrs_user_id = ' . $this->siteUserId,
+            'ordcrs'
+        );
+        $srch->joinTable(
+            CourseProgress::DB_TBL,
+            'LEFT JOIN',
+            'crspro.crspro_ordcrs_id = ordcrs.ordcrs_id',
+            'crspro'
+        );
+
+        $srch->addMultipleFields([
+            'ordcrs.ordcrs_id',
+            'ordcrs.ordcrs_status',
+            'crspro.crspro_progress',
+            'crspro.crspro_status',
+            'crspro.crspro_completed',
+            'crspro.crspro_id'
+        ]);
+
+        $srch->addOrder('crspro_status', 'ASC');
+        $srch->addOrder('course.course_id', 'DESC');
+
+    } else {
+        // Existing logic for teachers/admins
+        $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+        $srch->addOrder('course_id', 'DESC');
+        $srch->applyPrimaryConditions();
+        $srch->addSearchListingFields();
+        $srch->applySearchConditions($post);
+    }
+
+    $srch->setPageSize($post['pagesize']);
+    $srch->setPageNumber($post['page']);
+
+    $courses = $srch->fetchAndFormat();
+
+    $this->sets([
+        'courses'        => $courses,
+        'post'           => $post,
+        'recordCount'    => $srch->recordCount(),
+        'courseStatuses' => Course::getStatuses(),
+        'courseTypes'    => Course::getTypes(),
+        'orderStatuses'  => CourseProgress::getStatuses(),
+    ]);
+
+    $this->_template->render(false, false);
+}
+
+
     /**
      * Render Course Manage Page
      *
@@ -105,13 +268,13 @@ class CoursesController extends DashboardController
             $srch->setPageSize(1);
             if (!$course = FatApp::getDb()->fetch($srch->getResultSet())) {
                 Message::addErrorMessage(Label::getLabel('LBL_COURSE_NOT_FOUND'));
-                FatApp::redirectUser(MyUtility::generateUrl('Courses'));
+                FatApp::redirectUser(MyUtility::makeUrl('Courses'));
             }
             $courseTitle = $course['course_title'];
             $course = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
             if (!$course->canEditCourse()) {
                 Message::addErrorMessage(Label::getLabel('LBL_UNAUTHORIZED_ACCESS'));
-                FatApp::redirectUser(MyUtility::generateUrl('Courses'));
+                FatApp::redirectUser(MyUtility::makeUrl('Courses'));
             }
         }
 
@@ -142,6 +305,7 @@ class CoursesController extends DashboardController
                 'course_clang_id',
                 'course_level',
                 'course_details',
+                  'course_subject_id',
                 'course.course_id',
             ]);
             $srch->addCondition('course.course_id', '=', $courseId);
@@ -817,6 +981,31 @@ private function cleanIntendedLearnersData(array $post): array
         $frm->addResetButton('', 'btn_reset', Label::getLabel('LBL_RESET'));
         return $frm;
     }
+/**
+ * Get list of subjects for course subject dropdown
+ *
+ * @return array [id => label]
+ */
+private function getSubjectOptions(): array
+{
+    $db = FatApp::getDb();
+
+    // Adjust table name if needed (e.g. 'course_subjecs' or 'tbl_subjects')
+    $srch = new SearchBase('course_subjects', 's');
+    $srch->addMultipleFields(['s.id', 's.subject']);
+    $srch->addOrder('s.subject', 'ASC');
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1000);
+
+    $rs = $srch->getResultSet();
+    $rows = $db->fetchAll($rs) ?: [];
+
+    $out = [];
+    foreach ($rows as $row) {
+        $out[(int)$row['id']] = $row['subject'];
+    }
+    return $out;
+}
 
     /**
      * Basic Details Form
@@ -828,15 +1017,26 @@ private function cleanIntendedLearnersData(array $post): array
         $frm->addTextBox(Label::getLabel('LBL_COURSE_TITLE'), 'course_title')->requirements()->setRequired();
         $frm->addTextBox(Label::getLabel('LBL_COURSE_SUBTITLE'), 'course_subtitle')->requirements()->setRequired();
         $categories = Category::getCategoriesByParentId($this->siteLangId);
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_CATEGORY'), 'course_cate_id', $categories, '', [], Label::getLabel('LBL_SELECT'));
+        $fld = $frm->addSelectBox(Label::getLabel('LBL_EXAMBOARD'), 'course_cate_id', $categories, '', [], Label::getLabel('LBL_SELECT'));
         $fld->requirements()->setRequired();
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_SUBCATEGORY'), 'course_subcate_id', [], '', [], Label::getLabel('LBL_SELECT'));
+        $fld = $frm->addSelectBox(Label::getLabel('LBL_TIER'), 'course_subcate_id', [], '', [], Label::getLabel('LBL_SELECT'));
         $fld->requirements()->setInt();
         $langsList = (new CourseLanguage())->getAllLangs($this->siteLangId, true);
         $fld = $frm->addSelectBox(Label::getLabel('LBL_TEACHING_LANGUAGE'), 'course_clang_id', $langsList, '', [], Label::getLabel('LBL_SELECT'));
         $fld->requirements()->setRequired();
         $fld = $frm->addSelectBox(Label::getLabel('LBL_LEVEL'), 'course_level', Course::getCourseLevels(), '', [], Label::getLabel('LBL_SELECT'));
         $fld->requirements()->setRequired();
+         $subjectOptions = $this->getSubjectOptions();
+    $fld = $frm->addSelectBox(
+        Label::getLabel('LBL_SUBJECT'),
+        'course_subject_id',
+        $subjectOptions,
+        '',
+        [],
+        Label::getLabel('LBL_SELECT')
+    );
+    $fld->requirements()->setRequired();
+
         $frm->addHtmlEditor(Label::getLabel('LBL_DESCRIPTION'), 'course_details')->requirements()->setRequired();
         $frm->addHiddenField('', 'course_id')->requirements()->setInt();
         $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE_&_NEXT'));

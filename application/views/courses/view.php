@@ -1555,7 +1555,7 @@ $levels = Course::getCourseLevels();
                             <?php endif; ?>
                         </div>
 
-                        <div class="rwu-pricing-actions">
+                        <!-- <div class="rwu-pricing-actions">
                             <?php if (!$course['is_purchased']): ?>
                                 <div class="rwu-price-display">
                                     <?php if ($course['course_type'] != Course::TYPE_FREE): ?>
@@ -1586,7 +1586,95 @@ $levels = Course::getCourseLevels();
                                     <?php echo Label::getLabel("LBL_GO_TO_COURSE"); ?>
                                 </a>
                             <?php endif; ?>
-                        </div>
+                        </div> -->
+
+      <div class="rwu-pricing-actions">
+    <?php if (!empty($subscriptionMode)): ?>
+        <?php
+        /** @var array $subGate */
+        $subGate = $subGate ?? ['access' => false, 'reason' => 'GUEST'];
+        ?>
+
+        <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
+            <div class="rwu-price-display">
+                <span class="rwu-price-free"><?php echo Label::getLabel('LBL_FREE'); ?></span>
+            </div>
+            <button onclick="cart.addFreeCourse(<?php echo (int)$course['course_id']; ?>)"
+                    class="rwu-enroll-btn-modern">
+                <?php echo Label::getLabel("LBL_ENROLL_NOW"); ?>
+            </button>
+
+        <?php else: ?>
+            <div class="rwu-price-display">
+                <span class="rwu-price-label">
+                    <?php echo Label::getLabel('LBL_ACCESS_VIA_SUBSCRIPTION'); ?>
+                </span>
+            </div>
+
+            <?php if (!empty($subGate['access'])): ?>
+                <?php
+                // If controller already created ordcrsId, use it; otherwise use startByCourse
+                $ordcrsId  = (int)($subscriptionOrdCrsId ?? 0);
+                if ($ordcrsId > 0) {
+                    $courseUrl = MyUtility::makeUrl(
+                        'Tutorials',
+                        'start',
+                        [$ordcrsId],
+                        CONF_WEBROOT_DASHBOARD
+                    );
+                } else {
+                    $courseUrl = MyUtility::makeUrl(
+                        'Tutorials',
+                        'startByCourse',
+                        [(int)$course['course_id']],
+                        CONF_WEBROOT_DASHBOARD
+                    );
+                }
+                ?>
+                <a href="<?php echo $courseUrl; ?>" 
+                   class="rwu-enroll-btn-modern rwu-go-to-course">
+                    <?php echo Label::getLabel("LBL_GO_TO_COURSE"); ?>
+                </a>
+
+            <?php else: ?>
+
+                <?php if ($subGate['reason'] === 'GUEST' || $subGate['reason'] === 'NO_ACTIVE_SUB'): ?>
+                    <a href="<?php echo $subGate['pricingUrl']; ?>" 
+                       class="rwu-enroll-btn-modern">
+                        <?php echo Label::getLabel("LBL_SUBSCRIBE_TO_UNLOCK"); ?>
+                    </a>
+                <?php elseif ($subGate['reason'] === 'SUBJECT_NOT_SELECTED'): ?>
+                    <a href="<?php echo $subGate['manageUrl']; ?>" 
+                       class="rwu-enroll-btn-modern">
+                        <?php echo Label::getLabel("LBL_SELECT_YOUR_SUBJECTS"); ?>
+                    </a>
+                <?php else: ?>
+                    <a href="<?php echo $subGate['pricingUrl']; ?>" 
+                       class="rwu-enroll-btn-modern">
+                        <?php echo Label::getLabel("LBL_VIEW_PLANS"); ?>
+                    </a>
+                <?php endif; ?>
+
+            <?php endif; ?>
+        <?php endif; ?>
+
+    <?php else: ?>
+        <!-- Your legacy “buy once” flow here -->
+        <?php if (empty($course['is_purchased'])): ?>
+            <!-- buy/enroll buttons -->
+        <?php else: ?>
+          <a class="btn btn-primary"
+   href="<?php echo MyUtility::makeUrl('SubscriptionTutorials','start', [ (int)$course['course_id'] ]); ?>">
+  <?php echo Label::getLabel('LBL_VIEW'); ?>
+</a>
+               class="rwu-enroll-btn-modern rwu-go-to-course">
+                <?php echo Label::getLabel("LBL_GO_TO_COURSE"); ?>
+            </a>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
+
+
 
                         <div class="rwu-action-buttons">
                             <button onclick="toggleCourseFavorite('<?php echo $course['course_id'] ?>', this)" class="rwu-fav-btn-modern <?php echo ($course['is_favorite'] == AppConstant::YES) ? 'active' : ''; ?>" data-status="<?php echo $course['is_favorite']; ?>">

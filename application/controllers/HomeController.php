@@ -24,10 +24,20 @@ class HomeController extends MyAppController
     /**
      * Render Website Homepage
      */
-    public function index()
+  public function index()
 {
-    $ll= $this->getLevelsFromDB();
-       
+   $levels = $this->getLevelsFromDB(); // returns [id => level_name]
+
+    $selectedLevelId = 0;
+    if (!empty($levels)) {
+        // read from ?level_id, else default to first level
+        $selectedLevelId = FatApp::getQueryStringData('level_id', FatUtility::VAR_INT, 0);
+        if ($selectedLevelId <= 0) {
+            $firstKey = array_key_first($levels);
+            $selectedLevelId = (int)$firstKey;
+        }
+    }
+
     $slides = Slide::getSlides();
     $this->sets([
         'slides' => $slides,
@@ -40,14 +50,60 @@ class HomeController extends MyAppController
         'testmonialList' => Testimonial::getTestimonials($this->siteLangId),
         'blogPostsList' => BlogPost::getBlogsForGrids($this->siteLangId),
         'topRatedTeachers' => $this->getTopRatedTeachers(),
-        'levels' => $this->getLevelsFromDB(),
+         'levels' => $levels,
         'popularFaqList' => $this->getPopularFaqs(),
         'whyWeEffectiveBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_WE_ARE_EFFECTIVE, $this->siteLangId),
     ]);
 
-    // ✅ ADD THIS BLOCK
+    $db     = FatApp::getDb();
     $langId = $this->siteLangId;
 
+    // ========= SUBSCRIPTION PLANS FOR HOME PRICING SECTION =========
+
+    // 1) Find a default level that has at least one active package
+    $defaultLevelId = 0;
+    $sqlLevel = "
+        SELECT cl.id
+        FROM course_levels cl
+        JOIN " . SubscriptionPackage::DB_TBL . " p
+          ON p.spackage_level_id = cl.id
+         AND p.spackage_status = 1
+        ORDER BY cl.level_name ASC
+        LIMIT 1
+    ";
+    $rowLevel = $db->fetch($db->query($sqlLevel));
+    if ($rowLevel) {
+        $defaultLevelId = (int)$rowLevel['id'];
+    }
+
+    // 2) Fetch active packages for that level (same service as PricingController)
+    $plans = [];
+    if ($selectedLevelId > 0) {
+        // same service the Pricing controller uses
+        $plans = SubscriptionPackage::getActiveAll($selectedLevelId);
+    }
+
+    // 3) Detect if this user already has an active subscription
+    $hasActiveSubscription = false;
+    $currentPackageId      = 0;
+
+    if (UserAuth::isUserLogged()) {
+        $activeSub = UserSubscription::getActiveByUser($this->siteUserId);
+        if ($activeSub) {
+            $hasActiveSubscription = true;
+            $currentPackageId      = (int)$activeSub['usubs_spackage_id'];
+        }
+    }
+
+    // 4) Expose to home view (our home rwu-pricing section uses these)
+    $this->set('plans', $plans);
+    $this->set('selectedLevelId', $selectedLevelId);
+    $this->set('hasActiveSubscription', $hasActiveSubscription);
+    $this->set('currentPackageId', $currentPackageId);
+
+    // ========= END SUBSCRIPTION PLANS BLOCK =========
+
+    // ✅ Home testimonials (your existing block)
     $srch = Testimonial::getSearchObject($langId, false);
     $srch->addCondition('testimonial_active', '=', AppConstant::YES);
     $srch->addMultipleFields([
@@ -60,15 +116,14 @@ class HomeController extends MyAppController
     $srch->addOrder('testimonial_added_on', 'DESC');
     $srch->setPageSize(2); // only 2 for homepage
 
-    $db = FatApp::getDb();
     $homeTestimonials = $db->fetchAll($srch->getResultSet(), 'testimonial_id');
     $this->set('homeTestimonials', $homeTestimonials);
-    // ✅ END OF ADD
 
-    $class = new GroupClassSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-    $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);        
+    $class  = new GroupClassSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+    $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
     $this->set('classes', $class->getUpcomingClasses());
     $this->set('courses', $course->getPopularCourses());
+
     $this->_template->render();
 }
 

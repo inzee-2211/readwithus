@@ -1,6 +1,7 @@
 <?php
 require 'settings.php';
 
+
 try {
     $pdo = new PDO("mysql:host=localhost;dbname=" . CONF_DB_NAME, CONF_DB_USER, CONF_DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -137,6 +138,37 @@ if ($url === 'getYears') {
 }
 
 // ---------- RESOLVE a setup row id ----------
+// if ($url === 'resolveSetup') {
+//     try {
+//         $levelId     = (int)($_GET['levelId'] ?? 0);
+//         $subjectId   = (int)($_GET['subjectId'] ?? 0);
+//         $examboardId = (int)($_GET['examboardId'] ?? 0); // 0 for non-GCSE
+//         $tierId      = (int)($_GET['tierId'] ?? 0);      // 0 for non-GCSE
+//         $yearId      = (int)($_GET['yearId'] ?? 0);
+
+//         if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
+//             echo json_encode(['status'=>0,'msg'=>'Missing required selections']); exit;
+//         }
+
+//         $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
+//         $params = [$levelId, $subjectId, $yearId];
+
+//         // Only constrain examboard/tier when provided (GCSE)
+//         if ($examboardId > 0) { $where[] = "examboard_id = ?"; $params[] = $examboardId; }
+//         if ($tierId > 0)      { $where[] = "tier_id = ?";      $params[] = $tierId; }
+
+//         $sql = "SELECT id FROM tbl_quiz_setup WHERE " . implode(' AND ', $where) . " LIMIT 1";
+//         $stmt = $pdo->prepare($sql);
+//         $stmt->execute($params);
+//         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+//         echo json_encode(['status'=>1, 'data'=>['setup_id' => (int)($row['id'] ?? 0)]]);
+//     } catch (Exception $e) {
+//         echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+//     }
+//     exit;
+// }
+// ---------- RESOLVE all setup row ids for a given path ----------
 if ($url === 'resolveSetup') {
     try {
         $levelId     = (int)($_GET['levelId'] ?? 0);
@@ -146,27 +178,47 @@ if ($url === 'resolveSetup') {
         $yearId      = (int)($_GET['yearId'] ?? 0);
 
         if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
-            echo json_encode(['status'=>0,'msg'=>'Missing required selections']); exit;
+            echo json_encode(['status' => 0, 'msg' => 'Missing required selections']);
+            exit;
         }
 
         $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
         $params = [$levelId, $subjectId, $yearId];
 
         // Only constrain examboard/tier when provided (GCSE)
-        if ($examboardId > 0) { $where[] = "examboard_id = ?"; $params[] = $examboardId; }
-        if ($tierId > 0)      { $where[] = "tier_id = ?";      $params[] = $tierId; }
+        if ($examboardId > 0) {
+            $where[]  = "examboard_id = ?";
+            $params[] = $examboardId;
+        }
+        if ($tierId > 0) {
+            $where[]  = "tier_id = ?";
+            $params[] = $tierId;
+        }
 
-        $sql = "SELECT id FROM tbl_quiz_setup WHERE " . implode(' AND ', $where) . " LIMIT 1";
+        // NOTE: no LIMIT 1 – we want ALL matching setup rows
+        $sql = "SELECT id FROM tbl_quiz_setup WHERE " . implode(' AND ', $where) . " ORDER BY id ASC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode(['status'=>1, 'data'=>['setup_id' => (int)($row['id'] ?? 0)]]);
+        if (empty($rows)) {
+            echo json_encode(['status' => 0, 'msg' => 'No topics found']);
+            exit;
+        }
+
+        $ids = array_map('intval', array_column($rows, 'id'));
+
+        echo json_encode([
+            'status' => 1,
+            'data'   => ['setup_ids' => $ids],
+        ]);
     } catch (Exception $e) {
-        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
     }
     exit;
 }
+
+
 
 
 

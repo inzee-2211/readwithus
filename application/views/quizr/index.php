@@ -668,6 +668,33 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
             width: 100%;
         }
     }
+    .question-indicator-chip.active {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    border-color: var(--rwu-primary);
+    background: #e0f2fe;
+}
+
+.question-explanation-panel {
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 16px 18px;
+    font-size: 14px;
+    color: #4b5563;
+}
+.question-explanation-panel h6 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.question-explanation-panel .q-text {
+    margin-bottom: 6px;
+}
+.question-explanation-panel .exp-text {
+    margin-bottom: 0;
+}
+
 </style>
 
 <div class="page-listing__body quiz-results-page">
@@ -728,76 +755,94 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                 </div>
             </div>
 
-            <div class="card-body">
-                <!-- QUESTIONS OVERVIEW + STATS -->
-                <div class="row g-4">
-                    <div class="col-lg-7">
-                        <h5 class="section-title-modern">Questions Overview</h5>
-                        <div class="question-indicators-wrap">
-                            <?php if (!empty($attemptquestions)) {
-                                foreach ($attemptquestions as $index => $question) {
-                                    $questionNumber = $index + 1;
-                                    $correctFlag    = !empty($question['is_correct']) && (int)$question['is_correct'] === 1;
-                                    $chipClass      = $correctFlag ? 'correct' : 'incorrect';
-                                    $tooltipText    = "Question {$questionNumber}: " . ($correctFlag ? 'Correct' : 'Incorrect');
-                            ?>
-                                <div class="question-indicator-chip <?php echo $chipClass; ?>"
-                                     title="<?php echo $tooltipText; ?>">
-                                    <?php echo $questionNumber; ?>
-                                </div>
-                            <?php
-                                }
-                            } else { ?>
-                                <p class="text-muted mb-0">No question breakdown available.</p>
-                            <?php } ?>
-                        </div>
-                    </div>
+          <div class="card-body">
+    <!-- QUESTIONS OVERVIEW + STATS -->
+    <div class="row g-4 align-items-start">
+        <!-- LEFT: chips + explanation -->
+        <div class="col-lg-7">
+            <h5 class="section-title-modern">Questions Overview</h5>
 
-                    <div class="col-lg-5">
-                        <div class="row g-3">
-                            <div class="col-6 col-md-4">
-                                <div class="stat-card-modern">
-                                    <div class="stat-label">Correct</div>
-                                    <div class="stat-value" style="color:#16a34a;"><?php echo $correct; ?></div>
-                                    <div class="stat-meta"><?php echo $accuracy; ?>% of total</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <div class="stat-card-modern">
-                                    <div class="stat-label">Incorrect</div>
-                                    <div class="stat-value" style="color:#dc2626;"><?php echo $incorrect; ?></div>
-                                    <div class="stat-meta"><?php echo max(0, 100 - $accuracy); ?>% of total</div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <div class="stat-card-modern">
-                                    <div class="score-circle-wrap">
-                                        <?php
-                                        // circle circumference
-                                        $radius        = 58;
-                                        $circumference = 2 * M_PI * $radius;
-                                        $offset        = $circumference - ($circumference * $accuracy / 100);
-                                        ?>
-                                        <div class="score-circle">
-                                            <svg width="132" height="132">
-                                                <circle class="score-circle-bg" cx="66" cy="66" r="<?php echo $radius; ?>" />
-                                                <circle class="score-circle-progress"
-                                                        cx="66" cy="66" r="<?php echo $radius; ?>"
-                                                        stroke-dasharray="<?php echo $circumference; ?>"
-                                                        stroke-dashoffset="<?php echo $offset; ?>" />
-                                            </svg>
-                                            <div class="score-circle-text">
-                                                <span><?php echo $accuracy; ?>%</span>
-                                                <small>Accuracy</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> 
-                        </div>
+            <!-- chips -->
+            <div class="question-indicators-wrap mb-3">
+                <?php if (!empty($attemptquestions)) {
+                    foreach ($attemptquestions as $index => $question) {
+                        $questionNumber = $index + 1;
+                        $correctFlag    = !empty($question['is_correct']) && (int)$question['is_correct'] === 1;
+                        $chipClass      = $correctFlag ? 'correct' : 'incorrect';
+                        $tooltipText    = "Question {$questionNumber}: " . ($correctFlag ? 'Correct' : 'Incorrect');
+
+                        // these come from tbl_question_bank via controller join
+                        $questionText = trim((string)($question['question_title'] ?? ''));
+                        $explanation  = trim((string)($question['explanation'] ?? ''));
+                ?>
+                    <div class="question-indicator-chip <?php echo $chipClass; ?>"
+                         title="<?php echo $tooltipText; ?>"
+                         data-number="<?php echo $questionNumber; ?>"
+                         data-question="<?php echo htmlspecialchars($questionText, ENT_QUOTES, 'UTF-8'); ?>"
+                         data-explanation="<?php echo htmlspecialchars($explanation, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo $questionNumber; ?>
+                    </div>
+                <?php
+                    }
+                } else { ?>
+                    <p class="text-muted mb-0">No question breakdown available.</p>
+                <?php } ?>
+            </div>
+
+            <!-- explanation panel under chips -->
+            <h5 class="section-title-modern" style="margin-top: 10px;">Question Explanation</h5>
+            <div id="question-explanation-panel" class="question-explanation-panel">
+                <p class="text-muted mb-0">
+                    Click on any question number above to see the explanation here.
+                </p>
+            </div>
+        </div>
+
+        <!-- RIGHT: stats -->
+        <div class="col-lg-5">
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <div class="stat-card-modern">
+                        <div class="stat-label">Correct</div>
+                        <div class="stat-value" style="color:#16a34a;"><?php echo $correct; ?></div>
+                        <div class="stat-meta"><?php echo $accuracy; ?>% of total</div>
                     </div>
                 </div>
+                <div class="col-6 col-md-4">
+                    <div class="stat-card-modern">
+                        <div class="stat-label">Incorrect</div>
+                        <div class="stat-value" style="color:#dc2626;"><?php echo $incorrect; ?></div>
+                        <div class="stat-meta"><?php echo max(0, 100 - $accuracy); ?>% of total</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="stat-card-modern">
+                        <div class="score-circle-wrap">
+                            <?php
+                            $radius        = 58;
+                            $circumference = 2 * M_PI * $radius;
+                            $offset        = $circumference - ($circumference * $accuracy / 100);
+                            ?>
+                            <div class="score-circle">
+                                <svg width="132" height="132">
+                                    <circle class="score-circle-bg" cx="66" cy="66" r="<?php echo $radius; ?>" />
+                                    <circle class="score-circle-progress"
+                                            cx="66" cy="66" r="<?php echo $radius; ?>"
+                                            stroke-dasharray="<?php echo $circumference; ?>"
+                                            stroke-dashoffset="<?php echo $offset; ?>" />
+                                </svg>
+                                <div class="score-circle-text">
+                                    <span><?php echo $accuracy; ?>%</span>
+                                    <small>Accuracy</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
             </div>
+        </div>
+    </div>
+
         </div>
 
         <!-- VIDEO + NEXT STEPS -->
@@ -856,20 +901,25 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                             Thank you for completing the quiz! Review your answers and keep practising to strengthen your understanding of this topic.
                         </p>
 
-                        <div class="d-grid gap-2 mb-3">
-                            <?php if (!empty($resultText) && !empty($currentSubtopicId)) { ?>
-                                <?php if ($resultText === 'pass') { ?>
-                                    <a href="https://www.readwithus.org.uk/quizizz?subtopic=<?php echo (int)$currentSubtopicId; ?>"
-                                       class="btn-pill btn-pill-primary text-center">
-                                        Next Suggested Quiz
-                                    </a>
-                                <?php } else { ?>
-                                    <a href="https://www.readwithus.org.uk/quizattemptall?subtopic=<?php echo (int)$currentSubtopicId; ?>"
-                                       class="btn-pill btn-pill-danger text-center">
-                                        Retake Quiz
-                                    </a>
-                                <?php } ?>
-                            <?php } ?>
+                     <div class="d-grid gap-2 mb-3">
+    <?php if (!empty($resultText) && !empty($currentSubtopicId)) { ?>
+
+        <?php if ($resultText === 'pass') { ?>
+            <a href="<?php echo MyUtility::makeUrl('quizizz', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
+               class="btn-pill btn-pill-primary text-center">
+                Next Suggested Quiz
+            </a>
+
+        <?php } else { ?>
+            <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
+               class="btn-pill btn-pill-danger text-center">
+                Retake Quiz
+            </a>
+        <?php } ?>
+
+    <?php } ?>
+</div>
+
 
                            <button type="button"
         class="btn-pill btn-pill-outline text-center"
@@ -1190,41 +1240,32 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 });
 
 </script>
-<!-- <script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chips  = document.querySelectorAll('.question-indicator-chip');
+    const panel  = document.getElementById('question-explanation-panel');
+    if (!chips.length || !panel) return;
 
-    $('.start-quiz-btn').on('click', function() {
-        const form = $('#quizSignupForm');
-        const formData = form.serialize();
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            // remove active from all, then set on clicked
+            chips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
 
-        fcom.ajax(fcom.makeUrl('Quizizz', 'submitfindatutor'), formData, function(response) {
+            const num   = this.getAttribute('data-number') || '';
+            const qText = this.getAttribute('data-question') || '';
+            const exp   = this.getAttribute('data-explanation') || '';
 
-            try {
-                if (typeof response === 'string') {
-                    response = JSON.parse(response);
-                }
-
-                console.log('AJAX response:', response.subtopicid);
-               if (response.status == 1 && response.insertedid) {
-                  form[0].reset();
-                
-    $('#quizSignupModal').modal('hide');
-   $('.modal-backdrop').remove();
- $('body').removeClass('modal-open');
-    $('body').css('overflow', 'auto');
-                   //  window.location.reload();
-             } else {
-                    alert(response.msg || "Something went wrong.");
-                }
-
-            } catch (e) {
-                console.error("Invalid JSON:", e);
-                alert("Failed to parse server response.");
+            if (!qText && !exp) {
+                panel.innerHTML = '<p class="text-muted mb-0">No explanation provided for this question yet.</p>';
+                return;
             }
 
+            panel.innerHTML =
+                '<h6>Question ' + num + '</h6>' +
+                (qText ? '<p class="q-text"><strong>Question:</strong> ' + qText + '</p>' : '') +
+                (exp   ? '<p class="exp-text"><strong>Explanation:</strong> ' + exp + '</p>' : '');
         });
-
-
-
     });
-
-</script> -->
+});
+</script>

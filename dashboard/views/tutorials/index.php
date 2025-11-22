@@ -1,4 +1,90 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
+<style>
+/* Overlay that blocks everything */
+.avaIntroOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal box */
+.avaIntroModal {
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.25);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header with Ava avatar */
+.avaIntroHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avaIntroAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.avaIntroTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.avaIntroSubtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Body text (typewriter target) */
+.avaIntroBody {
+  margin-top: 6px;
+}
+
+.avaIntroText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0f172a;
+  white-space: pre-wrap; /* keep line breaks */
+}
+
+/* Buttons */
+.avaIntroActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.avaIntroActions .btn {
+  min-width: 140px;
+}
+
+/* Prevent background scroll while dialog open */
+body.avaIntro-open {
+  overflow: hidden;
+}
+</style>
 <?php
 echo $this->includeTemplate('tutorials/head-section.php', [
     'progress' => $progress,
@@ -74,7 +160,7 @@ echo $this->includeTemplate('tutorials/head-section.php', [
                                     </li>
                                      <li>
                                         <a href="javascript:void(0);" onclick="getAI();">
-                                            <?php echo stripslashes(Label::getLabel("LBL_AI_TUTOR")); ?>
+                                            <?php echo stripslashes(Label::getLabel("LBL_AVA")); ?>
                                         </a>
                                     </li>
                                 </ul>
@@ -228,6 +314,32 @@ if (isset($section['section_quiz_id']) && $section['section_quiz_id'] != 0) { ?>
                                             ?>
                         </div>
                     </sidebar>
+                    <!-- Ava Intro Overlay -->
+<div id="avaIntroOverlay" class="avaIntroOverlay" style="display:none;">
+  <div class="avaIntroModal">
+    <div class="avaIntroHeader">
+      <div class="avaIntroAvatar">🤖</div>
+      <div>
+        <h5 class="avaIntroTitle">Welcome to this lecture!</h5>
+        <p class="avaIntroSubtitle">Here’s how to use the video, quiz, and Ava together.</p>
+      </div>
+    </div>
+
+    <div class="avaIntroBody">
+      <p id="avaIntroText" class="avaIntroText"></p>
+    </div>
+
+    <div class="avaIntroActions">
+      <button type="button" id="avaIntroYes" class="btn btn--primary">
+        Yes, I understand
+      </button>
+      <button type="button" id="avaIntroNo" class="btn btn--secondary">
+        No, talk to Ava
+      </button>
+    </div>
+  </div>
+</div>
+
                     <!-- ] -->
                     <!-- [ TAB CONTENT PANEL ========= -->
                     <div class="content-area responsive-target-js tabsPanelJs">
@@ -310,5 +422,10 @@ function markLectureCoveredInSidebar(lectureId){
     }
   }
 }
+//lines added for testing AI tutor
+var currentLectureId = "<?php echo $progress['crspro_lecture_id'] ?>";
+    var courseId = "<?php echo $course['course_id'] ?>";
+   var learnerId = "<?php echo $siteUserId; ?>";  
+
             </script>
             <script src="//www.youtube.com/player_api"></script>

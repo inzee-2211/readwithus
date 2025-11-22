@@ -2,9 +2,17 @@
 
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 $activeTab = $_GET['tab'] ?? 'quiz';
-$setupId   = $_GET['setup_id'] ?? ($_SESSION['setupId'] ?? 0);
+
+// Full list, e.g. "30,31,32"
+// Priority: querystring → controller-provided → fallback to session/empty
+$setupIdsParam = $_GET['setup_ids'] ?? ($setupIdsParam ?? '');
+
+// keep legacy single ID if you still need it somewhere
+$setupId = $_GET['setup_id'] ?? ($_SESSION['setupId'] ?? 0);
+
 $subjectId = $_SESSION['subjectId'] ?? 0;
 $subjectNm = $_SESSION['subjectName'] ?? 'Subject';
+
 
 $topics    = $topics ?? [];
 $subtopics = $subtopics ?? [];
@@ -14,24 +22,24 @@ $tierName      = $tierName      ?? '';
 $yearName      = $yearName      ?? '';
 
 // Your existing DB logic for papers (kept as-is)
-$subtopicids = [];
-if (!empty($topics)) {
-    foreach ($topics as $topic) {
-        $subtopicQuery  = "SELECT id FROM course_topics WHERE parent_id = " . (int)$topic['id'];
-        $subtopicResult = $db->query($subtopicQuery);
-        $subtopicid     = $db->fetchAll($subtopicResult);
-        $subtopicids    = array_merge($subtopicids, array_column($subtopicid, 'id'));
-    }
-}
+// $subtopicids = [];
+// if (!empty($topics)) {
+//     foreach ($topics as $topic) {
+//         $subtopicQuery  = "SELECT id FROM course_topics WHERE parent_id = " . (int)$topic['id'];
+//         $subtopicResult = $db->query($subtopicQuery);
+//         $subtopicid     = $db->fetchAll($subtopicResult);
+//         $subtopicids    = array_merge($subtopicids, array_column($subtopicid, 'id'));
+//     }
+// }
 
-if (!empty($subtopicids)) {
-    $idList       = implode(',', array_map('intval', $subtopicids));
-    $paperQuery   = "SELECT id, previous_paper_pdf, video_url, subtopic FROM course_subtopics WHERE subtopic IN ($idList)";
-    $paperResult  = $db->query($paperQuery);
-    $papers       = $db->fetchAll($paperResult);
-} else {
-    $papers = [];
-}
+// if (!empty($subtopicids)) {
+//     $idList       = implode(',', array_map('intval', $subtopicids));
+//     $paperQuery   = "SELECT id, previous_paper_pdf, video_url, subtopic FROM course_subtopics WHERE subtopic IN ($idList)";
+//     $paperResult  = $db->query($paperQuery);
+//     $papers       = $db->fetchAll($paperResult);
+// } else {
+//     $papers = [];
+// }
 ?>
 
 <style>
@@ -117,14 +125,14 @@ if (!empty($subtopicids)) {
             <div class="col-md-11">
                 <div class="rwu-tabs-wrapper">
                     <div class="rwu-tabs">
-                        <a href="?tab=video&setup_id=<?= (int)$setupId ?>" class="rwu-tab <?= ($activeTab == 'video') ? 'active' : '' ?>">
-                            Video lessons
+ <a href="?tab=video&setup_ids=<?= htmlspecialchars($setupIdsParam) ?>"
+       class="rwu-tab <?= ($activeTab == 'video') ? 'active' : '' ?>">                            Video lessons
                         </a>
-                        <a href="?tab=quiz&setup_id=<?= (int)$setupId ?>" class="rwu-tab <?= ($activeTab == 'quiz') ? 'active' : '' ?>">
-                            Quiz
+ <a href="?tab=quiz&setup_ids=<?= htmlspecialchars($setupIdsParam) ?>"
+       class="rwu-tab <?= ($activeTab == 'quiz') ? 'active' : '' ?>">                            Quiz
                         </a>
-                        <a href="?tab=paper&setup_id=<?= (int)$setupId ?>" class="rwu-tab <?= ($activeTab == 'paper') ? 'active' : '' ?>">
-                            Past papers
+ <a href="?tab=paper&setup_ids=<?= htmlspecialchars($setupIdsParam) ?>"
+       class="rwu-tab <?= ($activeTab == 'paper') ? 'active' : '' ?>">                            Past papers
                         </a>
                     </div>
                 </div>
@@ -136,194 +144,224 @@ if (!empty($subtopicids)) {
             <div class="col-md-11">
 
                 <!-- VIDEO TAB -->
-                <?php if ($activeTab === 'video'): ?>
-                    <div id="video" class="tab-content active">
-                        <h4>Video lessons</h4>
-                        <p>This section contains video lessons grouped under this topic.</p>
+             <?php if ($activeTab === 'video'): ?>
+    <div id="video" class="tab-content active">
+        <h4>Video lessons</h4>
+        <p>This section contains video lessons grouped under each topic.</p>
 
-                        <?php if (empty($subtopics)) { ?>
-                            <p>No subtopics found.</p>
-                        <?php } else { ?>
-                            <div class="mb-3">
-                                <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-video-1">
-                                    <span class="dropdown-indicator">▾</span>
-                                    <span class="topic-text">
-                                        <?php echo 'Topic - ' . htmlspecialchars($topicTitle); ?>
-                                    </span>
-                                </button>
-                            </div>
+        <?php if (empty($topics)) { ?>
+            <p>No topics found.</p>
+        <?php } else { ?>
+            <?php foreach ($topics as $tIndex => $topic): ?>
+                <?php
+                    $subs      = $topic['subtopics'] ?? [];
+                    $topicId   = (int)$topic['setup_id'];
+                    $topicName = htmlspecialchars($topic['topic_name']);
+                    if (empty($subs)) continue;
+                ?>
+                <div class="mb-3">
+                    <button class="topic-toggle collapsed" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#topic-video-<?php echo $topicId; ?>">
+                        <span class="dropdown-indicator">▾</span>
+                        <span class="topic-text">
+                            <?php echo 'Topic - ' . $topicName; ?>
+                        </span>
+                    </button>
+                </div>
 
-                            <div class="collapse mb-4" id="topic-video-1">
-                                <div class="topic-body">
-                                    <div class="row">
-                                        <?php foreach ($subtopics as $idx => $s):
-                                            $subId    = (int)$s['id'];
-                                            $subName  = htmlspecialchars($s['name']);
-                                            $videoUrl = trim((string)$s['video_url']);
-                                            $embedUrl = '';
-                                            if (!empty($videoUrl) &&
-                                                preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $videoUrl, $m)) {
-                                                $embedUrl = 'https://www.youtube.com/embed/' . $m[1];
-                                            }
-                                        ?>
-                                            <div class="col-md-4 mb-3">
-                                                <div class="card shadow-sm">
-                                                    <div class="card-body">
-                                                        <h6 class="card-title">
-                                                            <?php echo ($idx + 1) . '. ' . $subName; ?>
-                                                        </h6>
-                                                        <?php if ($embedUrl) { ?>
-                                                            <button class="watch-video-btn" data-target="#video-<?php echo $subId; ?>">
-                                                                Watch video
-                                                            </button>
-                                                            <div class="video-container mt-2" id="video-<?php echo $subId; ?>" style="display:none;">
-                                                                <div class="ratio ratio-16x9">
-                                                                    <iframe src="<?php echo $embedUrl; ?>" frameborder="0" allowfullscreen></iframe>
-                                                                </div>
-                                                            </div>
-                                                        <?php } else { ?>
-                                                            <p class="text-muted mb-0">No video found for <?php echo $subName; ?>.</p>
-                                                        <?php } ?>
-                                                    </div>
+                <div class="collapse mb-4" id="topic-video-<?php echo $topicId; ?>">
+                    <div class="topic-body">
+                        <div class="row">
+                            <?php foreach ($subs as $idx => $s):
+                                $subId    = (int)$s['id'];
+                                $subName  = htmlspecialchars($s['name']);
+                                $videoUrl = trim((string)$s['video_url']);
+                                $embedUrl = '';
+                                if (!empty($videoUrl) &&
+                                    preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $videoUrl, $m)) {
+                                    $embedUrl = 'https://www.youtube.com/embed/' . $m[1];
+                                }
+                            ?>
+                            <div class="col-md-4 mb-3">
+                                <div class="card shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <?php echo ($idx + 1) . '. ' . $subName; ?>
+                                        </h6>
+                                        <?php if ($embedUrl) { ?>
+                                            <button class="watch-video-btn" data-target="#video-<?php echo $subId; ?>">
+                                                Watch video
+                                            </button>
+                                            <div class="video-container mt-2" id="video-<?php echo $subId; ?>" style="display:none;">
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="<?php echo $embedUrl; ?>" frameborder="0" allowfullscreen></iframe>
                                                 </div>
                                             </div>
-                                        <?php endforeach; ?>
+                                        <?php } else { ?>
+                                            <p class="text-muted mb-0">No video found for <?php echo $subName; ?>.</p>
+                                        <?php } ?>
                                     </div>
                                 </div>
                             </div>
-                        <?php } ?>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php } ?>
+    </div>
+<?php endif; ?>
+
 
                 <!-- QUIZ TAB -->
-                <?php if ($activeTab === 'quiz'): ?>
-                    <div id="quiz" class="tab-content active">
-                            <h4>Quiz</h4>
-                        <p>This section contains Quiz grouped under this topic.</p>
-                        <?php if (empty($subtopics)) { ?>
-                            <p class="text-center">No subtopics found.</p>
-                        <?php } else { ?>
-                            <div class="mb-3">
-                                <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-quiz-1">
-                                    <span class="dropdown-indicator">▾</span>
-                                    <span class="topic-text">
-                                        <?php echo 'Topic - ' . htmlspecialchars($topicTitle); ?>
-                                    </span>
-                                </button>
-                            </div>
+               <?php if ($activeTab === 'quiz'): ?>
+    <div id="quiz" class="tab-content active">
+        <h4>Quiz</h4>
+        <p>This section contains quizzes grouped under each topic.</p>
 
-                            <div class="collapse mb-4" id="topic-quiz-1">
-                                <div class="topic-body">
-                                    <div class="row">
-                                        <?php foreach ($subtopics as $idx => $s): ?>
-                                            <div class="col-md-4 mb-3">
-                                                <div class="card h-100 shadow-sm">
-                                                    <div class="card-body d-flex flex-column justify-content-between">
-                                                        <h6 class="card-title">
-                                                            <?php echo ($idx + 1) . '. ' . htmlspecialchars($s['name']); ?>
-                                                        </h6>
-                                                        <?php if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) { ?>
-                                                            <a href="<?php echo 'quizfocus?subtopic=' . (int)$s['id']; ?>" class="btn btn-primary mt-2">
-                                                                Start quiz
-                                                            </a>
-                                                        <?php } else { ?>
-                                                            <button class="btn btn-primary mt-2 btn-prnt-inner"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#quizSignupModal"
-                                                                    data-subtopic-id="<?php echo (int)$s['id']; ?>">
-                                                                Start quiz
-                                                            </button>
-                                                        <?php } ?>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
+        <?php if (empty($topics)) { ?>
+            <p class="text-center">No topics found.</p>
+        <?php } else { ?>
+            <?php foreach ($topics as $topic): ?>
+                <?php
+                    $subs      = $topic['subtopics'] ?? [];
+                    $topicId   = (int)$topic['setup_id'];
+                    $topicName = htmlspecialchars($topic['topic_name']);
+                    if (empty($subs)) continue;
+                ?>
+                <div class="mb-3">
+                    <button class="topic-toggle collapsed" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#topic-quiz-<?php echo $topicId; ?>">
+                        <span class="dropdown-indicator">▾</span>
+                        <span class="topic-text">
+                            <?php echo 'Topic - ' . $topicName; ?>
+                        </span>
+                    </button>
+                </div>
+
+                <div class="collapse mb-4" id="topic-quiz-<?php echo $topicId; ?>">
+                    <div class="topic-body">
+                        <div class="row">
+                            <?php foreach ($subs as $idx => $s): ?>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-body d-flex flex-column justify-content-between">
+                                            <h6 class="card-title">
+                                                <?php echo ($idx + 1) . '. ' . htmlspecialchars($s['name']); ?>
+                                            </h6>
+                                            <?php if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) { ?>
+                                                <a href="<?php echo 'quizfocus?subtopic=' . (int)$s['id']; ?>" class="btn btn-primary mt-2">
+                                                    Start quiz
+                                                </a>
+                                            <?php } else { ?>
+                                                <button class="btn btn-primary mt-2 btn-prnt-inner"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#quizSignupModal"
+                                                        data-subtopic-id="<?php echo (int)$s['id']; ?>">
+                                                    Start quiz
+                                                </button>
+                                            <?php } ?>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        <?php } ?>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php } ?>
+    </div>
+<?php endif; ?>
+
 <!-- PAST PAPER TAB -->
 <?php if ($activeTab === 'paper'): ?>
     <div id="paper" class="tab-content active">
         <h4>Past papers</h4>
-        <p>This section contains question and answer papers grouped under this topic.</p>
+        <p>This section contains question and answer papers grouped under each topic.</p>
 
-        <?php if (empty($subtopics)) { ?>
-            <p class="text-center">No subtopics found.</p>
+        <?php if (empty($topics)) { ?>
+            <p class="text-center">No topics found.</p>
         <?php } else { ?>
-            <div class="mb-3">
-                <button class="topic-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#topic-paper-1">
-                    <span class="dropdown-indicator">▾</span>
-                    <span class="topic-text">
-                        <?php echo 'Topic - ' . htmlspecialchars($topicTitle); ?>
-                    </span>
-                </button>
-            </div>
+            <?php foreach ($topics as $topic): ?>
+                <?php
+                    $subs      = $topic['subtopics'] ?? [];
+                    $topicId   = (int)$topic['setup_id'];
+                    $topicName = htmlspecialchars($topic['topic_name']);
+                    if (empty($subs)) continue;
+                ?>
+                <div class="mb-3">
+                    <button class="topic-toggle collapsed" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#topic-paper-<?php echo $topicId; ?>">
+                        <span class="dropdown-indicator">▾</span>
+                        <span class="topic-text">
+                            <?php echo 'Topic - ' . $topicName; ?>
+                        </span>
+                    </button>
+                </div>
 
-            <div class="collapse mb-4" id="topic-paper-1">
-                <div class="topic-body">
-                    <div class="row">
-                        <?php
-                        $hasPaper  = false;
-                        $cardIndex = 0;
+                <div class="collapse mb-4" id="topic-paper-<?php echo $topicId; ?>">
+                    <div class="topic-body">
+                        <div class="row">
+                            <?php
+                            $hasPaper  = false;
+                            $cardIndex = 0;
 
-                  foreach ($subtopics as $s) {
-    // Get raw values from DB (you already have previous_paper_pdf)
-    $questionPdfRaw = trim((string)($s['previous_paper_pdf'] ?? ''));
-    $answerPdfRaw   = trim((string)($s['answer_pdf_path'] ?? '')); // if/when you add this column
+                            foreach ($subs as $s) {
+                                $questionPdfRaw = trim((string)($s['previous_paper_pdf'] ?? ''));
+                                $answerPdfRaw   = trim((string)($s['answer_pdf_path'] ?? ''));
 
-    // If neither exists, skip this card
-    if ($questionPdfRaw === '' && $answerPdfRaw === '') {
-        continue;
-    }
+                                if ($questionPdfRaw === '' && $answerPdfRaw === '') {
+                                    continue;
+                                }
 
-    $hasPaper   = true;
-    $cardIndex++;
-    $paperTitle = htmlspecialchars($s['name']);
+                                $hasPaper   = true;
+                                $cardIndex++;
+                                $paperTitle = htmlspecialchars($s['name']);
 
-    // Make safe paths for href (like old $pdfPath)
-    $questionPdfPath = $questionPdfRaw !== '' ? htmlspecialchars($questionPdfRaw) : '#';
-    $answerPdfPath   = $answerPdfRaw !== ''   ? htmlspecialchars($answerPdfRaw)   : '#';
-    ?>
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100 shadow-sm">
-                                    <div class="card-body d-flex flex-column justify-content-between">
-                                        <h6 class="card-title" style="font-size: 14px;">
-                                            <?php echo $cardIndex . '. ' . $paperTitle; ?>
-                                        </h6>
+                                $questionPdfPath = $questionPdfRaw !== '' ? htmlspecialchars($questionPdfRaw) : '#';
+                                $answerPdfPath   = $answerPdfRaw   !== '' ? htmlspecialchars($answerPdfRaw)   : '#';
+                            ?>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-body d-flex flex-column justify-content-between">
+                                            <h6 class="card-title" style="font-size: 14px;">
+                                                <?php echo $cardIndex . '. ' . $paperTitle; ?>
+                                            </h6>
 
-                                        <div class="d-flex flex-wrap gap-2 mt-2">
-                                            <!-- Placeholder links for now -->
-                                               <a href="<?php echo $questionPdfPath; ?>"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="start-quiz-btn flex-fill text-center">
-                        Question Paper
-                    </a>
-                                            
-                    <a href="<?php echo $answerPdfPath; ?>"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="start-quiz-btn flex-fill text-center">
-                        Answer Paper
-                    </a>
+                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                <a href="<?php echo $questionPdfPath; ?>"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="start-quiz-btn flex-fill text-center">
+                                                    Question Paper
+                                                </a>
+
+                                                <a href="<?php echo $answerPdfPath; ?>"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="start-quiz-btn flex-fill text-center">
+                                                    Answer Paper
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        <?php } ?>
+                            <?php } ?>
 
-                        <?php if (!$hasPaper) { ?>
-                            <p class="text-muted mb-0">No papers found for this topic.</p>
-                        <?php } ?>
+                            <?php if (!$hasPaper) { ?>
+                                <p class="text-muted mb-0">No papers found for this topic.</p>
+                            <?php } ?>
+                        </div>
                     </div>
                 </div>
-            </div>
+            <?php endforeach; ?>
         <?php } ?>
     </div>
 <?php endif; ?>
+
 
 
             </div>
@@ -381,7 +419,7 @@ if (!empty($subtopicids)) {
 
     // AJAX submit for quiz signup (single handler, your old logic)
  if (typeof $ !== 'undefined' && typeof fcom !== 'undefined') {
-    $('.start-quiz-btn').on('click', function () {
+$('#quizSignupForm .start-quiz-btn').on('click', function () {
         const form = $('#quizSignupForm');
         const formData = form.serialize();
 

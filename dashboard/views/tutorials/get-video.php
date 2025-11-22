@@ -23,7 +23,7 @@ if ($lecture) {
                 }
 
                 function onPlayerReady(event) {
-                    event.target.playVideo();
+                    // event.target.playVideo();
                 }
 
                 function onPlayerStateChange(event) {

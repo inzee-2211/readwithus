@@ -1,0 +1,14 @@
+[2025-11-15 13:52:53] [MODEL] Attempting to get/create progress - User: 999, Course: 19
+[2025-11-15 13:52:53] [MODEL] No existing record found - creating new one
+[2025-11-15 13:52:53] [MODEL] ❌ FAILED to save progress record: Field 'crspro_ordcrs_id' doesn't have a default value
+[2025-11-15 13:56:37] [MODEL] Attempting to get/create progress - User: 999, Course: 20
+[2025-11-15 13:56:37] [MODEL] No existing record found - creating new one
+[2025-11-15 13:56:37] [MODEL] ✅ New progress record created - ID: 329
+[2025-11-15 13:56:51] [MODEL] Attempting to get/create progress - User: 999, Course: 15
+[2025-11-15 13:56:51] [MODEL] No existing record found - creating new one
+[2025-11-15 13:56:51] [MODEL] ✅ New progress record created - ID: 330
+[2025-11-15 13:57:52] [MODEL] Attempting to get/create progress - User: 999, Course: 21
+[2025-11-15 13:57:52] [MODEL] No existing record found - creating new one
+[2025-11-15 13:57:52] [MODEL] ✅ New progress record created - ID: 331
+[2025-11-15 13:58:08] [MODEL] Attempting to get/create progress - User: 999, Course: 15
+[2025-11-15 13:58:08] [MODEL] ✅ Existing progress record found - ID: 330

@@ -1,4 +1,69 @@
 <?php
+if (!function_exists('app_require')) {
+    function app_require(string $relativePath): void
+    {
+        // Normalize incoming relative path and block traversal
+        $rel = ltrim(str_replace(['\\', '//'], '/', $relativePath), '/');
+        if (strpos($rel, '..') !== false) {
+            throw new InvalidArgumentException('Invalid path: traversal not allowed.');
+        }
+
+        // Figure out project root and common bases
+        $dashboardDir = realpath(__DIR__ . '/..');          // .../dashboard
+        $projectRoot  = $dashboardDir ? realpath($dashboardDir . '/..') : null; // repo root
+        $application  = $projectRoot ? $projectRoot . '/application' : null;
+
+        // Build candidate bases to try (in order)
+        $bases = [];
+        if ($application && is_dir($application)) $bases[] = $application;
+        if ($projectRoot && is_dir($projectRoot)) $bases[] = $projectRoot;
+
+        // Consider CONF_APPLICATION_PATH only if it’s a dir
+        if (defined('CONF_APPLICATION_PATH') && is_dir(CONF_APPLICATION_PATH)) {
+            $bases[] = rtrim(CONF_APPLICATION_PATH, "/\\");
+            // Also try the parent of CONF_APPLICATION_PATH (sometimes points to project root)
+            $bases[] = rtrim(dirname(CONF_APPLICATION_PATH), "/\\");
+        }
+
+        // Try both the raw relative and an application-prefixed variant
+        $relatives = [$rel];
+        if (strpos($rel, 'application/') !== 0) {
+            $relatives[] = 'application/' . $rel;
+        }
+
+        // Attempt in order; return on first hit
+        $attempted = [];
+        foreach ($bases as $base) {
+            foreach ($relatives as $r) {
+                $full = rtrim($base, "/\\") . '/' . $r;
+                $attempted[] = $full;
+                if (is_file($full)) {
+                    require_once $full;
+                    return;
+                }
+            }
+        }
+
+        // Final: also try relative to THIS file’s grandparent (as a hard fallback)
+        $fallback = realpath(__DIR__ . '/../../') ?: null; // project root guess
+        if ($fallback) {
+            foreach ($relatives as $r) {
+                $full = rtrim($fallback, "/\\") . '/' . $r;
+                $attempted[] = $full;
+                if (is_file($full)) {
+                    require_once $full;
+                    return;
+                }
+            }
+        }
+
+        // No luck – show all attempts for quick diagnosis
+        throw new RuntimeException(
+            "Required file not found. Tried:\n- " . implode("\n- ", $attempted)
+        );
+    }
+}
+app_require('library/services/SubscriptionEnrollment.php');
 
 /**
  * Learner Controller is used for handling Learners
@@ -23,39 +88,43 @@ class LearnerController extends DashboardController
     /**
      * Render Learner's Dashboard Homepage
      */
-    public function index()
-    {
-        
-        $lessStatsCount = (new Lesson(0, $this->siteUserId, $this->siteUserType))->getLessStatsCount();
-        $schClassStats = (new OrderClass(0, $this->siteUserId, $this->siteUserType))->getSchedClassStats();
-        $courseStats = (new OrderCourse(0, $this->siteUserId, $this->siteUserType, $this->siteLangId))->getCourseStats();
-        $frmSrch = static::getSearchForm();
-        
-        $this->sets([
-            'frmSrch' => $frmSrch,
-            'schLessonCount' => $lessStatsCount['schLessonCount'],
-            'totalLesson' => $lessStatsCount['totalLesson'],
-            'totalClasses' => $schClassStats['totalClasses'],
-            'totalCourses' => $courseStats['totalCourses'],
-            'walletBalance' => User::getWalletBalance($this->siteUserId),
-            'setMonthAndWeekNames' => true,
-        ]);
-        $this->_template->addJs([
-            'issues/page-js/common.js',
-            'lessons/page-js/common.js',
-            'plans/page-js/common.js',
-            'js/moment.min.js',
-            'js/jquery.cookie.js',
-            'js/app.timer.js',
-            'js/fullcalendar-luxon.min.js',
-            'js/fullcalendar.min.js',
-            'js/fullcalendar-luxon-global.min.js',
-            'js/fateventcalendar.js'
-        ]);
-
-     
-        $this->_template->render();
+   public function index()
+{
+    /* 🔹 Ensure subscription courses are enrolled into tbl_order_courses
+       so that courseStats and My Courses work with subscriptions too. */
+    if ($this->siteUserId > 0) {
+        SubscriptionEnrollment::syncForUser($this->siteUserId);
     }
+
+    $lessStatsCount = (new Lesson(0, $this->siteUserId, $this->siteUserType))->getLessStatsCount();
+    $schClassStats = (new OrderClass(0, $this->siteUserId, $this->siteUserType))->getSchedClassStats();
+    $courseStats = (new OrderCourse(0, $this->siteUserId, $this->siteUserType, $this->siteLangId))->getCourseStats();
+    $frmSrch = static::getSearchForm();
+    
+    $this->sets([
+        'frmSrch' => $frmSrch,
+        'schLessonCount' => $lessStatsCount['schLessonCount'],
+        'totalLesson' => $lessStatsCount['totalLesson'],
+        'totalClasses' => $schClassStats['totalClasses'],
+        'totalCourses' => $courseStats['totalCourses'],
+        'walletBalance' => User::getWalletBalance($this->siteUserId),
+        'setMonthAndWeekNames' => true,
+    ]);
+    $this->_template->addJs([
+        'issues/page-js/common.js',
+        'lessons/page-js/common.js',
+        'plans/page-js/common.js',
+        'js/moment.min.js',
+        'js/jquery.cookie.js',
+        'js/app.timer.js',
+        'js/fullcalendar-luxon.min.js',
+        'js/fullcalendar.min.js',
+        'js/fullcalendar-luxon-global.min.js',
+        'js/fateventcalendar.js'
+    ]);
+
+    $this->_template->render();
+}
 
     /**
      * Toggle Teacher Favorite

@@ -16,6 +16,7 @@ $subCatFld = $frm->getField('course_subcate_id');
 $subCatFld->setFieldTagAttribute('id', 'subCategories');
 $langFld = $frm->getField('course_clang_id');
 $levelFld = $frm->getField('course_level');
+$subjectFld = $frm->getField('course_subject_id');
 $descFld = $frm->getField('course_details');
 $descFld->setFieldTagAttribute('class', 'field-count__wrap');
 $courseIdFld = $frm->getField('course_id');
@@ -151,6 +152,23 @@ $courseId = $courseIdFld->value;
                             </div>
                         </div>
                         <div class="row">
+    <div class="col-md-12">
+        <div class="field-set">
+            <div class="caption-wraper">
+                <label class="field_label">
+                    <?php echo $subjectFld->getCaption(); ?>
+                    <span class="spn_must_field">*</span>
+                </label>
+            </div>
+            <div class="field-wraper">
+                <div class="field_cover">
+                    <?php echo $subjectFld->getHtml(); ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+                        <div class="row">
                             <div class="col-md-12">
                                 <div class="field-set">
                                     <div class="caption-wraper">
@@ -167,6 +185,7 @@ $courseId = $courseIdFld->value;
                                 </div>
                             </div>
                         </div>
+                        
                     </div>
                 </div>
             </div>

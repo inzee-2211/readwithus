@@ -160,11 +160,13 @@ console.log('[home.js] loaded', {
             fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
               .then(r => r.json())
               .then(j => {
-                if (j.status === 1 && j.data?.setup_id) {
-                  const nextUrl = fcom.makeUrl('quizizz') + '?setup_id=' + j.data.setup_id;
-                  reviseModal.hide();
-                  window.location.href = nextUrl;
-                } else {
+                if (j.status === 1 && j.data?.setup_ids) {
+    const ids = j.data.setup_ids.join(',');
+    const nextUrl = fcom.makeUrl('quizizz') + '?setup_ids=' + ids;
+    reviseModal.hide();
+    window.location.href = nextUrl;
+}
+ else {
                   alert("Unable to load quiz. Please try again.");
                 }
               })
