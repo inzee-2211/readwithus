@@ -77,7 +77,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
     <!-- RIGHT: Art -->
     <div class="rw-hero__art">
       <div class="rw-hero__art-inner">
-        <img class="rw-hero__img" src="<?= $heroBase ?>Hero-section.png" alt="Student with laptop">
+        <img class="rw-hero__img" src="<?= $heroBase ?>hero.png" alt="Student with laptop">
 <!-- Connector lines (SVG) -->
 <!-- <svg class="rw-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"> -->
   <!-- Left curve: from BOOK (top:15%, left:-9%) to PERSON (top:50%, left:-7%) -->
