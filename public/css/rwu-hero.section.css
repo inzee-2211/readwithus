@@ -92,7 +92,7 @@
 
 /* Girl image fills the art box */
 .rw-hero__img{
-  position:absolute; inset:0; width:76%; height:95%; object-fit:contain;
+  position:absolute; inset:0; width:89%; height:99%; object-fit:contain;
   filter: drop-shadow(0 25px 70px rgba(10,3,60,.15));
 }
 
