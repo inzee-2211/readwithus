@@ -1119,23 +1119,45 @@ public function questionBank(int $subtopicId)
     }
 
     // Rest of your code remains the same...
-    $q = new SearchBase('tbl_quaestion_bank', 'qb');
-    $q->addCondition('qb.subtopic_id', '=', $subtopicId);
-    $q->addMultipleFields([
-        'qb.id','qb.question_title','qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
-        'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on', 'qb.image','qb.explanation' 
-    ]);
-    
+   $keyword = FatApp::getQueryStringData('keyword', FatUtility::VAR_STRING, '');
+
+/* questions search */
+$q = new SearchBase('tbl_quaestion_bank', 'qb');
+$q->addCondition('qb.subtopic_id', '=', $subtopicId);
+
+if ($keyword !== '') {
+    $q->addCondition('qb.question_title', 'LIKE', '%' . trim($keyword) . '%');
+}
+
+$q->addMultipleFields([
+    'qb.id','qb.question_title','qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
+    'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on', 'qb.image','qb.explanation' 
+]);
+
     $rs = $q->getResultSet();
     $questions = FatApp::getDb()->fetchAll($rs);
+    $srchFrm = $this->getQuestionSearchForm($subtopicId);
+$srchFrm->fill(FatApp::getQueryStringData());
 
     $this->sets([
         'subtopic'  => $subtopic,
         'questions' => $questions,
+        'srchFrm'   => $srchFrm,
         'canEdit'   => $this->objPrivilege->canEditCourses(true),
     ]);
     $this->_template->render(true, true, 'coursemanagement/questionbank.php');
 }
+
+private function getQuestionSearchForm(int $subtopicId): Form
+{
+    $frm = new Form('frmQuestionSearch');
+    $frm->addHiddenField('', 'subtopic_id', $subtopicId);
+    $frm->addTextBox(Label::getLabel('LBL_SEARCH_BY_QUESTION_TITLE'), 'keyword', '');
+    $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_Search'));
+    $frm->addResetButton('', 'btn_reset', Label::getLabel('LBL_Clear'));
+    return $frm;
+}
+
 public function subtopicForm(int $id = 0)
 {
     $this->objPrivilege->canEditCourses();
