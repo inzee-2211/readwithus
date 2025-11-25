@@ -374,26 +374,58 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
     </div>
 
     <!-- MULTI-SELECT COURSES -->
+<!-- LEVEL -->
 <div class="row">
-  <label for="req_courses" class="label">Select Course(s)</label>
-  <div class="custom-select" id="courseDropdown">
-    <div class="select-trigger">Select Courses </div>
-    <div class="select-options">
-      <?php if (!empty($courses)): foreach ($courses as $crs): ?>
-        <label class="option">
-          <input type="checkbox" name="course_ids[]" value="<?= (int)$crs['course_id']; ?>">
-          <?= htmlspecialchars($crs['course_title']); ?>
-        </label>
-      <?php endforeach; endif; ?>
-    </div>
-  </div>
+  <label for="tutreq_level_id" class="label">Level *</label>
+  <select name="tutreq_level_id" id="tutreq_level_id" required>
+    <option value=""><?= Label::getLabel('LBL_SELECT_LEVEL'); ?></option>
+    <?php if (!empty($levels)): ?>
+      <?php foreach ($levels as $levelId => $levelName): ?>
+        <option value="<?= (int)$levelId; ?>">
+          <?= htmlspecialchars($levelName); ?>
+        </option>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </select>
 </div>
 
-<!-- Selected courses chips (auto-filled by JS) -->
+<!-- SUBJECT (depends on level) -->
 <div class="row">
-  <div id="selectedCourses" class="selected-courses" aria-live="polite"></div>
+  <label for="tutreq_subject_id" class="label">Subject *</label>
+  <select name="tutreq_subject_id" id="tutreq_subject_id" required disabled>
+    <option value=""><?= Label::getLabel('LBL_SELECT_SUBJECT'); ?></option>
+  </select>
 </div>
 
+<!-- EXAM BOARD -->
+<div class="row">
+  <label for="tutreq_examboard_id" class="label">Exam Board</label>
+  <select name="tutreq_examboard_id" id="tutreq_examboard_id">
+    <option value=""><?= Label::getLabel('LBL_SELECT_EXAM_BOARD'); ?></option>
+    <?php if (!empty($examBoards)): ?>
+      <?php foreach ($examBoards as $eb): ?>
+        <option value="<?= (int)$eb['id']; ?>">
+          <?= htmlspecialchars($eb['name']); ?>
+        </option>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </select>
+</div>
+
+<!-- TIER -->
+<div class="row">
+  <label for="tutreq_tier_id" class="label">Tier</label>
+  <select name="tutreq_tier_id" id="tutreq_tier_id">
+    <option value=""><?= Label::getLabel('LBL_SELECT_TIER'); ?></option>
+    <?php if (!empty($tiers)): ?>
+      <?php foreach ($tiers as $tr): ?>
+        <option value="<?= (int)$tr['id']; ?>">
+          <?= htmlspecialchars($tr['name']); ?>
+        </option>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </select>
+</div>
   <div class="row">
   <label for="start_time" class="label">Preferred Time</label>
   <div class="time-selects">
@@ -419,6 +451,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
     <input type="hidden" name="tutreq_preferred_time" id="tutreq_preferred_time">
   </div>
 </div>
+
 
     <label class="terms">
       <input type="checkbox" required />
@@ -912,104 +945,7 @@ window.submitTutorReq = async function(form) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  /* =========================================
-   * 1) Fetch courses into #req_courses (if present)
-   * ========================================= */
-  (async function(){
-    try {
-      const res = await fetch('<?= MyUtility::makeUrl('TutorRequest','courses'); ?>', {
-        credentials: 'same-origin'
-      });
-      const json = await res.json();
-      if (json.status == 1 && Array.isArray(json.data.courses)) {
-        const sel = document.getElementById('req_courses');
-        if (sel) {
-          json.data.courses.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.course_id;
-            opt.textContent = c.course_title;
-            sel.appendChild(opt);
-          });
-        }
-      }
-    } catch(e){
-      console.error('Error loading courses:', e);
-    }
-  })();
-
-  /* =========================================
-   * 2) Multi-select chips for <select id="req_courses" multiple>
-   * ========================================= */
-  (function(){
-    const sel  = document.getElementById('req_courses');
-    const list = document.getElementById('selectedCourses');
-    if(!sel || !list) return;
-
-    // Make <select multiple> behave like tag toggles
-    sel.addEventListener('mousedown', function(e){
-      const opt = e.target;
-      if (opt && opt.tagName === 'OPTION') {
-        e.preventDefault();                 // stop native selection behavior
-        opt.selected = !opt.selected;       // toggle
-        sel.focus();
-        sel.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    });
-
-    function renderChips(){
-      list.innerHTML = '';
-      const selected = Array.from(sel.options).filter(o => o.selected);
-      selected.forEach(o => {
-        const chip = document.createElement('div');
-        chip.className = 'course-chip';
-        chip.dataset.value = o.value;
-        chip.innerHTML = `
-          <span class="label">${o.textContent}</span>
-          <button type="button" class="remove" aria-label="Remove ${o.textContent}">×</button>
-        `;
-        chip.querySelector('.remove').addEventListener('click', () => {
-          o.selected = false;
-          sel.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        list.appendChild(chip);
-      });
-    }
-
-    sel.addEventListener('change', renderChips);
-    renderChips();
-  })();
-
-  /* =========================================
-   * 3) Custom course dropdown + preferred time sync
-   *    (for your new UI)
-   * ========================================= */
-  // Course dropdown toggle (for .select-trigger / .select-options UI)
-  const trigger = document.querySelector('.select-trigger');
-  const options = document.querySelector('.select-options');
-
-  if (trigger && options) {
-    trigger.addEventListener('click', () => {
-      options.style.display = options.style.display === 'block' ? 'none' : 'block';
-    });
-
-    // Update trigger text dynamically when checkboxes change
-    options.addEventListener('change', () => {
-      const selected = Array.from(
-        options.querySelectorAll('input[type="checkbox"]:checked')
-      ).map(opt => opt.parentNode.textContent.trim());
-
-      trigger.textContent = selected.length
-        ? selected.join(', ')
-        : 'Select Courses ▼';
-    });
-
-    // Close when clicking outside
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#courseDropdown')) {
-        options.style.display = 'none';
-      }
-    });
-  }
+ 
 
   // Time field synchronization (start_time + end_time → tutreq_preferred_time)
   const startSelect = document.getElementById('start_time');
@@ -1034,4 +970,64 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById("rwSearchBtn").addEventListener("click", function () {
     window.location.href = "<?php echo MyUtility::makeUrl('Courses'); ?>";
 });
+</script>
+<script>
+(function() {
+  var levelSelect   = document.getElementById('tutreq_level_id');
+  var subjectSelect = document.getElementById('tutreq_subject_id');
+
+  if (!levelSelect || !subjectSelect) return;
+
+  levelSelect.addEventListener('change', function() {
+    var levelId = this.value;
+
+    // reset subject select
+    subjectSelect.innerHTML = '<option value=""><?= addslashes(Label::getLabel('LBL_SELECT_SUBJECT')); ?></option>';
+    subjectSelect.disabled = true;
+
+    if (!levelId) {
+      return;
+    }
+
+    // show loading info
+    var loadingOpt = document.createElement('option');
+    loadingOpt.value = '';
+    loadingOpt.textContent = 'Loading subjects...';
+    subjectSelect.appendChild(loadingOpt);
+
+    fetch('<?= MyUtility::makeUrl('Home', 'getsubjectsforlevel'); ?>', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-REQUESTED-WITH': 'XMLHttpRequest'
+      },
+      body: 'levelId=' + encodeURIComponent(levelId)
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(json) {
+      subjectSelect.innerHTML = '<option value=""><?= addslashes(Label::getLabel('LBL_SELECT_SUBJECT')); ?></option>';
+
+      if (!json || json.status !== 1 || !Array.isArray(json.data)) {
+        var opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No subjects found';
+        subjectSelect.appendChild(opt);
+        return;
+      }
+
+      json.data.forEach(function(subj) {
+        var opt = document.createElement('option');
+        opt.value = subj.id;
+        opt.textContent = subj.name;
+        subjectSelect.appendChild(opt);
+      });
+
+      subjectSelect.disabled = false;
+    })
+    .catch(function(err) {
+      console.error(err);
+      subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+    });
+  });
+})();
 </script>

@@ -25,7 +25,7 @@ class TutorRequestsController extends AdminBaseController
         // Base table: tutor requests
         $srch = new SearchBase('tbl_tutor_requests', 'tr');
 
-        // Join mapping table (tutor_request_courses)
+        // Join mapping table (tutor_request_courses) – for older flow / course-based requests
         $srch->joinTable(
             'tbl_tutor_request_courses',
             'LEFT JOIN',
@@ -33,7 +33,7 @@ class TutorRequestsController extends AdminBaseController
             'trc'
         );
 
-        // Join courses table so we can show course titles instead of IDs
+        // Join courses table so we can show course titles instead of IDs (fallback)
         $srch->joinTable(
             'tbl_courses',
             'LEFT JOIN',
@@ -41,12 +41,12 @@ class TutorRequestsController extends AdminBaseController
             'c'
         );
 
-        /* 
-           NOTE:
-           - We do NOT use tbl_courses_lang since you said you don't have it.
-           - If your tbl_courses has a column `course_title`, this will use it;
-             otherwise it falls back to `course_slug`.
-        */
+        /*
+         * NOTE:
+         * We now primarily use tutreq_level_id, tutreq_subject_id, tutreq_examboard_id, tutreq_tier_id
+         * to understand what kind of "package" / setup user is asking for.
+         * course_titles is kept as a fallback for older data.
+         */
         $srch->addMultipleFields([
             'tr.tutreq_id',
             'tr.tutreq_user_id',
@@ -58,7 +58,14 @@ class TutorRequestsController extends AdminBaseController
             'tr.tutreq_preferred_time',
             'tr.tutreq_status',
             'tr.tutreq_added_on',
-            // comma-separated list of *course titles* instead of IDs
+
+            // NEW: expose level/subject/exam board / tier ids on listing
+            'tr.tutreq_level_id',
+            'tr.tutreq_subject_id',
+            'tr.tutreq_examboard_id',
+            'tr.tutreq_tier_id',
+
+            // Fallback: comma-separated list of *course slugs* instead of IDs
             'GROUP_CONCAT(DISTINCT IFNULL(c.course_slug, c.course_slug) SEPARATOR ", ") AS course_titles',
         ]);
 
@@ -117,11 +124,15 @@ class TutorRequestsController extends AdminBaseController
             'c.course_id = trc.trc_course_id',
             'c'
         );
+
         $srch->addCondition('tr.tutreq_id', '=', $requestId);
+
         $srch->addMultipleFields([
             'tr.*',
+            // Keep course titles for legacy data
             'GROUP_CONCAT(DISTINCT IFNULL(c.course_slug, c.course_slug) SEPARATOR ", ") AS course_titles',
         ]);
+
         $srch->addGroupBy('tr.tutreq_id');
         $srch->setPageSize(1);
 
@@ -137,13 +148,44 @@ class TutorRequestsController extends AdminBaseController
             FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
         }
 
-        echo '<h2>Tutor Request #' . (int)$row['tutreq_id'] . '</h2>';
-        echo '<p><strong>Name:</strong> ' . htmlspecialchars(trim($row['tutreq_first_name'] . ' ' . $row['tutreq_last_name'])) . '</p>';
-        echo '<p><strong>Email:</strong> ' . htmlspecialchars($row['tutreq_email']) . '</p>';
-        echo '<p><strong>Phone:</strong> +' . htmlspecialchars($row['tutreq_phone_code']) . ' ' . htmlspecialchars($row['tutreq_phone_number']) . '</p>';
-        echo '<p><strong>Preferred Time / Notes:</strong><br>' . nl2br(htmlspecialchars($row['tutreq_preferred_time'])) . '</p>';
-        echo '<p><strong>Courses:</strong> ' . htmlspecialchars($row['course_titles'] ?: '-') . '</p>';
-        echo '<p><a href="' . MyUtility::makeUrl('TutorRequests') . '">Back to list</a></p>';
+        // Simple debug-style detail view; can be replaced with a template later
+        echo '<div class="page"><div class="fixed_container"><div class="row"><div class="space">';
+        echo '<h2>' . Label::getLabel('LBL_TUTOR_REQUEST') . ' #' . (int)$row['tutreq_id'] . '</h2>';
+
+        $fullName = trim(($row['tutreq_first_name'] ?? '') . ' ' . ($row['tutreq_last_name'] ?? ''));
+
+        echo '<p><strong>' . Label::getLabel('LBL_NAME') . ':</strong> ' . htmlspecialchars($fullName) . '</p>';
+        echo '<p><strong>' . Label::getLabel('LBL_EMAIL') . ':</strong> ' . htmlspecialchars($row['tutreq_email']) . '</p>';
+        echo '<p><strong>' . Label::getLabel('LBL_PHONE') . ':</strong> +' .
+             htmlspecialchars($row['tutreq_phone_code']) . ' ' . htmlspecialchars($row['tutreq_phone_number']) . '</p>';
+        echo '<p><strong>' . Label::getLabel('LBL_PREFERRED_SCENARIO') . ':</strong><br>' .
+             nl2br(htmlspecialchars($row['tutreq_preferred_time'])) . '</p>';
+
+        // Show grouped package info (IDs, similar to listing)
+        echo '<h4 style="margin-top:15px;">' . Label::getLabel('LBL_PACKAGES') . '</h4>';
+        echo '<ul>';
+        if (!empty($row['tutreq_level_id'])) {
+            echo '<li><strong>' . Label::getLabel('LBL_LEVEL') . ':</strong> #' . (int)$row['tutreq_level_id'] . '</li>';
+        }
+        if (!empty($row['tutreq_subject_id'])) {
+            echo '<li><strong>' . Label::getLabel('LBL_SUBJECT') . ':</strong> #' . (int)$row['tutreq_subject_id'] . '</li>';
+        }
+        if (!empty($row['tutreq_examboard_id'])) {
+            echo '<li><strong>' . Label::getLabel('LBL_EXAM_BOARD') . ':</strong> #' . (int)$row['tutreq_examboard_id'] . '</li>';
+        }
+        if (!empty($row['tutreq_tier_id'])) {
+            echo '<li><strong>' . Label::getLabel('LBL_TIER') . ':</strong> #' . (int)$row['tutreq_tier_id'] . '</li>';
+        }
+        if (!empty($row['course_titles'])) {
+            echo '<li><strong>' . Label::getLabel('LBL_COURSES') . ':</strong> ' .
+                 htmlspecialchars($row['course_titles']) . '</li>';
+        }
+        echo '</ul>';
+
+        echo '<p><a class="btn btn--primary btn--sm" href="' . MyUtility::makeUrl('TutorRequests') . '">'
+             . Label::getLabel('LBL_BACK_TO_LIST') . '</a></p>';
+
+        echo '</div></div></div></div>';
         exit;
     }
 
@@ -153,7 +195,7 @@ class TutorRequestsController extends AdminBaseController
     public function updateStatus()
     {
         $requestId = FatApp::getPostedData('requestId', FatUtility::VAR_INT, 0);
-        $status    = FatApp::getPostedData('status', FatUtility::VAR_INT, 0);
+        $status    = FatApp::getPostedData('status',   FatUtility::VAR_INT, 0);
 
         if ($requestId < 1) {
             Message::addErrorMessage(Label::getLabel('LBL_INVALID_REQUEST'));
@@ -196,11 +238,13 @@ class TutorRequestsController extends AdminBaseController
         $db->startTransaction();
 
         try {
-            // Delete associated courses first
+            // Delete associated courses first (legacy mapping table)
             if (!$db->deleteRecords('tbl_tutor_request_courses', [
-                'smt'  => 'trc_tutreq_id = ?',   // <-- make sure this column name matches your table
+                'smt'  => 'trc_trutreq_id = ?', // adjust column name if different
                 'vals' => [$requestId],
             ])) {
+                // If table/column doesn't exist, you can relax this check
+                // but for now we treat failure as an error.
                 throw new Exception($db->getError());
             }
 

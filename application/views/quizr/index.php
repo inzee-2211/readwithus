@@ -1124,16 +1124,24 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                     <p class="mb-3" style="font-size: 14px;">
                         Tell us what you're looking for and we'll connect you with a qualified tutor tailored to your learning needs.
                     </p>
-                   <form id="quizSignupForm" class="form-knowledge" novalidate>
-    <!-- Hidden fields to align with TutorRequestController::create -->
+               <form id="quizSignupForm" class="form-knowledge" novalidate>
+    <!-- Hidden fields required by TutorRequestController::create -->
     <input type="hidden" name="tutreq_phone_code" value="44"> <!-- UK default, change if needed -->
     <input type="hidden" name="source" value="quiz">
-    <!-- If you ever want to attach a course later, you can set this dynamically -->
-    <input type="hidden" name="course_ids[]" value="">
+
+    <!-- NEW: hidden IDs from controller -->
+    <input type="hidden" name="tutreq_level_id"
+           value="<?= (int)($tutreqLevelId ?? 0); ?>">
+    <input type="hidden" name="tutreq_subject_id"
+           value="<?= (int)($tutreqSubjectId ?? 0); ?>">
+    <input type="hidden" name="tutreq_examboard_id"
+           value="<?= (int)($tutreqExamboardId ?? 0); ?>">
+    <input type="hidden" name="tutreq_tier_id"
+           value="<?= (int)($tutreqTierId ?? 0); ?>">
 
     <div class="form-group mb-2">
         <label for="fullName" class="form-label">Full Name</label>
-        <!-- map to tutreq_first_name (last name optional in controller) -->
+        <!-- mapped to tutreq_first_name -->
         <input type="text" name="tutreq_first_name" class="form-control" id="fullName"
                placeholder="Enter Name" required>
     </div>
@@ -1146,7 +1154,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 
     <div class="form-group mb-2">
         <label for="parentEmail" class="form-label">Parent's Email</label>
-        <!-- extra field, not validated by PHP form; we'll store in preferred_time text -->
+        <!-- extra, we push into preferred_time string -->
         <input type="email" name="parent_email" class="form-control" id="parentEmail"
                placeholder="Enter Parent's E-mail">
     </div>
@@ -1158,23 +1166,24 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
     </div>
 
     <div class="form-group mb-2">
-        <label for="subject" class="form-label">Subject</label>
-        <!-- again, we’ll stuff this into preferred_time before submit -->
-        <input type="text" name="course_ids[]" class="form-control" id="subject"
-               placeholder="Enter Subject">
+        <label for="subject" class="form-label">Subject / Topic</label>
+        <!-- free-text; we’ll stuff into preferred_time for extra context -->
+        <input type="text" name="subject_text" class="form-control" id="subject"
+               placeholder="e.g. GCSE Maths – Algebra">
     </div>
 
     <div class="form-group mb-3">
         <label for="preferredTime" class="form-label">Preferred Time</label>
-        <!-- rename to tutreq_preferred_time so controller can read it -->
+        <!-- this is the one the controller reads -->
         <input type="text" name="tutreq_preferred_time" class="form-control" id="preferredTime"
-               placeholder="Enter Preferred Time">
+               placeholder="e.g. Weekdays 5–7 PM">
     </div>
 
     <button type="button" class="btn-submit-tutor" id="submitTutorForm">
         Submit Request
     </button>
-                </div>
+</form>
+
             </div>
         </div>
     </div>
@@ -1183,10 +1192,10 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Enable Bootstrap tooltips if available
-  $('#submitTutorForm').on('click', function () {
+$('#submitTutorForm').on('click', function () {
     const form = $('#quizSignupForm');
 
-    // Optional: enrich preferred time with subject + parent email
+    // Build a nicer "preferred time" string with extra context
     const preferredTime = $('#preferredTime').val().trim();
     const subject       = $('#subject').val().trim();
     const parentEmail   = $('#parentEmail').val().trim();
@@ -1202,7 +1211,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 
     const formData = form.serialize();
 
-    // 🔁 Now hit TutorRequest/create instead of Quizizz/submitfindatutor
+    // Call TutorRequest/create
     fcom.ajax(fcom.makeUrl('TutorRequest', 'create'), formData, function (response) {
         try {
             if (typeof response === 'string') {
@@ -1238,6 +1247,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
         }
     });
 });
+
 
 </script>
 <script>

@@ -18,7 +18,7 @@ class QuizrController extends MyAppController
      *
      * @return void
      */
-  public function index()
+ public function index()
 {
     /* -------------------------------------------------------------
        1. Popular course (unchanged)
@@ -38,6 +38,13 @@ class QuizrController extends MyAppController
     $resultText        = '';
     $currentSubtopicId = null;
 
+    // 🔹 NEW: variables for tutor request mapping
+    $subtopicName      = '';
+    $tutreqLevelId     = 0;
+    $tutreqSubjectId   = 0;
+    $tutreqExamboardId = 0;
+    $tutreqTierId      = 0;
+
     /* -------------------------------------------------------------
        3. Load attempt row (header)
     -------------------------------------------------------------- */
@@ -56,10 +63,50 @@ class QuizrController extends MyAppController
     }
 
     /* -------------------------------------------------------------
-       4. Load attempt answers + question_title + explanation - FIXED VERSION
+       3.5 Derive Level / Subject / Exam Board / Tier for TutorRequest
+            from the current topic (subtopic_id)
+    -------------------------------------------------------------- */
+    if (!empty($currentSubtopicId)) {
+        // We assume subtopic_id here is the topic ID from course_topics.id
+        $topicId = (int)$currentSubtopicId;
+
+        $sqlMap = "
+            SELECT 
+                t.topic                                AS topic_name,
+                s.level_id                             AS level_id,
+                s.id                                   AS subject_id,
+                eb.id                                  AS examboard_id,
+                tr.id                                  AS tier_id
+            FROM course_topics t
+            JOIN course_subjects s      ON s.id = t.subject_id
+            LEFT JOIN course_examboards eb ON eb.subject_id = s.id
+            LEFT JOIN course_tier tr        ON tr.examboard_id = eb.id
+            WHERE t.id = " . $topicId . "
+            LIMIT 1
+        ";
+
+        $rsMap = $db->query($sqlMap);
+        if ($rsMap) {
+            $mapRow = $db->fetch($rsMap);
+            if ($mapRow) {
+                $subtopicName      = $mapRow['topic_name']   ?? '';
+                $tutreqLevelId     = (int)($mapRow['level_id']     ?? 0);
+                $tutreqSubjectId   = (int)($mapRow['subject_id']   ?? 0);
+                $tutreqExamboardId = (int)($mapRow['examboard_id'] ?? 0);
+                $tutreqTierId      = (int)($mapRow['tier_id']      ?? 0);
+            }
+        }
+
+        // Optional: keep this in session too if you still use it elsewhere
+        if (!empty($subtopicName)) {
+            $_SESSION['subtopicName'] = $subtopicName;
+        }
+    }
+
+    /* -------------------------------------------------------------
+       4. Load attempt answers + question_title + explanation
     -------------------------------------------------------------- */
     if ($attemptId > 0) {
-        // CORRECTED TABLE NAME: tbl_quaestion_bank (not tbl_queastion_bank)
         $sqlAnswers = "
             SELECT
                 ans.*,
@@ -75,21 +122,16 @@ class QuizrController extends MyAppController
         $rsAnswers = $db->query($sqlAnswers);
         if ($rsAnswers) {
             $attemptquestions = $db->fetchAll($rsAnswers);
-            
-            // Debug: Check if we're getting the explanation data
-            error_log("Fetched " . count($attemptquestions) . " questions with explanations");
-            foreach ($attemptquestions as $index => $q) {
-                error_log("Question " . ($index + 1) . ": " . 
-                    ($q['question_title'] ?? 'No title') . " | " . 
-                    ($q['explanation'] ?? 'No explanation'));
-            }
+
+            // Debug (optional)
+            // error_log("Fetched " . count($attemptquestions) . " questions with explanations");
         } else {
             error_log("Query failed: " . $db->getError());
         }
     }
 
     /* -------------------------------------------------------------
-       5. Email parent if result = fail
+       5. Email parent if result = fail (unchanged)
     -------------------------------------------------------------- */
     if (!empty($resultText)) {
         $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
@@ -142,8 +184,16 @@ www.readwithus.org.uk";
     $this->set('currentSubtopicId', $currentSubtopicId);
     $this->set('resultText', $resultText);
 
+    // 🔹 NEW: send these to the quiz result view for the modal
+    $this->set('subtopicName',      $subtopicName);
+    $this->set('tutreqLevelId',     $tutreqLevelId);
+    $this->set('tutreqSubjectId',   $tutreqSubjectId);
+    $this->set('tutreqExamboardId', $tutreqExamboardId);
+    $this->set('tutreqTierId',      $tutreqTierId);
+
     $this->_template->render();
 }
+
 
     public function getSubtopicIdByName($subtopicName)
     {

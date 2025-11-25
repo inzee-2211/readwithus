@@ -53,6 +53,8 @@ class HomeController extends MyAppController
          'levels' => $levels,
         'popularFaqList' => $this->getPopularFaqs(),
         'whyWeEffectiveBlock' => ExtraPage::getBlockContent(ExtraPage::BLOCK_WHY_WE_ARE_EFFECTIVE, $this->siteLangId),
+         'examBoards'          => $this->getExamBoardsFromDB(),
+        'tiers'               => $this->getTiersFromDB(),
     ]);
 
     $db     = FatApp::getDb();
@@ -126,6 +128,41 @@ class HomeController extends MyAppController
 
     $this->_template->render();
 }
+private function getExamBoardsFromDB(): array
+{
+    $db = FatApp::getDb();
+
+    // Simple: fetch all exam boards, ordered by name
+    $sql = "SELECT id, name 
+              FROM course_examboards
+          ORDER BY name ASC";
+
+    $rs = $db->query($sql);
+    if (!$rs) {
+        return [];
+    }
+
+    return $db->fetchAll($rs); // rows: ['id' => .., 'name' => ..]
+}
+
+private function getTiersFromDB(): array
+{
+    $db = FatApp::getDb();
+
+    // Only non-deleted tiers, ordered by name
+    $sql = "SELECT id, name, examboard_id
+              FROM course_tier
+             WHERE deleted = 0
+          ORDER BY name ASC";
+
+    $rs = $db->query($sql);
+    if (!$rs) {
+        return [];
+    }
+
+    return $db->fetchAll($rs); // rows: ['id' => .., 'name' => .., 'examboard_id' => ..]
+}
+
 
 
     /**
@@ -202,62 +239,54 @@ class HomeController extends MyAppController
      echo json_encode(['status' => 1, 'data' => $subjects]);
 }
 */
-    private function getSubjectsByLevel($levelId)
-    {
-        $db = FatApp::getDb();
+private function getSubjectsByLevel(int $levelId): array
+{
+    $db = FatApp::getDb();
 
-        $query = "SELECT id, subject FROM course_subjects WHERE level_id = $levelId"; // Direct insertion
-
-        $result = $db->query($query);
-
-        if (!$result) {
-            die('Database Query Failed: ' . $db->getError());
-        }
-
-        $subjects = $db->fetchAll($result);
-
-        if (empty($subjects)) {
-            return [];
-        }
-        return array_column($subjects, 'subject', 'id');
+    $levelId = (int)$levelId;
+    if ($levelId <= 0) {
+        return [];
     }
 
-
-
-    public function getsubjectsforlevel()
-    {
-        $levelId = FatApp::getPostedData('levelId', FatUtility::VAR_INT, 0);
- 
-        if ($levelId <= 0) {
-            echo json_encode(['status' => 0, 'msg' => 'Invalid level ID']);
-            return;
-        }
-
-        $subjects = $this->getSubjectsByLevel($levelId); // Get subjects by level
-        
-        if (empty($subjects)) {
-            echo json_encode(['status' => 0, 'msg' => 'No subjects found for the selected level']);
-            return;
-        }
-
-        $subjectsWithDetails = [];
-
-        foreach ($subjects as $subjectId => $subjectName) {
-            $topics = $this->getTopicsBySubject($subjectId);
-            
-            $topicsWithSubtopics = [];
-
-            foreach ($topics as $topicId => $topicName) {
-                $subtopics = $this->getSubtopicsByTopic($topicId);
-
-                $topicsWithSubtopics[$topicName] = $subtopics;
-            }
-
-            $subjectsWithDetails[$subjectName] = $topicsWithSubtopics;
-        }
-       
-        echo json_encode(['status' => 1, 'data' => $subjectsWithDetails]);
+    $sql = "SELECT id, subject 
+              FROM course_subjects 
+             WHERE level_id = {$levelId}
+          ORDER BY subject ASC";
+    $rs  = $db->query($sql);
+    if (!$rs) {
+        return [];
     }
+
+    return $db->fetchAll($rs); // rows: ['id' => .., 'subject' => ..]
+}
+
+
+  public function getsubjectsforlevel()
+{
+    $levelId = FatApp::getPostedData('levelId', FatUtility::VAR_INT, 0);
+
+    if ($levelId <= 0) {
+        echo json_encode(['status' => 0, 'msg' => 'Invalid level ID']);
+        return;
+    }
+
+    $rows = $this->getSubjectsByLevel($levelId);
+
+    if (empty($rows)) {
+        echo json_encode(['status' => 0, 'msg' => 'No subjects found for the selected level']);
+        return;
+    }
+
+    $subjects = [];
+    foreach ($rows as $row) {
+        $subjects[] = [
+            'id'   => (int)$row['id'],
+            'name' => $row['subject'],
+        ];
+    }
+
+    echo json_encode(['status' => 1, 'data' => $subjects]);
+}
 
     private function getTopicsBySubject($subjectId)
     {

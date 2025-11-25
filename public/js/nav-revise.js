@@ -33,26 +33,28 @@
     return new URL(rel, baseUrl).toString();
   }
 
+  // ---- FETCH OPTIONS (aligned with home.js)
   function fetchOptionsForStepWithParam(stepIndex, params) {
     return new Promise((resolve) => {
       const step = steps[stepIndex];
       if (!step || !step.url) { resolve(); return; }
 
-      const url = new URL(step.url.replace(/^\//,''), baseUrl);
+      const rel = step.url.replace(/^\//,'');
+      const url = new URL(rel, baseUrl);
+
       if (step.paramKey && params[step.paramKey]) {
         url.searchParams.append(step.paramKey, params[step.paramKey]);
       }
-      // extra params for deeper steps
-      const u = url.toString();
-      if (u.includes('getExamboards') && params.levelId && params.subjectId) {
-        url.searchParams.set('levelId', params.levelId);
-        url.searchParams.set('subjectId', params.subjectId);
+
+      // extra params for deeper steps (same logic as home.js)
+      if (rel.includes('getExamboards')) {
+        if (params.levelId) url.searchParams.append('levelId', params.levelId);
       }
-      if (u.includes('getYears')) {
-        if (params.levelId)     url.searchParams.set('levelId', params.levelId);
-        if (params.subjectId)   url.searchParams.set('subjectId', params.subjectId);
-        if (params.examboardId) url.searchParams.set('examboardId', params.examboardId);
-        if (params.tierId)      url.searchParams.set('tierId', params.tierId);
+      if (rel.includes('getYears')) {
+        if (params.levelId)     url.searchParams.append('levelId', params.levelId);
+        if (params.subjectId)   url.searchParams.append('subjectId', params.subjectId);
+        if (params.examboardId) url.searchParams.append('examboardId', params.examboardId);
+        if (params.tierId)      url.searchParams.append('tierId', params.tierId);
       }
 
       fetch(url.toString())
@@ -154,14 +156,15 @@
         if (currentStep < steps.length) {
           fetchOptionsForStepWithParam(currentStep, selectedValues).then(() => renderStep(container, currentStep));
         } else {
-          // final step → resolve & go
+          // final step → resolve & go (aligned with home.js: setup_ids + comma-separated string)
           fetch(makeAbs("api.php?url=resolveSetup" + buildQueryString(selectedValues)))
             .then(r => r.json())
             .then(j => {
-              if (j.status === 1 && j.data?.setup_id) {
+              if (j.status === 1 && j.data?.setup_ids && Array.isArray(j.data.setup_ids)) {
+                const ids = j.data.setup_ids.join(',');
                 const nextUrl = (window.fcom && typeof fcom.makeUrl === 'function')
-                  ? fcom.makeUrl('quizizz') + '?setup_id=' + j.data.setup_id
-                  : (baseUrl + 'quizizz?setup_id=' + j.data.setup_id);
+                  ? fcom.makeUrl('quizizz') + '?setup_ids=' + ids
+                  : (baseUrl + 'quizizz?setup_ids=' + ids);
                 window.location.href = nextUrl;
               } else {
                 alert("Unable to load quiz. Please try again.");

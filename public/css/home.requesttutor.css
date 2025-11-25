@@ -761,3 +761,27 @@
     font-size: 32px;
   }
 }
+/* --- Fix: allow dropdowns & selected text to be fully visible --- */
+.rwu-request-form {
+  overflow: visible; /* instead of hidden – lets selects / option lists overflow */
+}
+
+/* Make inputs & selects slightly shorter, but ensure text is visible */
+.rwu-request-form input,
+.rwu-request-form textarea,
+.rwu-request-form select {
+  padding: 10px 14px;       /* was 16px 18px – less vertical padding */
+  line-height: 1.25;
+  min-height: 42px;         /* guarantees enough height for the label */
+  height: auto;
+}
+@media (max-width: 768px) {
+  .rwu-request-form .row > select[name="tutreq_phone_code"] {
+    flex: 0 0 90px;
+    max-width: 90px;
+    padding: 6px 8px;
+    min-height: 30px;
+    max-height: 40px;
+    font-size: 13px;
+  }
+}
