@@ -709,7 +709,7 @@ $colorClass = [1 => 'cell-green-40', 2 => 'cell-green-60', 3 => 'cell-green-80',
                             </div>
                         </div>
                         <div class="list__action">
-                            <div class="list__action-btn">
+                            <!-- <div class="list__action-btn">
                                 <a href="javascript:void(0);" onclick="cart.langSlots('<?php echo $teacher['user_id']; ?>', '', '')" class="btn btn--primary btn--block"><?php echo Label::getLabel('LBL_Book_Now'); ?></a>
                                 <a href="javascript:void(0);" onclick="generateThread(<?php echo $teacher['user_id']; ?>);" class="btn btn--bordered color-primary btn--block">
                                     <svg class="icon icon--envelope">
@@ -717,7 +717,7 @@ $colorClass = [1 => 'cell-green-40', 2 => 'cell-green-60', 3 => 'cell-green-80',
                                     </svg>
                                     <?php echo Label::getLabel('LBL_Contact'); ?>
                                 </a>
-                            </div>
+                            </div> -->
                             <a href="javascript:void(0);" onclick="viewCalendar(<?php echo $teacher['user_id']; ?>, 'paid')" class="link-detail"><?php echo Label::getLabel('LBL_View_Full_availability'); ?></a>
                         </div>
                     </div>

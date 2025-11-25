@@ -27,7 +27,7 @@ $submitBtn->setFieldTagAttribute('class', 'btn btn--secondary btn--large btn--bl
             <div class="row justify-content-center margin-top-4">
                 <p><?php echo Label::getLabel('LBL_FAQS_DESCRIPTION'); ?></p>
             </div>
-            <div class="row">
+            <!-- <div class="row">
                 <div class="col-6">
                     <a href="#faq-area" class="btn btn--block btn--white scroll">
                         <?php echo Label::getLabel('LBL_FAQS'); ?>
@@ -38,7 +38,7 @@ $submitBtn->setFieldTagAttribute('class', 'btn btn--secondary btn--large btn--bl
                         <?php echo Label::getLabel('LBL_HOW_IT_WORKS'); ?>
                     </a>
                 </div>
-            </div>
+            </div> -->
         <?php } else { ?>
             <div class="form-register">
                 <?php echo $applyTeachFrm->getFormTag(); ?>

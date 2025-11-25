@@ -241,7 +241,7 @@ if (empty($trendingCourses)) {
             $teacherName = $c['teacher_name'] ?? 'by Determined-Poitras';
             $title       = $c['course_title'] ?? 'Create an LMS Website with LearnPress';
             $weeks       = $c['duration_weeks'] ?? '2 Weeks';
-            $students    = ($c['enrolled'] ?? 156) . ' Students';
+            $students    = ($c['course_students'] ?? 156) . ' Students';
             $oldPrice    = $c['old_price'] ?? null;       // e.g., 59.0
             $price       = $c['price']     ?? 0;          // 0 => Free
               $slug      = $c['course_slug'] ?? '';
@@ -253,7 +253,7 @@ if (empty($trendingCourses)) {
           <article class="rwu-course <?= $idx === 1 ? 'is-featured' : '' ?>">
             <div class="media">
               <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($title) ?>">
-              <div class="chip">Photography</div>
+              <!-- <div class="chip">Photography</div> -->
             </div>
 
             <div class="body">
