@@ -5,7 +5,7 @@
   position: relative;
   overflow: hidden;
   
-  margin-top: -3%;  /* fix gap issue with header */
+  margin-top: -06%;  /* fix gap issue with header */
   background: linear-gradient(180deg,#F5FAFF 0%,#FFFFFF 100%);
 }
 
