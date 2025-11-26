@@ -348,6 +348,59 @@ background: #2DADFF!important;  color:#fff;
     flex-direction: row;
   }
 }
+/* ===== Mobile: sidebar fixed on top (30%), questions scroll below (70%) ===== */
+@media (max-width: 768px){
+  /* Shell just stacks, no extra grid layout needed */
+  .qz-shell{
+    display: block;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Sidebar: fixed at top, 30% of viewport height */
+  .qz-side{
+    position: fixed;
+    top: 0;               /* if your main site header overlaps, change to e.g. 60px */
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 30vh;
+    border-radius: 0 0 16px 16px;
+    z-index: 1000;
+    overflow-y: auto;
+    margin-bottom: 0;
+  }
+
+  /* Question container sits below the fixed sidebar */
+  .quiz-container{
+    margin-top: 30vh;     /* same as qz-side height */
+    height: 70vh;
+    overflow-y: auto;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 14px 10px 10px;
+  }
+
+  /* Make question card fully responsive inside scroll area */
+  .quiz-question{
+    width: 100%;
+    max-width: 90%;
+    margin: 0 0 14px;
+    padding: 14px;
+  }
+
+  .quiz-header{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .quiz-media img{
+    max-width: 100%;
+  }
+}
+
 </style>
 
 <section class="section section--gray section--listing">
