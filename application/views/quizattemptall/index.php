@@ -265,6 +265,12 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
                   <!-- All questions will be rendered here by JS -->
                   <div id="quiz-options"></div>
                 </div>
+                  <button
+                    type="button"
+                    id="submit-btn"
+                    class="qz-btn-primary">
+                    <?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?>
+                  </button>
               </div>
             </div>
 

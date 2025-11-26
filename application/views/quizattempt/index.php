@@ -15,7 +15,10 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
   margin: 10px auto 28px;
   padding: 0 8px;
 }
-
+.qz-btn-primary{
+    background: #2DADFF!important; color:#fff;
+  box-shadow:0 6px 16px rgba(20,160,163,.22);
+}
 /* Mobile / tablet: stack, sidebar full-width, no sticky */
 @media (max-width: 1100px){
   .qz-shell{
@@ -130,7 +133,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
   border-color:#99f6e4;
 }
 .qz-dot.active{
-  background:#14A0A3;
+ background: #2DADFF!important;
   color:#fff;
   border-color:#14A0A3;
 }
@@ -293,8 +296,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 
 .quiz-options input[type="radio"]:checked + label.qz-opt,
 .quiz-options input[type="checkbox"]:checked + label.qz-opt{
-  background:#14A0A3;
-  color:#fff;
+background: #2DADFF!important;  color:#fff;
   border-color:#14A0A3;
   box-shadow:0 8px 18px rgba(20,160,163,.25);
 }
