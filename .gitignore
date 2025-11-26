@@ -38,8 +38,10 @@ public/sitemaps/
 ./cache
 cache/
 public/cache/
-useer-uploads/
+user-uploads/
 public/settings.php/
+/public/cache/
+/user-uploads/
 
 # ---- DB dumps / local data
 *.sql
@@ -64,6 +66,6 @@ phpstan-baseline.neon
 # ---- Licenses/keys that are machine-bound
 license*.txt
 
-application/logs/course_progress_debug.log
-application/logs/subscription_debug.log
-application/logs/subscription_access.log
+/application/logs/course_progress_debug.log
+/application/logs/subscription_debug.log
+/application/logs/subscription_access.log
