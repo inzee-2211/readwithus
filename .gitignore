@@ -64,3 +64,6 @@ phpstan-baseline.neon
 # ---- Licenses/keys that are machine-bound
 license*.txt
 
+application/logs/course_progress_debug.log
+application/logs/subscription_debug.log
+application/logs/subscription_access.log

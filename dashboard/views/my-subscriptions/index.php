@@ -139,6 +139,10 @@ if ($hasSubscription && !empty($subscription['end_date'])) {
         background: #ef4444;
         border-color: #ef4444;
         color: #ffffff !important;
+        margin-bottom: 26px;
+        margin-top: 26px;
+        margin-left: 20%;
+
     }
 
     .btn--danger-solid:hover,
