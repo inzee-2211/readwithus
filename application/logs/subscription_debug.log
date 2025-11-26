@@ -15733,3 +15733,2583 @@ Subscription Data: Array
 
 Final Result: TRUE
 
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:46] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 16:22:50] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:40:48] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:43:51] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+
+[2025-11-26 17:51:57] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 27
+Course Data: Array
+(
+    [course_subject_id] => 
+)
+
+❌ Course not found or no subject_id
+
+[2025-11-26 17:53:22] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 27
+Course Data: Array
+(
+    [course_subject_id] => 
+)
+
+❌ Course not found or no subject_id
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:56:15] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 5
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 5
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900005
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900005
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 15
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 15
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900015
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900015
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 20
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 20
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900020
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900020
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 21
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 21
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900021
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900021
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 105
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 105
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900105
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900105
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 109
+Course Data: Array
+(
+    [course_subject_id] => 8
+)
+
+Course Subject ID: 8
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 109
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900109
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900109
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === hasSubscriptionAccess Debug ===
+User ID: 999, Course ID: 1
+Course Data: Array
+(
+    [course_subject_id] => 9
+)
+
+Course Subject ID: 9
+Subscription Data: Array
+(
+    [usubs_id] => 12
+    [usubs_user_id] => 999
+    [usubs_spackage_id] => 3
+    [usubs_billing_interval] => month
+    [usubs_subject_ids] => 8,9
+    [stripe_subscription_id] => sub_1STeM7FP4feQExSlRl81ORle
+    [stripe_customer_id] => cus_TQVMud3Dq8PhOF
+    [usubs_status] => active
+    [usubs_start_date] => 2025-11-15 07:57:11
+    [usubs_end_date] => 2025-12-15 07:57:11
+    [usubs_current_period_end] => 
+    [usubs_created] => 2025-11-15 07:57:17
+)
+
+Final Result: TRUE
+
+[2025-11-26 17:58:07] === ensureForCourse Debug ===
+User ID: 999, Course ID: 1
+hasSubscriptionAccess returned: TRUE
+✅ Subscription access granted
+ensureSubscriptionAccess returned: TRUE
+✅ Using subscription access ID: -99900001
+ensureProgressRecord returned: FALSE
+✅ Returning access ID: -99900001
+

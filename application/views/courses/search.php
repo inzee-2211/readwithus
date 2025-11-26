@@ -238,8 +238,8 @@ $priceSorting = AppConstant::getSortbyArr();
         <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
           <h4 class="free-text"><?php echo Label::getLabel('LBL_FREE'); ?></h4>
         <?php else: ?>
-          <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;padding:6px 10px;font-weight:600;">
-            <?php echo Label::getLabel('LBL_INCLUDED_IN_SUBSCRIPTION'); ?>
+          <!-- <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;padding:6px 10px;font-weight:600;">
+            <?php echo Label::getLabel('LBL_INCLUDED_IN_SUBSCRIPTION'); ?> -->
           </span>
         <?php endif; ?>
       </div>

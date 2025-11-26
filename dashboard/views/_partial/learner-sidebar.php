@@ -18,6 +18,15 @@
                     <span><?php echo Label::getLabel('LBL_ACCOUNT_SETTINGS'); ?></span>
                 </a>
             </li>
+            <li class="menu__item <?php echo ('MySubscriptions' == $controllerName && 'index' == $action) ? 'is-active' : ''; ?>">
+    <a href="<?php echo MyUtility::makeUrl('MySubscriptions'); ?>">
+        <svg class="icon icon--lesson margin-right-2">
+            <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#subscription'; ?>"></use>
+        </svg>
+        <span><?php echo Label::getLabel('LBL_MY_SUBSCRIPTIONS'); ?></span>
+    </a>
+</li>
+
         </ul>
     </nav>
 </div>
@@ -25,6 +34,7 @@
     <h6 class="heading-6"><?php echo Label::getLabel('LBL_BOOKING'); ?></h6>
     <nav class="menu menu--primary">
         <ul>
+            
             <li class="menu__item <?php echo ($controllerName == "Lessons" && $action == 'index') ? 'is-active' : ''; ?>">
                 <a href="<?php echo MyUtility::makeUrl('Lessons'); ?>">
                     <svg class="icon icon--lesson margin-right-2">
@@ -72,7 +82,7 @@
                     <svg class="icon icon--lesson margin-right-2">
                         <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#subscription'; ?>"></use>
                     </svg>
-                    <span><?php echo Label::getLabel('LBL_MY_SUBSCRIPTIONS'); ?></span>
+                    <span><?php echo Label::getLabel('LBL_SUBSCRIPTIONS'); ?></span>
                 </a>
             </li>
             <li class="menu__item <?php echo ($controllerName == "Issues") ? 'is-active' : ''; ?>">

@@ -274,7 +274,7 @@ if (empty($trendingCourses)) {
                   <?php if ((float)$price > 0): ?>
                     <span class="now-blue">$<?= number_format((float)$price, 1) ?></span>
                   <?php else: ?>
-                    <span class="now-green">Included in Subscription</span>
+                    <span class="now-green">Subscribe to unlock</span>
                   <?php endif; ?>
                 </div>
                 <a class="more" href="<?= $viewLink ?>">View course</a>
