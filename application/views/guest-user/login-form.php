@@ -27,6 +27,9 @@ $frm->setFormTagAttribute('onsubmit', 'signinSetup(this); return(false);');
                         $this->includeTemplate('guest-user/_partial/learner-social-media-signup.php');
                         echo $frm->getFormHtml();
                         ?>
+                          <div class="-align-center">
+        <p><?php echo Label::getLabel('LBL_DO_NOT_HAVE_AN_ACCOUNT?'); ?> <a href="javascript:void(0);" onClick="signupForm()" class="-link-underline link-color"><?php echo Label::getLabel('LBL_REGISTER'); ?></a></p>
+    </div>
                         <div class="-align-center">
                             <a href="<?php echo MyUtility::makeUrl('GuestUser', 'forgotPassword'); ?>" class="-link-underline"><?php echo Label::getLabel('LBL_Forgot_Password?'); ?></a>
                         </div>

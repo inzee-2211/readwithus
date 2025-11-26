@@ -188,9 +188,9 @@
                         <?php } ?>  
 
                          <?php if ($objPrivilege->canViewCategories(true)) { ?>
-                            <li>
+                            <!-- <li>
                                 <a href="<?php echo MyUtility::makeUrl('Tutorrequest'); ?>"><?php echo Label::getLabel('LBL_TUTOR_REQUEST'); ?></a>
-                            </li>
+                            </li> -->
                         <?php } ?>  
                       
                          

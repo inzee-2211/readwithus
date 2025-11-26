@@ -36,42 +36,46 @@ class TutorrequestController extends AdminBaseController
 
 
 
-    public function search()
-    {
-        $frm = $this->getSearchForm();
-        $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['user_id', 'subtopic_id']);
+   public function search()
+{
+    $frm  = $this->getSearchForm();
+    $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['user_id', 'subtopic_id']);
 
-        $srch = new SearchBase('course_findatutor', 'qa');
- 
-        // Fields to fetch
-        $srch->addMultipleFields([
-            'qa.*',
-             
-        ]);
+    $srch = new SearchBase('course_findatutor', 'qa');
 
-         
-        $srch->addOrder('qa.id', 'DESC');
-        $srch->setPageSize($post['pagesize'] ?? 10);
-        $srch->setPageNumber($post['page'] ?? 1);
+    // Fields to fetch
+    $srch->addMultipleFields(['qa.*']);
 
-        $rs = $srch->getResultSet();
-        $records = FatApp::getDb()->fetchAll($rs);
+    // Pagination defaults
+    $page     = (int)($post['page'] ?? 1);
+    $pageSize = (int)($post['pagesize'] ?? 10);
 
- 
-        $this->sets([
-            'arrListing' => $records,
-            'page' => $post['page'] ?? 1,
-            'post' => $post,
-            'pageSize' => $post['pagesize'] ?? 10,
-            'pageCount' => $srch->pages(),
-            'recordCount' => $srch->recordCount(),
-            'canEdit' => false
-        ]);
+    $srch->addOrder('qa.id', 'DESC');
+    $srch->setPageSize($pageSize);
+    $srch->setPageNumber($page);
 
-        $this->_template->render(false, false);
+    $db = FatApp::getDb();
+    $rs = $srch->getResultSet();
+
+    // 🔍 IMPORTANT: guard + debug the DB error
+    if ($rs === false) {
+        die('DB Error in TutorrequestController::search => ' . $db->getError());
     }
 
+    $records = $db->fetchAll($rs);
 
+    $this->sets([
+        'arrListing'  => $records,
+        'page'        => $page,
+        'post'        => $post,
+        'pageSize'    => $pageSize,
+        'pageCount'   => $srch->pages(),
+        'recordCount' => $srch->recordCount(),
+        'canEdit'     => false,
+    ]);
+
+    $this->_template->render(false, false);
+}
 
 
     public function form(int $categoryId)
