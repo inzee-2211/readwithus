@@ -169,23 +169,93 @@ if ($url === 'getYears') {
 //     exit;
 // }
 // ---------- RESOLVE all setup row ids for a given path ----------
+// if ($url === 'resolveSetup') {
+//     try {
+//         $levelId     = (int)($_GET['levelId'] ?? 0);
+//         $subjectId   = (int)($_GET['subjectId'] ?? 0);
+//         $examboardId = (int)($_GET['examboardId'] ?? 0); // 0 for non-GCSE
+//         $tierId      = (int)($_GET['tierId'] ?? 0);      // 0 for non-GCSE
+//         $yearId      = (int)($_GET['yearId'] ?? 0);
+
+//         if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
+//             echo json_encode(['status' => 0, 'msg' => 'Missing required selections']);
+//             exit;
+//         }
+
+//         $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
+//         $params = [$levelId, $subjectId, $yearId];
+
+//         // Only constrain examboard/tier when provided (GCSE)
+//         if ($examboardId > 0) {
+//             $where[]  = "examboard_id = ?";
+//             $params[] = $examboardId;
+//         }
+//         if ($tierId > 0) {
+//             $where[]  = "tier_id = ?";
+//             $params[] = $tierId;
+//         }
+
+//         // NOTE: no LIMIT 1 – we want ALL matching setup rows
+//         $sql = "SELECT id FROM tbl_quiz_setup WHERE " . implode(' AND ', $where) . " ORDER BY id ASC";
+//         $stmt = $pdo->prepare($sql);
+//         $stmt->execute($params);
+//         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+//         if (empty($rows)) {
+//             echo json_encode(['status' => 0, 'msg' => 'No topics found']);
+//             exit;
+//         }
+
+//         $ids = array_map('intval', array_column($rows, 'id'));
+
+//         echo json_encode([
+//             'status' => 1,
+//             'data'   => ['setup_ids' => $ids],
+//         ]);
+//     } catch (Exception $e) {
+//         echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
+//     }
+//     exit;
+// }
+// ---------- RESOLVE all setup row ids for a given path ----------
 if ($url === 'resolveSetup') {
     try {
         $levelId     = (int)($_GET['levelId'] ?? 0);
         $subjectId   = (int)($_GET['subjectId'] ?? 0);
         $examboardId = (int)($_GET['examboardId'] ?? 0); // 0 for non-GCSE
         $tierId      = (int)($_GET['tierId'] ?? 0);      // 0 for non-GCSE
-        $yearId      = (int)($_GET['yearId'] ?? 0);
+        $yearId      = (int)($_GET['yearId'] ?? 0);      // 0 when not provided
 
-        if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
-            echo json_encode(['status' => 0, 'msg' => 'Missing required selections']);
+        if ($levelId < 1 || $subjectId < 1) {
+            echo json_encode(['status' => 0, 'msg' => 'Missing levelId/subjectId']);
             exit;
         }
 
-        $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
-        $params = [$levelId, $subjectId, $yearId];
+        // 🔍 Look up level name to know if this is GCSE
+        $stmtLevel = $pdo->prepare("SELECT level_name FROM course_levels WHERE id = ?");
+        $stmtLevel->execute([$levelId]);
+        $levelName = $stmtLevel->fetchColumn();
+        $levelSlug = strtoupper(trim((string)$levelName));
 
-        // Only constrain examboard/tier when provided (GCSE)
+        // GCSE has NO years; all other levels do
+        $requiresYear = ($levelSlug !== 'GCSE');
+
+        if ($requiresYear && $yearId < 1) {
+            echo json_encode(['status' => 0, 'msg' => 'Missing yearId for non-GCSE level']);
+            exit;
+        }
+
+        // Base WHERE: always level + subject
+        $where  = ["level_id = ?", "subject_id = ?"];
+        $params = [$levelId, $subjectId];
+
+        // Only include year filter for non-GCSE levels
+        if ($requiresYear) {
+            $where[]  = "year_id = ?";
+            $params[] = $yearId;
+        }
+
+        // Only constrain examboard/tier when provided (GCSE path)
         if ($examboardId > 0) {
             $where[]  = "examboard_id = ?";
             $params[] = $examboardId;

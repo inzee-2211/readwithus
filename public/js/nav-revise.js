@@ -5,7 +5,7 @@
   const baseUrlRaw = RWU.baseUrl || '/';
   const baseUrl = baseUrlRaw.endsWith('/') ? baseUrlRaw : baseUrlRaw + '/';
 
-  // --- initial steps (level → subject). More are injected dynamically when GCSE is chosen
+  // --- initial steps (level → subject). More are injected dynamically based on level
   let steps = [
     { title: "Select Level",   options: [], url: "api.php?url=getCourses",   paramKey: null },
     { title: "Select Subject", options: [], url: "api.php?url=getSubjects",  paramKey: "levelId" }
@@ -46,7 +46,7 @@
         url.searchParams.append(step.paramKey, params[step.paramKey]);
       }
 
-      // extra params for deeper steps (same logic as home.js)
+      // extra params for deeper steps (same logic as hero)
       if (rel.includes('getExamboards')) {
         if (params.levelId) url.searchParams.append('levelId', params.levelId);
       }
@@ -97,14 +97,25 @@
       crumb.onclick = () => {
         currentStep = idx;
         selectedSteps.splice(idx + 1);
-        if (idx < 1) { selectedValues.subjectId = selectedValues.examboardId = selectedValues.tierId = selectedValues.yearId = null; }
-        else if (idx < 2) { selectedValues.examboardId = selectedValues.tierId = selectedValues.yearId = null; }
-        else if (idx < 3) { selectedValues.tierId = selectedValues.yearId = null; }
+        if (idx < 1) {
+          selectedValues.subjectId   =
+          selectedValues.examboardId =
+          selectedValues.tierId      =
+          selectedValues.yearId      = null;
+        } else if (idx < 2) {
+          selectedValues.examboardId =
+          selectedValues.tierId      =
+          selectedValues.yearId      = null;
+        } else if (idx < 3) {
+          selectedValues.tierId = selectedValues.yearId = null;
+        }
         renderStep(container, currentStep);
       };
       breadcrumb.appendChild(crumb);
       if (idx < stepIndex) {
-        const arrow = document.createElement('span'); arrow.textContent = '›'; breadcrumb.appendChild(arrow);
+        const arrow = document.createElement('span');
+        arrow.textContent = '›';
+        breadcrumb.appendChild(arrow);
       }
     });
 
@@ -122,41 +133,56 @@
     list.style.display = 'grid';
     list.style.gridTemplateColumns = '1fr';
     list.style.gap = '6px';
+
     step.options.forEach(opt => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'rtm-item';
       btn.textContent = opt.name;
+
       btn.onclick = () => {
         selectedSteps[stepIndex] = { id: opt.id, name: opt.name };
 
+        // 🔵 GCSE vs non-GCSE branching
         if (step.title === "Select Level") {
           selectedValues.levelId = opt.id;
+          selectedValues.yearId  = null; // clear any stale year
+
           if (opt.name === "GCSE") {
+            // GCSE: NO Year step
             steps = [
-              { title: "Select Level",     options: [], url: "api.php?url=getCourses",     paramKey: null },
-              { title: "Select Subject",   options: [], url: "api.php?url=getSubjects",    paramKey: "levelId" },
-              { title: "Select Examboard", options: [], url: "api.php?url=getExamboards",  paramKey: "subjectId" },
-              { title: "Select Tier",      options: [], url: "api.php?url=getTiers",       paramKey: "examboardId" },
-              { title: "Select Year",      options: [], url: "api.php?url=getYears",       paramKey: "subjectId" },
+              { title: "Select Level",     options: [], url: "api.php?url=getCourses",    paramKey: null },
+              { title: "Select Subject",   options: [], url: "api.php?url=getSubjects",   paramKey: "levelId" },
+              { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
+              { title: "Select Tier",      options: [], url: "api.php?url=getTiers",      paramKey: "examboardId" }
+              // ✅ no "Select Year" here
             ];
           } else {
+            // Non-GCSE (KS1, KS2, etc.): includes Year
             steps = [
-              { title: "Select Level",   options: [], url: "api.php?url=getCourses",   paramKey: null },
-              { title: "Select Subject", options: [], url: "api.php?url=getSubjects",  paramKey: "levelId" },
-              { title: "Select Year",    options: [], url: "api.php?url=getYears",     paramKey: "subjectId" },
+              { title: "Select Level",   options: [], url: "api.php?url=getCourses",  paramKey: null },
+              { title: "Select Subject", options: [], url: "api.php?url=getSubjects", paramKey: "levelId" },
+              { title: "Select Year",    options: [], url: "api.php?url=getYears",    paramKey: "subjectId" }
             ];
           }
-        } else if (step.title === "Select Subject")   { selectedValues.subjectId   = opt.id; }
-        else if (step.title === "Select Examboard")   { selectedValues.examboardId = opt.id; }
-        else if (step.title === "Select Tier")        { selectedValues.tierId      = opt.id; }
-        else if (step.title === "Select Year")        { selectedValues.yearId      = opt.id; }
+
+        } else if (step.title === "Select Subject")   {
+          selectedValues.subjectId   = opt.id;
+        } else if (step.title === "Select Examboard") {
+          selectedValues.examboardId = opt.id;
+        } else if (step.title === "Select Tier")      {
+          selectedValues.tierId      = opt.id;
+        } else if (step.title === "Select Year")      {
+          selectedValues.yearId      = opt.id;
+        }
 
         currentStep++;
+
         if (currentStep < steps.length) {
-          fetchOptionsForStepWithParam(currentStep, selectedValues).then(() => renderStep(container, currentStep));
+          fetchOptionsForStepWithParam(currentStep, selectedValues)
+            .then(() => renderStep(container, currentStep));
         } else {
-          // final step → resolve & go (aligned with home.js: setup_ids + comma-separated string)
+          // final step → resolve & go (aligned with hero: uses setup_ids)
           fetch(makeAbs("api.php?url=resolveSetup" + buildQueryString(selectedValues)))
             .then(r => r.json())
             .then(j => {
@@ -173,6 +199,7 @@
             .catch(() => alert("Network error. Please try again."));
         }
       };
+
       list.appendChild(btn);
     });
 
@@ -183,12 +210,12 @@
   function showMenu(menu) { menu.style.display = 'block'; menu.setAttribute('aria-expanded', 'true'); }
 
   onReady(() => {
-    const trigger   = qs('#openSelectorNav');
-    const menu      = qs('#dropDownOptionNav');
+    const trigger = qs('#openSelectorNav');
+    const menu    = qs('#dropDownOptionNav');
     if (!trigger || !menu) return;
 
-    // basic inline dropdown styling safety (you can move these classes to CSS)
     menu.classList.add('rtm-menu');
+
     // click-outside to close
     document.addEventListener('click', (e) => {
       if (menu.contains(e.target) || trigger.contains(e.target)) return;
@@ -200,6 +227,7 @@
       if (menu.style.display === 'block') { hideMenu(menu); return; }
 
       showMenu(menu);
+
       if (!loadedOnce) {
         fetchOptionsForStepWithParam(0, selectedValues).then(() => {
           renderStep(menu, 0);

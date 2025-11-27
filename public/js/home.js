@@ -128,51 +128,121 @@ console.log('[home.js] loaded', {
       btn.innerHTML = `<span>${displayName}</span>
  <img src="${baseUrl}assets/img/right-arrow.svg" alt="Arrow" class="arrow">`;
 
+        // btn.onclick = () => {
+        //   selectedSteps[stepIndex] = { id: optId, name: displayName };
+
+        //   if (step.title === "Select Level") {
+        //     selectedValues.levelId = optId;
+        //     if (displayName === "GCSE") {
+        //       steps = [
+        //         { title: "Select Level",   options: [], url: "api.php?url=getCourses",    paramKey: null },
+        //         { title: "Select Subject", options: [], url: "api.php?url=getSubjects",   paramKey: "levelId" },
+        //         { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
+        //         { title: "Select Tier",    options: [], url: "api.php?url=getTiers",      paramKey: "examboardId" },
+        //         { title: "Select Year",    options: [], url: "api.php?url=getYears",      paramKey: "subjectId" },
+        //       ];
+        //     } else {
+        //       steps = [
+        //         { title: "Select Level",   options: [], url: "api.php?url=getCourses",   paramKey: null },
+        //         { title: "Select Subject", options: [], url: "api.php?url=getSubjects",  paramKey: "levelId" },
+        //         { title: "Select Year",    options: [], url: "api.php?url=getYears",     paramKey: "subjectId" },
+        //       ];
+        //     }
+        //   } else if (step.title === "Select Subject")   { selectedValues.subjectId   = optId; }
+        //   else if (step.title === "Select Examboard")   { selectedValues.examboardId = optId; }
+        //   else if (step.title === "Select Tier")        { selectedValues.tierId      = optId; }
+        //   else if (step.title === "Select Year")        { selectedValues.yearId      = optId; }
+
+        //   currentStep++;
+        //   if (currentStep < steps.length) {
+        //     fetchOptionsForStepWithParam(currentStep, selectedValues).then(() => renderStep(currentStep));
+        //   } else {
+        //     fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
+        //       .then(r => r.json())
+        //       .then(j => {
+        //         if (j.status === 1 && j.data?.setup_ids) {
         btn.onclick = () => {
-          selectedSteps[stepIndex] = { id: optId, name: displayName };
+  selectedSteps[stepIndex] = { id: optId, name: displayName };
 
-          if (step.title === "Select Level") {
-            selectedValues.levelId = optId;
-            if (displayName === "GCSE") {
-              steps = [
-                { title: "Select Level",   options: [], url: "api.php?url=getCourses",    paramKey: null },
-                { title: "Select Subject", options: [], url: "api.php?url=getSubjects",   paramKey: "levelId" },
-                { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
-                { title: "Select Tier",    options: [], url: "api.php?url=getTiers",      paramKey: "examboardId" },
-                { title: "Select Year",    options: [], url: "api.php?url=getYears",      paramKey: "subjectId" },
-              ];
-            } else {
-              steps = [
-                { title: "Select Level",   options: [], url: "api.php?url=getCourses",   paramKey: null },
-                { title: "Select Subject", options: [], url: "api.php?url=getSubjects",  paramKey: "levelId" },
-                { title: "Select Year",    options: [], url: "api.php?url=getYears",     paramKey: "subjectId" },
-              ];
-            }
-          } else if (step.title === "Select Subject")   { selectedValues.subjectId   = optId; }
-          else if (step.title === "Select Examboard")   { selectedValues.examboardId = optId; }
-          else if (step.title === "Select Tier")        { selectedValues.tierId      = optId; }
-          else if (step.title === "Select Year")        { selectedValues.yearId      = optId; }
+  // --- STEP: Level selection ---
+  if (step.title === "Select Level") {
+    // Reset all downstream selections when level changes
+    selectedValues.levelId      = optId;
+    selectedValues.subjectId    = null;
+    selectedValues.examboardId  = null;
+    selectedValues.tierId       = null;
+    selectedValues.yearId       = null;
 
-          currentStep++;
-          if (currentStep < steps.length) {
-            fetchOptionsForStepWithParam(currentStep, selectedValues).then(() => renderStep(currentStep));
-          } else {
-            fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
-              .then(r => r.json())
-              .then(j => {
-                if (j.status === 1 && j.data?.setup_ids) {
-    const ids = j.data.setup_ids.join(',');
-    const nextUrl = fcom.makeUrl('quizizz') + '?setup_ids=' + ids;
-    reviseModal.hide();
-    window.location.href = nextUrl;
-}
- else {
-                  alert("Unable to load quiz. Please try again.");
-                }
-              })
-              .catch(() => alert("Network error. Please try again."));
-          }
-        };
+    // GCSE: NO YEARS
+    if (displayName.trim().toUpperCase() === "GCSE") {
+      steps = [
+        { title: "Select Level",     options: [], url: "api.php?url=getCourses",     paramKey: null },
+        { title: "Select Subject",   options: [], url: "api.php?url=getSubjects",    paramKey: "levelId" },
+        { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKey: "subjectId" },
+        { title: "Select Tier",      options: [], url: "api.php?url=getTiers",      paramKey: "examboardId" }
+        // ✅ no Year step here
+      ];
+    } else {
+      // Non-GCSE: has Year
+      steps = [
+        { title: "Select Level",   options: [], url: "api.php?url=getCourses",   paramKey: null },
+        { title: "Select Subject", options: [], url: "api.php?url=getSubjects",  paramKey: "levelId" },
+        { title: "Select Year",    options: [], url: "api.php?url=getYears",     paramKey: "subjectId" }
+      ];
+    }
+
+  // --- STEP: Subject selection ---
+  } else if (step.title === "Select Subject") {
+    selectedValues.subjectId = optId;
+
+  // --- STEP: Examboard selection (GCSE only) ---
+  } else if (step.title === "Select Examboard") {
+    selectedValues.examboardId = optId;
+
+  // --- STEP: Tier selection (GCSE only) ---
+  } else if (step.title === "Select Tier") {
+    selectedValues.tierId = optId;
+
+  // --- STEP: Year selection (non-GCSE only) ---
+  } else if (step.title === "Select Year") {
+    selectedValues.yearId = optId;
+  }
+
+  // Move to next step or resolve setup
+  currentStep++;
+  if (currentStep < steps.length) {
+    fetchOptionsForStepWithParam(currentStep, selectedValues)
+      .then(() => renderStep(currentStep));
+  } else {
+    // Final step → resolve quiz setup and redirect
+    fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
+      .then(r => r.json())
+      .then(j => {
+        if (j.status === 1 && j.data?.setup_ids) {
+          const ids = j.data.setup_ids.join(',');
+          const nextUrl = fcom.makeUrl('quizizz') + '?setup_ids=' + ids;
+          reviseModal.hide();
+          window.location.href = nextUrl;
+        } else {
+          alert("Unable to load quiz. Please try again.");
+        }
+      })
+      .catch(() => alert("Network error. Please try again."));
+  }
+};
+
+//     const ids = j.data.setup_ids.join(',');
+//     const nextUrl = fcom.makeUrl('quizizz') + '?setup_ids=' + ids;
+//     reviseModal.hide();
+//     window.location.href = nextUrl;
+// }
+//  else {
+//                   alert("Unable to load quiz. Please try again.");
+//                 }
+//               })
+//               .catch(() => alert("Network error. Please try again."));
+//           }
+//         };
 
         div.appendChild(btn);
         container.appendChild(div);
