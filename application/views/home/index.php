@@ -352,7 +352,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 
     <!-- MULTI-SELECT COURSES -->
 <!-- LEVEL -->
-<div class="row">
+<div class="row row--inline-label">
   <label for="tutreq_level_id" class="label">Level *</label>
   <select name="tutreq_level_id" id="tutreq_level_id" required>
     <option value=""><?= Label::getLabel('LBL_SELECT_LEVEL'); ?></option>
@@ -366,8 +366,8 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
   </select>
 </div>
 
-<!-- SUBJECT (depends on level) -->
-<div class="row">
+<!-- SUBJECT -->
+<div class="row row--inline-label">
   <label for="tutreq_subject_id" class="label">Subject *</label>
   <select name="tutreq_subject_id" id="tutreq_subject_id" required disabled>
     <option value=""><?= Label::getLabel('LBL_SELECT_SUBJECT'); ?></option>
@@ -375,7 +375,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 </div>
 
 <!-- EXAM BOARD -->
-<div class="row">
+<div class="row row--inline-label">
   <label for="tutreq_examboard_id" class="label">Exam Board</label>
   <select name="tutreq_examboard_id" id="tutreq_examboard_id">
     <option value=""><?= Label::getLabel('LBL_SELECT_EXAM_BOARD'); ?></option>
@@ -390,7 +390,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 </div>
 
 <!-- TIER -->
-<div class="row">
+<div class="row row--inline-label">
   <label for="tutreq_tier_id" class="label">Tier</label>
   <select name="tutreq_tier_id" id="tutreq_tier_id">
     <option value=""><?= Label::getLabel('LBL_SELECT_TIER'); ?></option>
@@ -403,6 +403,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
     <?php endif; ?>
   </select>
 </div>
+
   <div class="row">
   <label for="start_time" class="label">Preferred Time</label>
   <div class="time-selects">

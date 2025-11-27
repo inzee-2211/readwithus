@@ -785,3 +785,32 @@
     font-size: 13px;
   }
 }
+/* === Inline label + long field (Level / Subject / Exam Board / Tier) === */
+.rwu-request-form .row.row--inline-label {
+  flex-wrap: nowrap;          /* keep label + field on one line */
+  align-items: center;
+}
+
+.rwu-request-form .row.row--inline-label .label {
+  width: auto;                /* override generic width:100% */
+  flex: 0 0 110px;            /* like a small country-code column */
+  max-width: 110px;
+  margin-bottom: 0;           /* remove gap under label */
+}
+
+.rwu-request-form .row.row--inline-label select {
+  flex: 1 1 auto;             /* take all remaining width */
+  min-width: 0;
+}
+
+/* On mobile, stack again nicely */
+@media (max-width: 768px) {
+  .rwu-request-form .row.row--inline-label {
+    flex-wrap: wrap;
+  }
+  .rwu-request-form .row.row--inline-label .label {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 6px;
+  }
+}
