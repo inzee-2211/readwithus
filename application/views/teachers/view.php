@@ -1306,9 +1306,9 @@ if ($siteUserId == $teacher['user_id']) {
 
                 <div class="rwu-booking-card">
                     <div class="rwu-booking-actions">
-                        <!-- <button onclick="<?php echo str_replace('onclick="', '', str_replace('"', '', $bookNowOnClickClick)); ?>" class="rwu-book-btn <?php echo $disabledClass; ?>" <?php echo $disabledClass ? 'disabled' : ''; ?>>
+                        <button onclick="<?php echo str_replace('onclick="', '', str_replace('"', '', $bookNowOnClickClick)); ?>" class="rwu-book-btn <?php echo $disabledClass; ?>" <?php echo $disabledClass ? 'disabled' : ''; ?>>
                             <?php echo Label::getLabel('LBL_Book_Now'); ?>
-                        </button> -->
+                        </button>
 
                         <button onclick="<?php echo str_replace('onclick="', '', str_replace('"', '', $contactClick)); ?>" class="rwu-contact-btn <?php echo $disabledClass; ?>" <?php echo $disabledClass ? 'disabled' : ''; ?>>
                             <svg class="rwu-contact-icon" viewBox="0 0 24 24">

@@ -195,7 +195,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(135deg, #2DADFF 0%, #14A3FF 100%);
+  /* background: linear-gradient(135deg, #2DADFF 0%, #14A3FF 100%); */
 }
 
 .rwu-request-form h3 {
