@@ -268,7 +268,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
                   <button
                     type="button"
                     id="submit-btn"
-                    class="qz-btn-primary">
+                     class="qz-btn-primary js-submit-quiz">
                     <?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?>
                   </button>
               </div>
@@ -709,4 +709,52 @@ function exitQuiz() {
   startTimer();
   fetchQuestions(); // refresh from backend
 })();
+function handleSubmitClick () {
+  if (!validateAllAnswers()) {
+    alert("❗ Please answer all questions before submitting.");
+    return;
+  }
+
+  buildUserAnswers();
+  clearInterval(timerInterval);
+
+  const allBtns = document.querySelectorAll('.js-submit-quiz');
+  allBtns.forEach(btn => {
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+  });
+
+  $.ajax({
+    url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
+    type: "POST",
+    data: {
+      answers: JSON.stringify(userAnswers),
+      subtopicid: userSessionId
+    },
+    dataType: "json",
+    success: function (response) {
+      if (response && response.success) {
+        const url = fcom.makeUrl('quizr') + '?attempt=' + response.attemptid;
+        window.location.href = url;
+      } else {
+        Swal.fire("Error", "Submission failed. Please try again.", "error");
+        allBtns.forEach(btn => {
+          btn.disabled = false;
+          btn.innerText = "<?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?>";
+        });
+      }
+    },
+    error: function () {
+      Swal.fire("Error", "Something went wrong.", "error");
+      allBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.innerText = "<?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?>";
+      });
+    }
+  });
+}
+
+document.querySelectorAll('.js-submit-quiz')
+  .forEach(btn => btn.addEventListener('click', handleSubmitClick));
+
 </script>

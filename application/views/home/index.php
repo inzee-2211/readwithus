@@ -65,12 +65,12 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
       <div class="rw-hero__search">
       <button id="openSelector" class="rw-pill" type="button">
 
-          <span>Revise Your Topic</span>
-          <img src="<?php echo getBaseUrl(); ?>/assets/img/arrow-2.svg" class="arrow" alt="">
+          <span>Revise Topic</span>
+          <!-- <img src="<?php echo getBaseUrl(); ?>/assets/img/arrow-2.svg" class="arrow" alt=""> -->
         </button>
 
-        <input id="rwCourseQuery" class="rw-input" type="text" placeholder="Class/Course e.g. GCSE Maths, Algebra, English…"/>
-        <button id="rwSearchBtn" class="rw-searchbtn">Search</button>
+        <!-- <input id="rwCourseQuery" class="rw-input" type="text" placeholder="Class/Course e.g. GCSE Maths, Algebra, English…"/> -->
+        <button id="rwSearchBtn" class="rw-searchbtn">Explore Courses</button>
       </div>
     </div>
 
@@ -78,30 +78,7 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
     <div class="rw-hero__art">
       <div class="rw-hero__art-inner">
         <img class="rw-hero__img" src="<?= $heroBase ?>hero.png" alt="Student with laptop">
-<!-- Connector lines (SVG) -->
-<!-- <svg class="rw-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"> -->
-  <!-- Left curve: from BOOK (top:15%, left:-9%) to PERSON (top:50%, left:-7%) -->
-  <!-- <path d="M -6,15 C 06,25 0,45 -2,76" 
-        stroke="#ECECEC" stroke-width="0.7" fill="none" /> -->
-  
-  <!-- Right curve: from PRESENTATION (top:22%, right:25%) to BLOCKS (bottom:15%, right:10%) -->
-  <!-- <path d="M 65,29 C 69,45 80,70 83,76" 
-        stroke="#ECECEC" stroke-width="0.6" fill="none" />
-</svg> -->
 
-        <!-- Floating cards -->
-        <!-- <div class="rw-badge rw-badge--book">
-          <img src="<?= $heroBase ?>book.svg" alt="Book">
-        </div>
-        <div class="rw-badge rw-badge--presentation">
-          <img src="<?= $heroBase ?>light-bulb.svg" alt="Light Bulb">
-        </div>
-        <div class="rw-badge rw-badge--person">
-          <img src="<?= $heroBase ?>light.svg" alt="icon">
-        </div>
-        <div class="rw-badge rw-badge--blocks">
-          <img src="<?= $heroBase ?>dice.svg" alt="Blocks">
-        </div> -->
       </div>
     </div>
   </div>

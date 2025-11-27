@@ -902,22 +902,26 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                         </p>
 
                      <div class="d-grid gap-2 mb-3">
-    <?php if (!empty($resultText) && !empty($currentSubtopicId)) { ?>
+<?php if (!empty($resultText) && !empty($currentSubtopicId)) { ?>
 
-        <?php if ($resultText === 'pass') { ?>
-            <a href="<?php echo MyUtility::makeUrl('quizizz', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
-               class="btn-pill btn-pill-primary text-center">
-                Next Suggested Quiz
-            </a>
-
-        <?php } else { ?>
-            <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
-               class="btn-pill btn-pill-danger text-center">
-                Retake Quiz
-            </a>
-        <?php } ?>
-
+    <?php if ($resultText === 'pass') { ?>
+        <?php
+        $targetSubtopic = !empty($nextSubtopicId) ? $nextSubtopicId : $currentSubtopicId;
+        ?>
+        <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$targetSubtopic; ?>"
+           class="btn-pill btn-pill-primary text-center">
+            Next Suggested Quiz
+        </a>
+    <?php } else { ?>
+        <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
+           class="btn-pill btn-pill-danger text-center">
+            Retake Quiz
+        </a>
     <?php } ?>
+
+<?php } ?>
+
+
 </div>
 
 

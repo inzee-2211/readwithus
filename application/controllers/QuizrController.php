@@ -37,6 +37,7 @@ class QuizrController extends MyAppController
     $attemptquestions  = [];
     $resultText        = '';
     $currentSubtopicId = null;
+     $nextSubtopicId    = null; // 🔹 new
 
     // 🔹 NEW: variables for tutor request mapping
     $subtopicName      = '';
@@ -58,9 +59,16 @@ class QuizrController extends MyAppController
                 $attemptresult[]   = $row;
                 $resultText        = strtolower($row['result'] ?? '');
                 $currentSubtopicId = $row['subtopic_id'] ?? null;
+                
             }
         }
     }
+    // 🔹 Compute next subtopic from tbl_quiz_management
+$nextSubtopicId = null;
+if (!empty($currentSubtopicId)) {
+    $nextSubtopicId = $this->getNextSubtopicId((int)$currentSubtopicId);
+}
+
 
     /* -------------------------------------------------------------
        3.5 Derive Level / Subject / Exam Board / Tier for TutorRequest
@@ -183,6 +191,7 @@ www.readwithus.org.uk";
     $this->set('filterTypes', Course::getFilterTypes());
     $this->set('currentSubtopicId', $currentSubtopicId);
     $this->set('resultText', $resultText);
+    $this->set('nextSubtopicId', $nextSubtopicId); 
 
     // 🔹 NEW: send these to the quiz result view for the modal
     $this->set('subtopicName',      $subtopicName);
@@ -194,6 +203,37 @@ www.readwithus.org.uk";
     $this->_template->render();
 }
 
+/**
+ * Get the next subtopic id inside the same quiz_setup, ordered by position
+ * based on tbl_quiz_management.
+ */
+/**
+ * Get the next subtopic id based on tbl_quiz_management primary key (id).
+ * Returns null if there is no next quiz.
+ */
+private function getNextSubtopicId(int $currentSubtopicId): ?int
+{
+    $db = FatApp::getDb();
+
+    $sql = "
+        SELECT id
+        FROM tbl_quiz_management
+        WHERE id > " . (int)$currentSubtopicId . "
+        ORDER BY id ASC
+        LIMIT 1
+    ";
+
+    $res = $db->query($sql);
+    if (!$res) {
+        return null;
+    }
+
+    $row = $db->fetch($res);
+    if (!empty($row) && !empty($row['id'])) {
+        return (int)$row['id'];
+    }
+    return null; // no next quiz
+}
 
     public function getSubtopicIdByName($subtopicName)
     {
