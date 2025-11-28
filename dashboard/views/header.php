@@ -284,3 +284,4 @@ $stickyDemoHeader = MyUtility::isDemoUrl() ? 'sticky-demo-header' : '';
         </aside>
         <!-- ] -->
         <main class="page">
+              <?php $this->includeTemplate('_partial/subscription-alert.php'); ?>

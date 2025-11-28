@@ -48,6 +48,7 @@ class MyAppController extends FatController
             'cookieConsent' => $this->cookieConsent,
             'messageData' => Message::getData(),
         ]);
+        
         $this->set('actionName', $this->_actionName);
         $controllerName = str_replace('Controller', '', $this->_controllerName);
         $this->set('controllerName', $controllerName);
@@ -73,6 +74,76 @@ class MyAppController extends FatController
                 'css/' . $viewType . '-' . $this->siteLanguage['language_direction'] . '.css'
             ]);
         }
+           /* 🔴 NEW: default subscriptionBanner so views always have it */
+    $this->set('subscriptionBanner', [
+        'show'     => false,
+        'type'     => '',
+        'daysLeft' => null,
+        'message'  => '',
+    ]);
+
+    /* 🔴 NEW: only learners in dashboard should get the banner logic */
+    if (
+        !empty($this->siteUserId)
+        && $this->siteUserType == User::LEARNER
+        && CONF_APPLICATION_PATH == CONF_INSTALLATION_PATH . 'dashboard/'
+    ) {
+        $this->initSubscriptionBanner();
+    }
+        
+    }
+ protected function initSubscriptionBanner(): void
+    {
+        $banner = [
+            'show'     => false,
+            'type'     => '',
+            'daysLeft' => null,
+            'message'  => '',
+        ];
+
+        $userId = $this->siteUserId;
+        $db     = FatApp::getDb();
+
+        $srch = new SearchBase('tbl_user_subscriptions', 'us');
+        $srch->addMultipleFields([
+            'us.usubs_id',
+            'us.usubs_end_date',
+            'us.usubs_status',
+        ]);
+        $srch->addCondition('us.usubs_user_id', '=', $userId);
+        $srch->addCondition('us.usubs_status', '=', 'active'); // adjust if your DB uses 1/0 etc
+        $srch->addDirectCondition('us.usubs_end_date >= NOW()');
+        $srch->addOrder('us.usubs_end_date', 'ASC');
+        $srch->setPageSize(1);
+
+        $rs  = $srch->getResultSet();
+        $sub = $db->fetch($rs);
+
+        if (empty($sub)) {
+            // CASE 1: no active subscription
+            $banner['show']    = true;
+            $banner['type']    = 'none';
+            $banner['message'] = 'You have no active subscription. Subscribe now to unlock all content.';
+        } else {
+            // CASE 2: active subscription – check days remaining
+            $now      = new DateTime();
+            $end      = new DateTime($sub['usubs_end_date']);
+            $diffDays = (int)$now->diff($end)->format('%r%a'); // can be negative
+
+            if ($diffDays >= 0 && $diffDays < 3) {
+                $banner['show']     = true;
+                $banner['type']     = 'expiring';
+                $banner['daysLeft'] = $diffDays;
+
+                if ($diffDays == 0) {
+                    $banner['message'] = 'Your subscription expires today. Please renew to avoid interruption.';
+                } else {
+                    $banner['message'] = 'Your subscription expires in ' . $diffDays . ' day(s). Please renew to avoid interruption.';
+                }
+            }
+        }
+
+        $this->set('subscriptionBanner', $banner);
     }
 
     /**

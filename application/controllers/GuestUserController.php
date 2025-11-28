@@ -10,7 +10,11 @@ use Google\Service\Oauth2;
  */
 class GuestUserController extends MyAppController
 {
-
+ private function getDashboardUrl(): string
+    {
+        // /dashboard/my-subscriptions
+        return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
+    }
     /**
      * Initialize Guest User
      * 
@@ -24,7 +28,8 @@ class GuestUserController extends MyAppController
             if (FatUtility::isAjaxCall()) {
                 FatUtility::dieJsonError(Label::getLabel('LBL_USER_ALREADY_LOGGED_IN'));
             }
-            FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+            // FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+             FatApp::redirectUser($this->getDashboardUrl());
         }
     }
 
@@ -43,6 +48,7 @@ class GuestUserController extends MyAppController
         }
         $this->_template->render();
     }
+    
 
     /**
      * Login|Signin Setup
@@ -137,7 +143,8 @@ class GuestUserController extends MyAppController
         if (!empty($response)) {
             FatUtility::dieJsonSuccess(['msg' => $response['msg'], 'redirectUrl' => $response['url']]);
         }
-        $redirectUrl = MyUtility::makeUrl();
+        // $redirectUrl = MyUtility::makeUrl();
+        $redirectUrl = $this->getDashboardUrl();
         if (
                 FatApp::getConfig('CONF_ADMIN_APPROVAL_REGISTRATION') == AppConstant::NO &&
                 FatApp::getConfig('CONF_EMAIL_VERIFICATION_REGISTRATION') == AppConstant::NO &&
@@ -147,7 +154,8 @@ class GuestUserController extends MyAppController
             if (!$auth->login($post['user_email'], $post['user_password'], MyUtility::getUserIp())) {
                 FatUtility::dieJsonError($auth->getError());
             }
-            $redirectUrl = MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD);
+            // $redirectUrl = MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD);
+            $redirectUrl = $this->getDashboardUrl();
         }
         FatUtility::dieJsonSuccess([
             'redirectUrl' => $redirectUrl,
@@ -368,7 +376,8 @@ class GuestUserController extends MyAppController
                 FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
             }
             Message::addMessage(Label::getLabel("LBL_LOG_IN_SUCCESSFULL"));
-            FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+            // FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+            FatApp::redirectUser($this->getDashboardUrl());
         }
         FatApp::redirectUser($client->createAuthUrl());
     }
@@ -404,7 +413,8 @@ class GuestUserController extends MyAppController
                     Message::addErrorMessage($auth->getError());
                     FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
                 }
-                $redirectUrl = MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD);
+                // $redirectUrl = MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD);
+                $redirectUrl = $this->getDashboardUrl();
                 $successMsgLabel = 'LBL_LOG_IN_SUCCESSFULL';
                 if (empty($user['user_email'])) {
                     if (!$auth->setUserSession($user['user_email'], MyUtility::getUserIp(), $user)) {
@@ -436,7 +446,8 @@ class GuestUserController extends MyAppController
             FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
         }
         if (!empty($this->siteUser['user_email'])) {
-            FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+            // FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
+            FatApp::redirectUser($this->getDashboardUrl());
         }
         $this->set('frm', $this->getConfigureEmailForm());
         $this->set('siteLangId', $this->siteLangId);
