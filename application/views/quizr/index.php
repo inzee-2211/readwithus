@@ -694,6 +694,24 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 .question-explanation-panel .exp-text {
     margin-bottom: 0;
 }
+.video-frame-wrap {
+  position: relative;
+  width: 100%;
+
+  padding-top: 56.25%; /* 16:9 */
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.4);
+}
+.video-frame-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 130%!important;
+  border: 0;
+}
+
 
 </style>
 
@@ -846,50 +864,44 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
         </div>
 
         <!-- VIDEO + NEXT STEPS -->
-        <div class="row g-4">
-            <div class="col-lg-8">
-                <?php
-                $videoUrl = '';
-                if (!empty($subtopic_id)) {
-                    $db    = FatApp::getDb();
-                    $query = "SELECT video_url FROM course_subtopics WHERE subtopic = " . (int)$subtopic_id . " LIMIT 1";
-                    $res   = $db->query($query);
-                    if ($res) {
-                        $row      = $db->fetch($res);
-                        $videoUrl = $row['video_url'] ?? '';
-                    }
-                }
-                ?>
-                <div class="card video-card-modern">
-                    <div class="card-header">
-                        <h5 class="mb-0">Recommended Video</h5>
+            <!-- VIDEO + NEXT STEPS -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card video-card-modern">
+                <div class="card-header">
+                    <h5 class="mb-0">Recommended Video</h5>
+                </div>
+                <div class="card-body">
+                    <div class="video-frame-wrap">
+                        <?php if (!empty($recommendedVideoUrl)) {
+                            $videoId = '';
+                            if (preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $recommendedVideoUrl, $matches)) {
+                                $videoId = $matches[1];
+                            }
+                            $embedUrl = 'https://www.youtube.com/embed/' . $videoId;
+                        ?>
+                            <iframe src="<?php echo htmlspecialchars($embedUrl); ?>"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen></iframe>
+                        <?php } else { ?>
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; color: #6c757d;">
+                                <div class="text-center">
+                                    <i class="fa fa-video-camera fa-3x mb-3"></i>
+                                    <p>No video available for this topic</p>
+                                </div>
+                            </div>
+                        <?php } ?>
                     </div>
-                    <div class="card-body">
-                        <div class="video-frame-wrap">
-                            <?php if (!empty($videoUrl)) {
-                                $videoId = '';
-                                if (preg_match('%(?:youtube\.com/(?:watch\?v=|embed/)|youtu\.be/)([a-zA-Z0-9_-]{11})%', $videoUrl, $matches)) {
-                                    $videoId = $matches[1];
-                                }
-                                $embedUrl = 'https://www.youtube.com/embed/' . $videoId;
-                            ?>
-                                <iframe src="<?php echo htmlspecialchars($embedUrl); ?>"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowfullscreen></iframe>
-                            <?php } else { ?>
-                                <iframe src="https://www.youtube.com/embed/rLCn1aO_4Kw?list=RDrLCn1aO_4Kw"
-                                        title="Default Recommended Video"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        allowfullscreen></iframe>
-                            <?php } ?>
-                        </div>
 
+                    <?php if (!empty($subtopicName)) { ?>
                         <p class="video-topic-title">
-                            For <strong><?php echo htmlspecialchars($_SESSION['subtopicName'] ?? 'Topic Preparation'); ?></strong>
+                            For <strong><?php echo htmlspecialchars($subtopicName); ?></strong>
                         </p>
-                    </div>
+                    <?php } ?>
                 </div>
             </div>
+        </div>
+        <!-- ... rest of next steps code remains the same ... -->
 
             <div class="col-lg-4">
                 <div class="next-steps-card card">
@@ -953,9 +965,12 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                 <?php
                 $filteredCourses = [];
                 if (!empty($coursesslider) && is_array($coursesslider)) {
-                    $filteredCourses = array_filter($coursesslider, function ($course) {
-                        return isset($course['course_details']) && strlen(trim($course['course_details'])) >= 50;
-                    });
+                   $filteredCourses = array_filter($coursesslider, function ($course) {
+    // Prefer with details, but allow without if title+slug exist
+    if (!empty($course['course_details']) && strlen(trim($course['course_details'])) >= 30) return true;
+    return !empty($course['course_title']) && !empty($course['course_slug']);
+});
+
                 }
 
                 if (!empty($filteredCourses)) {
