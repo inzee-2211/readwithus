@@ -56,8 +56,8 @@ class QuizzezController extends DashboardController
     /**
      * Search & List Lessons
      */
-    public function search()
-    {
+    // public function search()
+    // {
       /*  $langId = $this->siteLangId;
         $userId = $this->siteUserId;
         $userType = $this->siteUserType;
@@ -151,80 +151,195 @@ $this->_template->render(false, false, 'quizzez/search-listing.php');
 */
  
 
-$langId = $this->siteLangId;
-$userId = $this->siteUserId;
-$posts = FatApp::getPostedData();
-$posts['pageno'] = $posts['pageno'] ?? 1;
-$posts['pagesize'] = $posts['pagesize'] ?? AppConstant::PAGESIZE;
+// $langId = $this->siteLangId;
+// $userId = $this->siteUserId;
+// $posts = FatApp::getPostedData();
+// $posts['pageno'] = $posts['pageno'] ?? 1;
+// $posts['pagesize'] = $posts['pagesize'] ?? AppConstant::PAGESIZE;
 
-$page = $posts['pageno'];
-$pageSize = $posts['pagesize'];
-$offset = ($page - 1) * $pageSize;
+// $page = $posts['pageno'];
+// $pageSize = $posts['pagesize'];
+// $offset = ($page - 1) * $pageSize;
 
-$db = FatApp::getDb();
+// $db = FatApp::getDb();
 
-// Initialize conditions
-$conditions = " WHERE qa.user_id = $userId ";
-$dateFilter = "";
+// // Initialize conditions
+// $conditions = " WHERE qa.user_id = $userId ";
+// $dateFilter = "";
 
-// Add date filters if available
-// Add date filters if available
-$dateFilter = '';
-if (!empty($posts['ordles_lesson_starttime']) && !empty($posts['ordles_lesson_endtime'])) {
-    $startDate = date('Y-m-d', strtotime($posts['ordles_lesson_starttime']));
-    $endDate = date('Y-m-d', strtotime($posts['ordles_lesson_endtime']));
-    $dateFilter = " AND qa.attempt_date BETWEEN '" . $startDate . "' AND '" . $endDate . "'";
-}
+// // Add date filters if available
+// // Add date filters if available
+// $dateFilter = '';
+// if (!empty($posts['ordles_lesson_starttime']) && !empty($posts['ordles_lesson_endtime'])) {
+//     $startDate = date('Y-m-d', strtotime($posts['ordles_lesson_starttime']));
+//     $endDate = date('Y-m-d', strtotime($posts['ordles_lesson_endtime']));
+//     $dateFilter = " AND qa.attempt_date BETWEEN '" . $startDate . "' AND '" . $endDate . "'";
+// }
 
 
 
-// Main Query
-$query = "
-    SELECT qa.id, qa.subtopic_id, ct.topic AS subtopic_name,
-           qa.total_questions, qa.total_correct, qa.total_marks,
-           qa.marks_obtained, qa.result, qa.attempt_date
-    FROM tbl_quiz_attempts qa
-    LEFT JOIN course_topics ct ON ct.id = qa.subtopic_id
-    $conditions
-    $dateFilter
-    ORDER BY qa.attempt_date DESC
-    LIMIT $offset, $pageSize
-";
+// // Main Query
+// $query = "
+//     SELECT qa.id, qa.subtopic_id, ct.topic AS subtopic_name,
+//            qa.total_questions, qa.total_correct, qa.total_marks,
+//            qa.marks_obtained, qa.result, qa.attempt_date
+//     FROM tbl_quiz_attempts qa
+//     LEFT JOIN course_topics ct ON ct.id = qa.subtopic_id
+//     $conditions
+//     $dateFilter
+//     ORDER BY qa.attempt_date DESC
+//     LIMIT $offset, $pageSize
+// ";
 
-$result = $db->query($query);
+// $result = $db->query($query);
 
-$quizAttempts = [];
-if ($result) {
-    $quizAttempts = $db->fetchAll($result);
-}
+// $quizAttempts = [];
+// if ($result) {
+//     $quizAttempts = $db->fetchAll($result);
+// }
 
-// Count Query for Pagination
-$countQuery = "
-    SELECT COUNT(*) AS total
-    FROM tbl_quiz_attempts qa
-    $conditions
-    $dateFilter
-";
+// // Count Query for Pagination
+// $countQuery = "
+//     SELECT COUNT(*) AS total
+//     FROM tbl_quiz_attempts qa
+//     $conditions
+//     $dateFilter
+// ";
 
-$countResult = $db->query($countQuery);
-$totalCount = 0;
-if ($countResult) {
-    $countRow = $db->fetch($countResult);
-    $totalCount = $countRow['total'] ?? 0;
-}
+// $countResult = $db->query($countQuery);
+// $totalCount = 0;
+// if ($countResult) {
+//     $countRow = $db->fetch($countResult);
+//     $totalCount = $countRow['total'] ?? 0;
+// }
 
-// Pass to Template
-$this->sets([
-    'post' => $posts,
-    'quizAttempts' => $quizAttempts,
-    'recordCount' => $totalCount,
-    'pageCount' => ceil($totalCount / $pageSize),
-    'allLessons' => $quizAttempts, // For view compatibility
-]);
+// // Pass to Template
+// $this->sets([
+//     'post' => $posts,
+//     'quizAttempts' => $quizAttempts,
+//     'recordCount' => $totalCount,
+//     'pageCount' => ceil($totalCount / $pageSize),
+//     'allLessons' => $quizAttempts, // For view compatibility
+// ]);
 
-$this->_template->render(false, false, 'quizzez/search-listing.php');
+// $this->_template->render(false, false, 'quizzez/search-listing.php');
 
+//     }
+public function search()
+{
+    $userId = $this->siteUserId;
+    $posts  = FatApp::getPostedData();
+
+    $posts['pageno']   = $posts['pageno']   ?? 1;
+    $posts['pagesize'] = $posts['pagesize'] ?? AppConstant::PAGESIZE;
+
+    $page     = (int)$posts['pageno'];
+    $pageSize = (int)$posts['pagesize'];
+
+    if ($page < 1)     { $page = 1; }
+    if ($pageSize < 1) { $pageSize = AppConstant::PAGESIZE; }
+
+    $offset = ($page - 1) * $pageSize;
+
+    $db = FatApp::getDb();
+
+    // Base: this learner + completed quizzes
+    $conditions    = " WHERE qg.quiz_learner_id = " . (int)$userId . " AND qg.status = 1 ";
+    $dateFilter    = '';
+    $keywordFilter = '';
+    $statusFilter  = '';
+
+    // Date filter (quiz_added_on)
+    if (!empty($posts['ordles_lesson_starttime']) && !empty($posts['ordles_lesson_endtime'])) {
+        $startDate = date('Y-m-d', strtotime($posts['ordles_lesson_starttime']));
+        $endDate   = date('Y-m-d', strtotime($posts['ordles_lesson_endtime']));
+        $dateFilter = " AND DATE(qg.quiz_added_on) BETWEEN '" . $startDate . "' AND '" . $endDate . "'";
     }
+
+    // Keyword filter (course title / slug)
+    if (!empty($posts['keyword'])) {
+        $keyword = trim($posts['keyword']);
+        // very basic escaping to avoid breaking the SQL string
+        $keyword = str_replace("'", "\\'", $keyword);
+        $keyword = '%' . $keyword . '%';
+        $keywordFilter = " AND (cd.course_title LIKE '" . $keyword . "' OR c.course_slug LIKE '" . $keyword . "')";
+    }
+
+    // Quiz status filter
+    if (!empty($posts['quiz_status'])) {
+        if ($posts['quiz_status'] === 'pass') {
+            $statusFilter = " AND qg.percentage >= 50 ";
+        } elseif ($posts['quiz_status'] === 'fail') {
+            $statusFilter = " AND qg.percentage < 50 ";
+        }
+    }
+
+    // MAIN QUERY
+    $query = "
+        SELECT 
+            qg.id,
+            qg.quiz_id,
+            qg.course_id,
+            qg.score,
+            qg.total_marks,
+            qg.percentage,
+            qg.quiz_added_on,
+            cd.course_title,
+            c.course_slug,
+            CASE 
+                WHEN qg.percentage >= 50 THEN 'Pass'
+                ELSE 'Fail'
+            END AS result_status
+        FROM tbl_quiz_grading qg
+        LEFT JOIN tbl_courses c 
+            ON c.course_id = qg.course_id
+        LEFT JOIN tbl_course_details cd 
+            ON cd.course_id = qg.course_id
+        $conditions
+        $dateFilter
+        $keywordFilter
+        $statusFilter
+        ORDER BY qg.quiz_added_on DESC
+        LIMIT $offset, $pageSize
+    ";
+
+    $result = $db->query($query);
+    $quizResults = [];
+    if ($result) {
+        $quizResults = $db->fetchAll($result);
+    }
+
+    // COUNT QUERY
+    $countQuery = "
+        SELECT COUNT(*) AS total
+        FROM tbl_quiz_grading qg
+        LEFT JOIN tbl_courses c 
+            ON c.course_id = qg.course_id
+        LEFT JOIN tbl_course_details cd 
+            ON cd.course_id = qg.course_id
+        $conditions
+        $dateFilter
+        $keywordFilter
+        $statusFilter
+    ";
+
+    $countResult = $db->query($countQuery);
+    $totalCount = 0;
+    if ($countResult) {
+        $countRow = $db->fetch($countResult);
+        $totalCount = (int)($countRow['total'] ?? 0);
+    }
+
+    $this->sets([
+        'post'        => $posts,
+        'quizResults' => $quizResults,
+        'recordCount' => $totalCount,
+        'pageCount'   => ($pageSize > 0) ? ceil($totalCount / $pageSize) : 0,
+    ]);
+
+    $this->_template->render(false, false, 'quizzez/search-listing.php');
+}
+
 
     /**
      * Render Calendar View Page

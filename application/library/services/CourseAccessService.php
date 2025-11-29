@@ -60,7 +60,6 @@ class CourseAccessService
     
     if (!$courseData || empty($courseData['course_subject_id'])) {
         $debugLog .= "❌ Course not found or no subject_id\n";
-        self::writeDebugLog($debugLog);
         return false;
     }
     
@@ -82,20 +81,12 @@ class CourseAccessService
     $result = (bool)$subscriptionData;
     $debugLog .= "Final Result: " . ($result ? "TRUE" : "FALSE") . "\n";
     
-    self::writeDebugLog($debugLog);
     return $result;
 }
 
 /**
  * Write debug log to file
  */
-private static function writeDebugLog(string $message): void
-{
-    $logFile = CONF_INSTALLATION_PATH . 'application/logs/subscription_debug.log';
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message\n";
-    file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
-}
 
     /**
      * Alternative method using SearchBase only (more reliable)

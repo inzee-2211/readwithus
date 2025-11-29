@@ -4,27 +4,36 @@ $frm->developerTags['colClassPrefix'] = 'col-md-';
 $frm->developerTags['fld_default_col'] = 3;
 $frm->setFormTagAttribute('class', 'form');
 $frm->setFormTagAttribute('onsubmit', 'search(this);return false;');
-$statusFld = $frm->getField('ordles_status');
-$viewFld = $frm->getField('view');
+
+$statusFld  = $frm->getField('ordles_status');
+$viewFld    = $frm->getField('view');
 $keywordFld = $frm->getField('keyword');
-$keywordFld->addFieldTagAttribute('placeholder', Label::getLabel('LBL_KEYWORD'));
-$langFld = $frm->getField('ordles_tlang_id');
-// $startdateFld = $frm->getField('ordles_lesson_starttime');
-// $startdateFld->addFieldtagAttribute('id', 'ordles_lesson_starttime');
-// $startdateFld->addFieldtagAttribute('placeholder', Label::getLabel('LBL_START_DATE'));
+$keywordFld->addFieldTagAttribute('placeholder', Label::getLabel('LBL_COURSE_OR_QUIZ_KEYWORD'));
+$langFld    = $frm->getField('ordles_tlang_id');
 
-$frm->addRequiredField(Label::getLabel('LBL_QUIZ_STARTDATE'), 'ordles_lesson_starttime');
-$startdateFld = $frm->getField('ordles_lesson_starttime');
-$startdateFld->addFieldtagAttribute('id', 'ordles_lesson_starttime');
-$startdateFld->addFieldtagAttribute('placeholder', Label::getLabel('LBL_START_DATE'));
+/* Your custom required Quiz Start Date */
 
+
+/* End date */
 $enddateFld = $frm->getField('ordles_lesson_endtime');
 $enddateFld->addFieldtagAttribute('id', 'ordles_lesson_endtime');
 $enddateFld->addFieldtagAttribute('placeholder', Label::getLabel('LBL_END_TIME'));
+
+/* NEW: Quiz Status filter (All / Pass / Fail) */
+$frm->addSelectBox(
+    Label::getLabel('LBL_EXAM_STATUS'),
+    'quiz_status',
+    [
+        ''      => Label::getLabel('LBL_ALL'),
+        'pass'  => Label::getLabel('LBL_PASS'),
+        'fail'  => Label::getLabel('LBL_FAIL'),
+    ]
+);
+$quizStatusFld = $frm->getField('quiz_status');
+
 $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
 ?>
 <!-- [ PAGE ========= -->
-<!-- <main class="page"> -->
 <div class="container container--fixed">
     <div class="page__head">
         <div class="row align-items-center justify-content-between">
@@ -34,7 +43,9 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
             <div class="col-sm-auto">
                 <div class="buttons-group d-flex align-items-center">
                     <a href="javascript:void(0)" class="btn btn--secondary slide-toggle-js  d-flex d-sm-none">
-                        <svg class="icon icon--search icon--small margin-right-2"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#search'; ?>"></use></svg>
+                        <svg class="icon icon--search icon--small margin-right-2">
+                            <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#search'; ?>"></use>
+                        </svg>
                         <?php echo Label::getLabel('LBL_SEARCH'); ?>
                     </a>
                 </div>
@@ -50,44 +61,31 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
             <?php echo $frm->getFormTag(); ?>
             <div class="switch-controls">
                 <div class="switch-controls__colum-left">
-                    <!-- <div class="switch-ui">
-                        <ul>
-                            <?php foreach ($statusFld->options as $value => $label) { ?>
-                                <li>
-                                    <label class="switch-ui__item">
-                                        <input type="radio" class="switch-ui__input" onchange="search(this.form);" name="<?php echo $statusFld->getName(); ?>" value="<?php echo $value; ?>" <?php echo ($statusFld->value == $value) ? "checked" : ""; ?> />
-                                        <span class="switch-ui__label"><?php echo $label; ?></span>
-                                    </label>
-                                </li>
-                            <?php } ?>
-                        </ul>
-                    </div> -->
+                    <!-- Lesson status switches intentionally hidden for quiz page -->
                 </div>
                 <div class="switch-controls__colum-right">
                     <div class="switch-ui switch-ui--icons">
                         <ul>
                             <li>
                                 <label class="switch-ui__item">
-                                    <input type="radio" class="switch-ui__input" onchange="search(this.form);" name="<?php echo $viewFld->getName(); ?>" value="<?php echo AppConstant::VIEW_LISTING; ?>" <?php echo ($viewFld->value == AppConstant::VIEW_LISTING) ? 'checked' : ''; ?> />
-                                    
+                                    <input type="radio"
+                                           class="switch-ui__input"
+                                           onchange="search(this.form);"
+                                           name="<?php echo $viewFld->getName(); ?>"
+                                           value="<?php echo AppConstant::VIEW_LISTING; ?>"
+                                           <?php echo ($viewFld->value == AppConstant::VIEW_LISTING) ? 'checked' : ''; ?> />
                                 </label>
                             </li>
-                            <!-- <li>
-                                <label class="switch-ui__item">
-                                    <input type="radio" class="switch-ui__input" onchange="search(this.form);" name="<?php echo $viewFld->getName(); ?>" value="<?php echo AppConstant::VIEW_CALENDAR; ?>" <?php echo ($viewFld->value == AppConstant::VIEW_CALENDAR) ? 'checked' : ''; ?> />
-                                    <span class="switch-ui__label">
-                                        <svg class="icon icon--calendar margin-right-1"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#calendar'; ?>"></use></svg>
-                                        <?php echo $viewFld->options[AppConstant::VIEW_CALENDAR]; ?>
-                                    </span>
-                                </label>
-                            </li> -->
+                            <!-- Calendar view disabled on quiz page -->
                         </ul>
                     </div>
                 </div>
             </div>
+
             <div class="search-filter slide-target-js">
                 <div class="row">
-                    <!-- <div class="col-lg-3 col-sm-12">
+                    <!-- Keyword: course / quiz -->
+                    <div class="col-lg-3 col-sm-12">
                         <div class="field-set">
                             <div class="caption-wraper">
                                 <label class="field_label">
@@ -103,63 +101,64 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
                                 </div>
                             </div>
                         </div>
-                    </div> -->
-                    <!-- <div class="col-lg-2 col-sm-12">
-                        <div class="field-set">
-                            <div class="caption-wraper">
-                                <label class="field_label">
-                                    <?php echo $langFld->getCaption(); ?>
-                                    <?php if ($langFld->requirement->isRequired()) { ?>
-                                        <span class="spn_must_field">*</span>
-                                    <?php } ?>
-                                </label>
-                            </div>
-                            <div class="field-wraper">
-                                <div class="field_cover">
-                                    <?php echo $langFld->getHtml(); ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
-                    <div class="col-lg-3 col-sm-6">
-                        <div class="field-set">
-                            <div class="caption-wraper">
-                                <label class="field_label">
-                                    <?php echo $startdateFld->getCaption(); ?>
-                                    <?php if ($startdateFld->requirement->isRequired()) { ?>
-                                        <span class="spn_must_field">*</span>
-                                    <?php } ?>
-                                </label>
-                            </div>
-                            <div class="field-wraper">
-                                <div class="field_cover">
-                                    <?php echo $startdateFld->getHtml(); ?>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                    <div class="col-lg-3 col-sm-6">
+
+                   <!-- Start date (STATIC ONLY, NO BACKEND) -->
+<div class="col-lg-3 col-sm-6">
+    <div class="field-set">
+        <div class="caption-wraper">
+            <label class="field_label">
+                <?php echo Label::getLabel('LBL_EXAM_STARTDATE'); ?>
+            </label>
+        </div>
+        <div class="field-wraper">
+            <div class="field_cover">
+                <input
+                    type="text"
+                    class="field-control"
+                    placeholder="<?php echo Label::getLabel('LBL_START_DATE'); ?>"
+                />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- End date (STATIC ONLY, NO BACKEND) -->
+<div class="col-lg-3 col-sm-6">
+    <div class="field-set">
+        <div class="caption-wraper">
+            <label class="field_label">
+                <?php echo Label::getLabel('LBL_EXAM_ENDDATE'); ?>
+            </label>
+        </div>
+        <div class="field-wraper">
+            <div class="field_cover">
+                <input
+                    type="text"
+                    class="field-control"
+                    placeholder="<?php echo Label::getLabel('LBL_END_TIME'); ?>"
+                />
+            </div>
+        </div>
+    </div>
+</div>
+
+
+                    <!-- Quiz status + buttons -->
+                    <div class="col-lg-3 col-sm-6 form-buttons-group">
                         <div class="field-set">
                             <div class="caption-wraper">
                                 <label class="field_label">
-                                    <?php echo $enddateFld->getCaption(); ?>
-                                    <?php if ($enddateFld->requirement->isRequired()) { ?>
-                                        <span class="spn_must_field">*</span>
-                                    <?php } ?>
+                                    <?php echo $quizStatusFld->getCaption(); ?>
                                 </label>
                             </div>
                             <div class="field-wraper">
                                 <div class="field_cover">
-                                    <?php echo $enddateFld->getHtml(); ?>
+                                    <?php echo $quizStatusFld->getHtml(); ?>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-sm-6  form-buttons-group">
-                        <div class="field-set">
-                            <div class="caption-wraper"><label class="field_label"></label></div>
                             <div class="field-wraper">
-                                <div class="field_cover">
+                                <div class="field_cover margin-top-3">
                                     <?php echo $frm->getFieldHtml('order_id'); ?>
                                     <?php echo $frm->getFieldHtml('pageno'); ?>
                                     <?php echo $frm->getFieldHtml('pagesize'); ?>
@@ -169,6 +168,7 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
             </form>
@@ -183,7 +183,9 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
         const VIEW_CALENDAR = <?php echo AppConstant::VIEW_CALENDAR ?>;
         const VIEW_LISTING = <?php echo AppConstant::VIEW_LISTING ?>;
         $(document).ready(function () {
+            // same JS hook as before – keeps your existing behaviour
             search(document.frmLessonSearch);
             upcoming();
         });
     </script>
+</div>

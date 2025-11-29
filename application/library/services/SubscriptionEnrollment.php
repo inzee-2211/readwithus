@@ -17,7 +17,6 @@ public static function ensureForCourse(int $userId, int $courseId): int
     
     if ($userId < 1 || $courseId < 1) { 
         $debugLog .= "❌ Invalid user or course ID\n";
-        self::writeDebugLog($debugLog);
         return 0; 
     }
 
@@ -29,7 +28,7 @@ public static function ensureForCourse(int $userId, int $courseId): int
     
     if (!$hasAccess) {
         $debugLog .= "❌ Subscription access denied\n";
-        self::writeDebugLog($debugLog);
+  
         return 0;
     }
 
@@ -48,8 +47,7 @@ public static function ensureForCourse(int $userId, int $courseId): int
     $progressResult = self::ensureProgressRecord($accessId);
     $debugLog .= "ensureProgressRecord returned: " . ($progressResult ? "TRUE" : "FALSE") . "\n";
     
-    $debugLog .= "✅ Returning access ID: $accessId\n";
-    self::writeDebugLog($debugLog);
+   
     
     return $accessId;
 }
@@ -75,32 +73,7 @@ private static function getSubscriptionAccessId(int $userId, int $courseId): int
 /**
  * Write debug log to file
  */
-private static function writeDebugLog(string $message): void
-{
-    $logFile = CONF_INSTALLATION_PATH . 'application/logs/subscription_debug.log';
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message\n";
-    file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
-}
 
-    /**
-     * Get the active status value for order course
-     */
-    private static function getOrderCourseActiveStatus(): int
-    {
-        // Check if constant exists, otherwise use default value
-        if (defined('OrderCourse::STATUS_ACTIVE')) {
-            return OrderCourse::STATUS_ACTIVE;
-        }
-        
-        // Try other common constant names
-        if (defined('OrderCourse::ACTIVE')) {
-            return OrderCourse::ACTIVE;
-        }
-        
-        // Default to 1 (most common value for active status)
-        return 1;
-    }
 
     /**
      * Get the cancelled status value for order course

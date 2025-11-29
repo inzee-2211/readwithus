@@ -18,14 +18,14 @@ class QuizrController extends MyAppController
      *
      * @return void
      */
-    public function index()
+ public function index()
 {
     /* -------------------------------------------------------------
-       1. Popular course (unchanged) - but we'll replace this with recommended courses later
+       1. Popular courses (fallback if no recommended courses)
     -------------------------------------------------------------- */
-    $course  = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
-    $courses = $course->getPopularCourses();
-    $courses = array_slice($courses, 0, 1);
+    $course         = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
+    $popularCourses = $course->getPopularCourses();
+    $popularCourses = array_slice($popularCourses, 0, 4);
 
     /* -------------------------------------------------------------
        2. Get attempt id from query string
@@ -39,11 +39,11 @@ class QuizrController extends MyAppController
     $currentSubtopicId = null;
     $nextSubtopicId    = null;
     
-    // NEW: Variables for video and courses
+    // For video + recommended courses
     $recommendedVideoUrl = '';
     $recommendedCourses  = [];
 
-    // 🔹 NEW: variables for tutor request mapping
+    // Tutor request mapping
     $subtopicName      = '';
     $tutreqLevelId     = 0;
     $tutreqSubjectId   = 0;
@@ -64,12 +64,12 @@ class QuizrController extends MyAppController
                 $resultText        = strtolower($row['result'] ?? '');
                 $currentSubtopicId = $row['subtopic_id'] ?? null;
                 
-                // 🔹 NEW: Get video URL from tbl_quiz_management
+                // Get video URL from tbl_quiz_management
                 if (!empty($currentSubtopicId)) {
                     $sqlVideo = "SELECT video_url FROM tbl_quiz_management WHERE id = " . (int)$currentSubtopicId . " LIMIT 1";
-                    $rsVideo = $db->query($sqlVideo);
+                    $rsVideo  = $db->query($sqlVideo);
                     if ($rsVideo) {
-                        $videoRow = $db->fetch($rsVideo);
+                        $videoRow            = $db->fetch($rsVideo);
                         $recommendedVideoUrl = $videoRow['video_url'] ?? '';
                     }
                 }
@@ -77,29 +77,30 @@ class QuizrController extends MyAppController
         }
     }
 
-    // 🔹 Compute next subtopic from tbl_quiz_management
-    $nextSubtopicId = null;
+    /* -------------------------------------------------------------
+       3.1 Compute next subtopic
+    -------------------------------------------------------------- */
     if (!empty($currentSubtopicId)) {
         $nextSubtopicId = $this->getNextSubtopicId((int)$currentSubtopicId);
     }
 
     /* -------------------------------------------------------------
-       3.5 Derive Level / Subject / Exam Board / Tier for TutorRequest AND Courses
-            from the current topic (subtopic_id)
+       3.5 Derive Level / Subject / Exam Board / Tier 
+           for TutorRequest AND Courses, via tbl_quiz_setup
     -------------------------------------------------------------- */
     if (!empty($currentSubtopicId)) {
-        // First get the quiz_setup_id from tbl_quiz_management
-        $setupQuery = "SELECT quiz_setup_id FROM tbl_quiz_management WHERE id = " . (int)$currentSubtopicId;
+        // Get quiz_setup_id from tbl_quiz_management
+        $setupQuery  = "SELECT quiz_setup_id FROM tbl_quiz_management WHERE id = " . (int)$currentSubtopicId . " LIMIT 1";
         $setupResult = $db->query($setupQuery);
         $quizSetupId = 0;
         
         if ($setupResult) {
-            $setupRow = $db->fetch($setupResult);
+            $setupRow    = $db->fetch($setupResult);
             $quizSetupId = $setupRow['quiz_setup_id'] ?? 0;
         }
 
         if ($quizSetupId > 0) {
-            // Now get the level, subject, etc from tbl_quiz_setup
+            // Get level, subject, etc from tbl_quiz_setup
             $sqlMap = "
                 SELECT 
                     qs.topic_name,
@@ -112,11 +113,11 @@ class QuizrController extends MyAppController
                     eb.name AS examboard_name,
                     tr.name AS tier_name
                 FROM tbl_quiz_setup qs
-                LEFT JOIN course_levels lvl ON lvl.id = qs.level_id
-                LEFT JOIN course_subjects subj ON subj.id = qs.subject_id
+                LEFT JOIN course_levels lvl     ON lvl.id = qs.level_id
+                LEFT JOIN course_subjects subj  ON subj.id = qs.subject_id
                 LEFT JOIN course_examboards eb ON eb.id = qs.examboard_id
-                LEFT JOIN course_tier tr ON tr.id = qs.tier_id
-                WHERE qs.id = " . $quizSetupId . "
+                LEFT JOIN course_tier tr       ON tr.id = qs.tier_id
+                WHERE qs.id = " . (int)$quizSetupId . "
                 LIMIT 1
             ";
 
@@ -130,7 +131,7 @@ class QuizrController extends MyAppController
                     $tutreqExamboardId = (int)($mapRow['examboard_id'] ?? 0);
                     $tutreqTierId      = (int)($mapRow['tier_id']      ?? 0);
 
-                    // 🔹 NEW: Get recommended courses based on level and subject
+                    // Courses whose level + subject match quiz setup
                     $recommendedCourses = $this->getRecommendedCourses($tutreqLevelId, $tutreqSubjectId);
                 }
             }
@@ -141,7 +142,7 @@ class QuizrController extends MyAppController
             $recommendedCourses = $this->getRecommendedCoursesAlternative($currentSubtopicId);
         }
 
-        // Optional: keep this in session too if you still use it elsewhere
+        // Optional: keep this in session if used elsewhere
         if (!empty($subtopicName)) {
             $_SESSION['subtopicName'] = $subtopicName;
         }
@@ -166,16 +167,13 @@ class QuizrController extends MyAppController
         $rsAnswers = $db->query($sqlAnswers);
         if ($rsAnswers) {
             $attemptquestions = $db->fetchAll($rsAnswers);
-
-            // Debug (optional)
-            // error_log("Fetched " . count($attemptquestions) . " questions with explanations");
         } else {
-            error_log("Query failed: " . $db->getError());
+            error_log('Quiz answers query failed: ' . $db->getError());
         }
     }
 
     /* -------------------------------------------------------------
-       5. Email parent if result = fail (unchanged)
+       5. Email parent if result = fail
     -------------------------------------------------------------- */
     if (!empty($resultText)) {
         $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
@@ -220,8 +218,8 @@ www.readwithus.org.uk";
     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
     unset($_SESSION[AppConstant::SEARCH_SESSION]);
 
-    // Use recommended courses if available, otherwise fall back to popular courses
-    $displayCourses = !empty($recommendedCourses) ? $recommendedCourses : $courses;
+    // 🔸 Behaviour: use recommended if present, otherwise fallback to popular
+    $displayCourses = !empty($recommendedCourses) ? $recommendedCourses : $popularCourses;
 
     $this->set('srchFrm', $srchFrm);
     $this->set('attemptresult', $attemptresult);
@@ -232,108 +230,108 @@ www.readwithus.org.uk";
     $this->set('resultText', $resultText);
     $this->set('nextSubtopicId', $nextSubtopicId); 
 
-    // 🔹 NEW: send these to the quiz result view for the modal and video
-    $this->set('subtopicName',      $subtopicName);
-    $this->set('tutreqLevelId',     $tutreqLevelId);
-    $this->set('tutreqSubjectId',   $tutreqSubjectId);
-    $this->set('tutreqExamboardId', $tutreqExamboardId);
-    $this->set('tutreqTierId',      $tutreqTierId);
+    // For tutor modal + video
+    $this->set('subtopicName',        $subtopicName);
+    $this->set('tutreqLevelId',       $tutreqLevelId);
+    $this->set('tutreqSubjectId',     $tutreqSubjectId);
+    $this->set('tutreqExamboardId',   $tutreqExamboardId);
+    $this->set('tutreqTierId',        $tutreqTierId);
     $this->set('recommendedVideoUrl', $recommendedVideoUrl);
 
     $this->_template->render();
 }
 
 /**
- * Get recommended courses based on level and subject
+ * Get recommended courses based on level and subject.
+ * Uses tbl_courses + tbl_course_details only (matches your schema).
  */
 private function getRecommendedCourses($levelId, $subjectId)
 {
-    $db = FatApp::getDb();
+    $db      = FatApp::getDb();
     $courses = [];
 
+    // Must have both filters; otherwise, no recommendation.
+    if ($levelId <= 0 || $subjectId <= 0) {
+        return [];
+    }
+
     try {
-        // Since courses table has course_level and course_subject_id, we can use those
         $sql = "
             SELECT 
                 c.course_id,
-                c.course_title,
+                d.course_title,
                 c.course_price,
                 c.course_ratings,
                 c.course_reviews,
                 c.course_slug,
                 c.course_level,
                 c.course_subject_id,
-                sc.subcate_name,
-                cd.course_details
+                NULL AS subcate_name,
+                d.course_details
             FROM tbl_courses c
-            LEFT JOIN tbl_course_categories cc ON cc.cate_id = c.course_cate_id
-            LEFT JOIN tbl_course_subcategories sc ON sc.subcate_id = c.course_subcate_id
-            LEFT JOIN tbl_course_details cd ON cd.course_id = c.course_id AND cd.course_clang_id = " . $this->siteLangId . "
-            WHERE c.course_status = " . Course::PUBLISHED . "
-            AND c.course_active = " . AppConstant::ACTIVE . "
-            AND c.course_deleted IS NULL
-        ";
-
-        // Add level filter if available
-        if (!empty($levelId)) {
-            $sql .= " AND c.course_level = " . (int)$levelId;
-        }
-
-        // Add subject filter if available  
-        if (!empty($subjectId)) {
-            $sql .= " AND c.course_subject_id = " . (int)$subjectId;
-        }
-
-        $sql .= " ORDER BY c.course_ratings DESC, c.course_reviews DESC LIMIT 4";
-
-        $result = $db->query($sql);
-        if ($result) {
-            $courses = $db->fetchAll($result);
-        }
-
-    } catch (Exception $e) {
-        error_log("Error getting recommended courses: " . $e->getMessage());
-        // Return empty array, we'll handle fallback in the main function
-    }
-
-    return $courses;
-}
-
-/**
- * Alternative method to get recommended courses if primary method fails
- */
-private function getRecommendedCoursesAlternative($subtopicId)
-{
-    $db = FatApp::getDb();
-    $courses = [];
-
-    try {
-        // Try to find courses through course_topics relationship
-        $sql = "
-            SELECT DISTINCT
-                c.course_id,
-                c.course_title,
-                c.course_price,
-                c.course_ratings,
-                c.course_reviews,
-                c.course_slug,
-                c.course_level,
-                c.course_subject_id,
-                sc.subcate_name,
-                cd.course_details
-            FROM tbl_courses c
-            LEFT JOIN tbl_course_subcategories sc ON sc.subcate_id = c.course_subcate_id
-            LEFT JOIN tbl_course_details cd ON cd.course_id = c.course_id AND cd.course_clang_id = " . $this->siteLangId . "
-            WHERE c.course_status = " . Course::PUBLISHED . "
-            AND c.course_active = " . AppConstant::ACTIVE . "
-            AND c.course_deleted IS NULL
-            ORDER BY c.course_ratings DESC, c.course_reviews DESC 
+            LEFT JOIN tbl_course_details d 
+                ON d.course_id = c.course_id
+            WHERE c.course_active = " . (int) AppConstant::ACTIVE . "
+              AND c.course_status = " . (int) Course::PUBLISHED . "
+              AND c.course_deleted IS NULL
+              AND c.course_level = " . (int) $levelId . "
+              AND c.course_subject_id = " . (int) $subjectId . "
+            ORDER BY 
+                c.course_ratings DESC, 
+                c.course_reviews DESC,
+                c.course_id DESC
             LIMIT 4
         ";
 
         $result = $db->query($sql);
         if ($result) {
-            $courses = $db->fetchAll($result);
+            $courses = $db->fetchAll($result) ?: [];
+        }
+
+    } catch (Exception $e) {
+        error_log("Error getting recommended courses: " . $e->getMessage());
+    }
+
+    return $courses;
+}
+/**
+ * Fallback: recommended courses without level/subject filter.
+ * Still uses only tbl_courses + tbl_course_details.
+ */
+private function getRecommendedCoursesAlternative($subtopicId)
+{
+    $db      = FatApp::getDb();
+    $courses = [];
+
+    try {
+        $sql = "
+            SELECT 
+                c.course_id,
+                d.course_title,
+                c.course_price,
+                c.course_ratings,
+                c.course_reviews,
+                c.course_slug,
+                c.course_level,
+                c.course_subject_id,
+                NULL AS subcate_name,
+                d.course_details
+            FROM tbl_courses c
+            LEFT JOIN tbl_course_details d 
+                ON d.course_id = c.course_id
+            WHERE c.course_active = " . (int) AppConstant::ACTIVE . "
+              AND c.course_status = " . (int) Course::PUBLISHED . "
+              AND c.course_deleted IS NULL
+            ORDER BY 
+                c.course_ratings DESC, 
+                c.course_reviews DESC,
+                c.course_id DESC
+            LIMIT 4
+        ";
+
+        $result = $db->query($sql);
+        if ($result) {
+            $courses = $db->fetchAll($result) ?: [];
         }
 
     } catch (Exception $e) {
@@ -343,226 +341,7 @@ private function getRecommendedCoursesAlternative($subtopicId)
     return $courses;
 }
 
-/**
- * Get the next subtopic id based on tbl_quiz_management primary key (id).
- * Returns null if there is no next quiz.
- */
-// private function getNextSubtopicId(int $currentSubtopicId): ?int
-// {
-//     $db = FatApp::getDb();
 
-//     $sql = "
-//         SELECT id
-//         FROM tbl_quiz_management
-//         WHERE id > " . (int)$currentSubtopicId . "
-//         ORDER BY id ASC
-//         LIMIT 1
-//     ";
-
-//     $res = $db->query($sql);
-//     if (!$res) {
-//         return null;
-//     }
-
-//     $row = $db->fetch($res);
-//     if (!empty($row) && !empty($row['id'])) {
-//         return (int)$row['id'];
-//     }
-//     return null; // no next quiz
-// }
-//  public function index()
-// {
-//     /* -------------------------------------------------------------
-//        1. Popular course (unchanged)
-//     -------------------------------------------------------------- */
-//     $course  = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
-//     $courses = $course->getPopularCourses();
-//     $courses = array_slice($courses, 0, 1);
-
-//     /* -------------------------------------------------------------
-//        2. Get attempt id from query string
-//     -------------------------------------------------------------- */
-//     $attemptId = isset($_GET['attempt']) ? (int) $_GET['attempt'] : 0;
-
-//     $db                = FatApp::getDb();
-//     $attemptresult     = [];
-//     $attemptquestions  = [];
-//     $resultText        = '';
-//     $currentSubtopicId = null;
-//      $nextSubtopicId    = null; // 🔹 new
-
-//     // 🔹 NEW: variables for tutor request mapping
-//     $subtopicName      = '';
-//     $tutreqLevelId     = 0;
-//     $tutreqSubjectId   = 0;
-//     $tutreqExamboardId = 0;
-//     $tutreqTierId      = 0;
-
-//     /* -------------------------------------------------------------
-//        3. Load attempt row (header)
-//     -------------------------------------------------------------- */
-//     if ($attemptId > 0) {
-//         $sqlAttempt = "SELECT * FROM tbl_quiz_attempts WHERE id = " . (int)$attemptId . " LIMIT 1";
-//         $rsAttempt  = $db->query($sqlAttempt);
-
-//         if ($rsAttempt) {
-//             $row = $db->fetch($rsAttempt);
-//             if ($row) {
-//                 $attemptresult[]   = $row;
-//                 $resultText        = strtolower($row['result'] ?? '');
-//                 $currentSubtopicId = $row['subtopic_id'] ?? null;
-                
-//             }
-//         }
-//     }
-//     // 🔹 Compute next subtopic from tbl_quiz_management
-// $nextSubtopicId = null;
-// if (!empty($currentSubtopicId)) {
-//     $nextSubtopicId = $this->getNextSubtopicId((int)$currentSubtopicId);
-// }
-
-
-//     /* -------------------------------------------------------------
-//        3.5 Derive Level / Subject / Exam Board / Tier for TutorRequest
-//             from the current topic (subtopic_id)
-//     -------------------------------------------------------------- */
-//     if (!empty($currentSubtopicId)) {
-//         // We assume subtopic_id here is the topic ID from course_topics.id
-//         $topicId = (int)$currentSubtopicId;
-
-//         $sqlMap = "
-//             SELECT 
-//                 t.topic                                AS topic_name,
-//                 s.level_id                             AS level_id,
-//                 s.id                                   AS subject_id,
-//                 eb.id                                  AS examboard_id,
-//                 tr.id                                  AS tier_id
-//             FROM course_topics t
-//             JOIN course_subjects s      ON s.id = t.subject_id
-//             LEFT JOIN course_examboards eb ON eb.subject_id = s.id
-//             LEFT JOIN course_tier tr        ON tr.examboard_id = eb.id
-//             WHERE t.id = " . $topicId . "
-//             LIMIT 1
-//         ";
-
-//         $rsMap = $db->query($sqlMap);
-//         if ($rsMap) {
-//             $mapRow = $db->fetch($rsMap);
-//             if ($mapRow) {
-//                 $subtopicName      = $mapRow['topic_name']   ?? '';
-//                 $tutreqLevelId     = (int)($mapRow['level_id']     ?? 0);
-//                 $tutreqSubjectId   = (int)($mapRow['subject_id']   ?? 0);
-//                 $tutreqExamboardId = (int)($mapRow['examboard_id'] ?? 0);
-//                 $tutreqTierId      = (int)($mapRow['tier_id']      ?? 0);
-//             }
-//         }
-
-//         // Optional: keep this in session too if you still use it elsewhere
-//         if (!empty($subtopicName)) {
-//             $_SESSION['subtopicName'] = $subtopicName;
-//         }
-//     }
-
-//     /* -------------------------------------------------------------
-//        4. Load attempt answers + question_title + explanation
-//     -------------------------------------------------------------- */
-//     if ($attemptId > 0) {
-//         $sqlAnswers = "
-//             SELECT
-//                 ans.*,
-//                 qb.question_title,
-//                 qb.explanation,
-//                 qb.correct_answer
-//             FROM tbl_quiz_attempt_answers AS ans
-//             LEFT JOIN tbl_quaestion_bank AS qb ON qb.id = ans.question_id
-//             WHERE ans.attempt_id = " . (int)$attemptId . "
-//             ORDER BY ans.id ASC
-//         ";
-
-//         $rsAnswers = $db->query($sqlAnswers);
-//         if ($rsAnswers) {
-//             $attemptquestions = $db->fetchAll($rsAnswers);
-
-//             // Debug (optional)
-//             // error_log("Fetched " . count($attemptquestions) . " questions with explanations");
-//         } else {
-//             error_log("Query failed: " . $db->getError());
-//         }
-//     }
-
-//     /* -------------------------------------------------------------
-//        5. Email parent if result = fail (unchanged)
-//     -------------------------------------------------------------- */
-//     if (!empty($resultText)) {
-//         $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
-
-//         if ($resultText === 'fail' && !empty($parentEmail)) {
-//             $to      = $parentEmail;
-//             $subject = "Quiz Result Notification";
-
-//             $message = "Subject: Your child's recent results & how we can help them improve
-
-// Dear Parent,
-
-// We're writing to inform you about your child's recent performance in their quiz assessment. Unfortunately, they did not achieve a passing grade this time.
-
-// We understand this can be worrying, but this result does NOT define their potential. At Read With Us, every setback is a chance to rebuild confidence with the right support.
-
-// We offer:
-// • Interactive topic quizzes  
-// • Revision modules focused on weaker areas  
-// • Full course access guided by expert educators  
-
-// \"It's not about being the best, it's about being better than you were yesterday.\"
-
-// We recommend revisiting the topic and retrying the quiz to strengthen understanding.
-
-// Warm regards,
-// The Read With Us Team
-// support@readwithus.org.uk
-// www.readwithus.org.uk";
-
-//             $headers  = "From: support@readwithus.org.uk\r\n";
-//             $headers .= "Reply-To: no-reply@readwithus.org.uk\r\n";
-//             $headers .= "X-Mailer: PHP/" . phpversion();
-
-//             @mail($to, $subject, $message, $headers);
-//         }
-//     }
-
-//     /* -------------------------------------------------------------
-//        6. Prepare data for the view
-//     -------------------------------------------------------------- */
-//     $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-//     unset($_SESSION[AppConstant::SEARCH_SESSION]);
-
-//     $this->set('srchFrm', $srchFrm);
-//     $this->set('attemptresult', $attemptresult);
-//     $this->set('attemptquestions', $attemptquestions);
-//     $this->set('coursesslider', $courses);
-//     $this->set('filterTypes', Course::getFilterTypes());
-//     $this->set('currentSubtopicId', $currentSubtopicId);
-//     $this->set('resultText', $resultText);
-//     $this->set('nextSubtopicId', $nextSubtopicId); 
-
-//     // 🔹 NEW: send these to the quiz result view for the modal
-//     $this->set('subtopicName',      $subtopicName);
-//     $this->set('tutreqLevelId',     $tutreqLevelId);
-//     $this->set('tutreqSubjectId',   $tutreqSubjectId);
-//     $this->set('tutreqExamboardId', $tutreqExamboardId);
-//     $this->set('tutreqTierId',      $tutreqTierId);
-
-//     $this->_template->render();
-// }
-
-/**
- * Get the next subtopic id inside the same quiz_setup, ordered by position
- * based on tbl_quiz_management.
- */
-/**
- * Get the next subtopic id based on tbl_quiz_management primary key (id).
- * Returns null if there is no next quiz.
- */
 private function getNextSubtopicId(int $currentSubtopicId): ?int
 {
     $db = FatApp::getDb();

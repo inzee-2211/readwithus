@@ -711,7 +711,503 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
   height: 130%!important;
   border: 0;
 }
+/* === Recommended Courses (Hero slider + side list) === */
+.recommended-section {
+    margin-top: 40px;
+    margin-bottom: 48px;
+}
 
+/* Top heading + intro */
+.recommended-intro {
+    max-width: 780px;
+    margin-bottom: 18px;
+}
+
+.recommended-intro h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #0f172a;
+}
+
+.recommended-intro p {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+/* === Benefit CARDS (3 cards like screenshot 2) === */
+.recommended-benefits {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.recommended-benefits li {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    font-size: 13px;
+    color: #4b5563;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.recommended-benefits li:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 10px rgba(45, 173, 255, 0.25),
+                0 8px 10px rgba(15, 23, 42, 0.08);
+    border-color: var(--rwu-primary);
+    
+}
+
+.recommended-benefits li::before {
+    content: "";
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--rwu-primary), var(--rwu-secondary));
+    margin-top: 5px;
+}
+
+/* === Slider shell: hero card + arrows === */
+.course-slider-shell {
+    margin-top: 16px;
+    border-radius: 22px;
+    padding: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 12px;
+}
+
+/* Arrows */
+.course-slider-arrow {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.7);
+    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--rwu-transition);
+    align-self: center;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+}
+
+.course-slider-arrow svg {
+    width: 18px;
+    height: 18px;
+}
+
+.course-slider-arrow:hover {
+    background: #e5f2ff;
+    border-color: var(--rwu-primary);
+    box-shadow: 0 14px 32px rgba(37, 99, 235, 0.20);
+}
+
+/* Window that shows 1 slide */
+.course-slider-window {
+    position: relative;
+    overflow: hidden;
+    min-height: 260px;
+}
+
+/* Individual slide */
+.course-slide {
+    display: none;
+    height: 100%;
+}
+
+.course-slide.active {
+    display: block;
+    animation: fadeSlide 0.4s ease-out;
+}
+
+/* Hero card inside slide */
+.course-slide-card {
+    background: #ffffff;
+    /* border-radius: 22px; */
+    padding: 20px 22px;
+    box-shadow: 0 18px 46px rgba(15, 23, 42, 0.10);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.course-slide-card:hover {
+    transform: translateY(-6px) scale(1.015);
+    box-shadow: 0 18px 45px rgba(45, 173, 255, 0.25),
+                0 8px 20px rgba(15, 23, 42, 0.08);
+    border-color: var(--rwu-primary);
+}
+
+
+/* Little pill “Matched to your quiz” */
+.course-slide-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    background: #eff6ff;
+    margin-bottom: 10px;
+}
+
+.course-slide-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--rwu-primary), var(--rwu-secondary));
+}
+
+/* Main layout: text + image */
+.course-slide-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: center;
+}
+
+/* Left / text side */
+.course-slide-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.course-slide-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.course-slide-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.course-slide-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #f3f4f6;
+}
+
+.course-slide-rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.course-slide-rating .stars {
+    color: #fbbf24;
+    font-size: 13px;
+}
+
+.course-slide-desc {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+/* Footer with CTA + price */
+.course-slide-footer {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn-course-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--rwu-primary), var(--rwu-secondary));
+    color: #ffffff;
+    box-shadow: 0 14px 36px rgba(45, 173, 255, 0.45);
+}
+
+.btn-course-primary:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 18px 46px rgba(37, 99, 235, 0.55);
+}
+
+.course-slide-price-wrap {
+    text-align: right;
+}
+
+.course-slide-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--rwu-primary);
+}
+
+.course-slide-price-note {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+/* Right / image side */
+.course-slide-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.course-slide-media-inner {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #e5e7eb;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+.course-slide-media-inner img {
+    width: 100%;
+    height: 210px;
+    object-fit: cover;
+}
+
+/* Dots under slider */
+.course-slider-dots {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.course-slider-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    border: none;
+    background: #d1d5db;
+    padding: 0;
+    cursor: pointer;
+    transition: var(--rwu-transition);
+}
+
+.course-slider-dot.active {
+    width: 18px;
+    background: linear-gradient(135deg, var(--rwu-primary), var(--rwu-secondary));
+}
+
+/* === Side vertical mini list === */
+.recommended-side-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.recommended-side-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+/* Mini cards (reuse but tighten) */
+.course-mini-card {
+    border-radius: 12px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: #fff;
+    overflow: hidden;
+}
+.course-mini-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(45, 173, 255, 0.20);
+    border-color: var(--rwu-primary);
+}
+.course-mini-card-inner {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 8px;
+}
+
+.course-mini-thumb {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 70px;
+    overflow: hidden;
+}
+
+.course-mini-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.course-mini-body {
+    padding: 8px 10px 8px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.course-mini-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.course-mini-meta {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.course-mini-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.course-mini-footer a {
+    font-weight: 600;
+    color: var(--rwu-primary);
+    text-decoration: none;
+}
+
+.course-mini-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Slide animation */
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === Responsive === */
+@media (max-width: 991.98px) {
+    .recommended-benefits {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .course-slide-inner {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .course-slide-media-inner img {
+        height: 200px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .recommended-benefits {
+        grid-template-columns: 1fr;
+    }
+
+    .course-slider-shell {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .course-slider-arrow {
+        display: none;
+    }
+
+    .course-slide-card {
+        padding: 16px 14px;
+        border-radius: 18px;
+    }
+}
+.view-all-courses-wrap {
+    margin-top: 14px;
+    text-align: center;
+}
+
+.view-all-courses-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--rwu-primary), var(--rwu-secondary));
+    box-shadow: 0 12px 28px rgba(45, 173, 255, 0.35);
+    text-decoration: none;
+    transition: all 0.35s ease;
+}
+
+.view-all-courses-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 50px rgba(45, 173, 255, 0.45);
+    color: #fff;
+}
+.course-slide-card,
+.course-mini-card {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+.subscribe-fav-btn-wrap {
+    margin: 18px 0 8px;
+    text-align: left;      /* keep aligned with the chips */
+}
+
+.subscribe-fav-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    border-radius: 999px;
+    border: 1.5px solid #111;   /* thin black border */
+    background: #fff;
+    color: #111;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.subscribe-fav-btn:hover {
+    background: #111;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
 
 </style>
 
@@ -937,11 +1433,10 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
 </div>
 
 
-                           <button type="button"
-        class="btn-pill btn-pill-outline text-center"
-        data-bs-toggle="modal" data-bs-target="#quizSignupModal">
-    Find a Tutor for this Topic
-</button>
+  <a href="<?php echo MyUtility::makeUrl('Teachers'); ?>"
+   class="btn-pill btn-pill-outline text-center">
+   Find a Tutor for this Topic
+</a>
 
                         </div>
 
@@ -951,148 +1446,284 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- RECOMMENDED COURSES -->
-        <div class="recommended-section">
-            <div class="row mb-3">
-                <div class="col-12">
-                    <h3 class="section-title-modern">Recommended Courses</h3>
-                </div>
-            </div>
-
-            <div class="row g-4">
-                <?php
-                $filteredCourses = [];
-                if (!empty($coursesslider) && is_array($coursesslider)) {
-                   $filteredCourses = array_filter($coursesslider, function ($course) {
-    // Prefer with details, but allow without if title+slug exist
-    if (!empty($course['course_details']) && strlen(trim($course['course_details'])) >= 30) return true;
-    return !empty($course['course_title']) && !empty($course['course_slug']);
-});
-
-                }
-
-                if (!empty($filteredCourses)) {
-                    $filteredCourses = array_values($filteredCourses);
-                    $randomKey       = array_rand($filteredCourses);
-                    $randomCourse    = $filteredCourses[$randomKey];
-                ?>
-                    <!-- FEATURED COURSE -->
-                    <div class="col-lg-6">
-                        <div class="featured-course-card card">
-                            <div class="row g-0">
-                                <div class="col-md-5">
-                                    <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $randomCourse['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>"
-                                         alt="<?php echo htmlspecialchars($randomCourse['course_title']); ?>">
-                                </div>
-                                <div class="col-md-7">
-                                    <div class="featured-course-body">
-                                        <div class="featured-course-title">
-                                            <?php
-                                            echo (strlen($randomCourse['course_title']) > 70)
-                                                ? CommonHelper::renderHtml(substr($randomCourse['course_title'], 0, 70)) . '...'
-                                                : CommonHelper::renderHtml($randomCourse['course_title']);
-                                            ?>
-                                        </div>
-
-                                        <div class="course-rating-stars">
-                                            <?php
-                                            $rating      = (float)$randomCourse['course_ratings'];
-                                            $fullStars   = floor($rating);
-                                            $hasHalfStar = ($rating - $fullStars) >= 0.5;
-
-                                            for ($i = 1; $i <= 5; $i++) {
-                                                if ($i <= $fullStars) {
-                                                    echo '<i class="fa fa-star"></i>';
-                                                } elseif ($i === $fullStars + 1 && $hasHalfStar) {
-                                                    echo '<i class="fa fa-star-half-o"></i>';
-                                                } else {
-                                                    echo '<i class="fa fa-star-o"></i>';
-                                                }
-                                            }
-                                            ?>
-                                            <span class="course-rating-meta">
-                                                (<?php echo $randomCourse['course_reviews']; ?> reviews)
-                                            </span>
-                                        </div>
-
-                                        <div style="flex:1 1 auto; margin-bottom:8px; max-height:90px; overflow:hidden; border-radius:8px; background:#f9fafb;">
-                                            <iframe srcdoc="<?php echo $randomCourse['course_details']; ?>"
-                                                    style="border:none;width:100%;height:100%;"></iframe>
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$randomCourse['course_slug']]); ?>"
-                                               class="btn-pill btn-pill-primary">
-                                                Start Learning
-                                            </a>
-                                            <span class="course-price-pill">
-                                                <?php echo CourseUtility::formatMoney($randomCourse['course_price']); ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+            <div class="recommended-section">
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <div class="recommended-intro">
+                            <h3 class="section-title-modern" style="margin-bottom: 10px;">
+                                Recommended Courses
+                            </h3>
+                            <p>
+                                Based on this quiz, we’ve picked courses that match your subject and level so you can
+                                strengthen the exact topics you’ve just practised.
+                            </p>
+                            <ul class="recommended-benefits">
+                                <li>Structured video lessons that move from basics to exam-style questions.</li>
+                                <li>Topic-based practice matched to your quiz performance and exam board.</li>
+                                <li>Study at your own pace with on-demand lessons and repeatable quizzes.</li>
+                            </ul>
+                            
                         </div>
+                        
                     </div>
-
-                    <!-- 3 MINI COURSES -->
-                    <div class="col-lg-6">
-                        <div class="row g-3">
-                            <?php
-                            $count = 0;
-                            foreach ($coursesslider as $crs) {
-                                if ($count >= 3) {
-                                    break;
-                                }
-                            ?>
-                                <div class="col-12">
-                                    <div class="course-mini-card">
-                                        <div class="row g-0">
-                                            <div class="col-4">
-                                                <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $crs['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>"
-                                                     alt="<?php echo htmlspecialchars($crs['course_title']); ?>">
+                </div>
+            
+                <?php
+                // Resolve pricing URL (fallback if not passed from controller)
+                $pricingUrl = isset($pricingUrl)
+                    ? $pricingUrl
+                    : MyUtility::makeUrl('pricing', 'index');
+            
+                // Filter courses: prefer those with decent details, but accept title+slug as fallback
+                $sliderCourses = [];
+                if (!empty($coursesslider) && is_array($coursesslider)) {
+                    $sliderCourses = array_filter($coursesslider, function ($course) {
+                        if (!empty($course['course_details']) && strlen(trim($course['course_details'])) >= 30) {
+                            return true;
+                        }
+                        return !empty($course['course_title']) && !empty($course['course_slug']);
+                    });
+                }
+            
+                if (!empty($sliderCourses)) {
+                    $sliderCourses = array_values($sliderCourses);
+                    $totalSlides   = count($sliderCourses);
+            
+                    // Side list: just take first 4 for display on the right
+                    $sideListCourses = array_slice($sliderCourses, 0, 4);
+                ?>
+                    <div class="row g-4 align-items-start">
+                        <!-- LEFT: HERO SLIDER -->
+                        <div class="col-lg-8">
+                            <div class="course-slider-shell" data-slider="recommended-courses">
+                                <!-- Prev arrow -->
+                                <button type="button" class="course-slider-arrow prev" aria-label="Previous course">
+                                    <svg viewBox="0 0 24 24" fill="none">
+                                        <path d="M15 5L9 12L15 19"
+                                              stroke="#4b5563" stroke-width="1.8"
+                                              stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+            
+                                <!-- Slides window -->
+                                <div class="course-slider-window">
+                                    <?php foreach ($sliderCourses as $index => $course) {
+                                        $isActive   = ($index === 0);
+                                        $title      = $course['course_title'] ?? '';
+                                        $slug       = $course['course_slug'] ?? '';
+                                        $price      = $course['course_price'] ?? 0;
+                                        $rating     = (float)($course['course_ratings'] ?? 0);
+                                        $reviews    = (int)($course['course_reviews'] ?? 0);
+                                        $subcat     = $course['subcate_name'] ?? '';
+                                        $detailsRaw = $course['course_details'] ?? '';
+                                        $detailsStr = trim(strip_tags($detailsRaw));
+                                        if (strlen($detailsStr) > 180) {
+                                            $detailsStr = mb_substr($detailsStr, 0, 180) . '…';
+                                        }
+            
+                                        $fullStars   = floor($rating);
+                                        $hasHalfStar = ($rating - $fullStars) >= 0.5;
+                                    ?>
+                                        <div class="course-slide <?php echo $isActive ? 'active' : ''; ?>"
+                                             data-index="<?php echo $index; ?>">
+                                            <div class="course-slide-card">
+                                                <div class="course-slide-pill">
+                                                    <span class="dot"></span>
+                                                    Matched to your quiz<?php
+                                                    if (!empty($subcat)) {
+                                                        echo ' · ' . CommonHelper::renderHtml($subcat);
+                                                    } ?>
+                                                </div>
+            
+                                                <div class="course-slide-inner">
+                                                    <!-- Text side -->
+                                                    <div class="course-slide-body">
+                                                        <div class="course-slide-title">
+                                                            <?php
+                                                            echo (strlen($title) > 80)
+                                                                ? CommonHelper::renderHtml(substr($title, 0, 80)) . '…'
+                                                                : CommonHelper::renderHtml($title);
+                                                            ?>
+                                                        </div>
+            
+                                                        <div class="course-slide-meta">
+                                                            <?php if (!empty($course['course_level'])) { ?>
+                                                                <span>
+                                                                    <i class="fa fa-signal"></i>
+                                                                    Level <?php echo (int)$course['course_level']; ?>
+                                                                </span>
+                                                            <?php } ?>
+                                                            <?php if (!empty($course['course_duration'])) { ?>
+                                                                <span>
+                                                                    <i class="fa fa-clock-o"></i>
+                                                                    <?php echo htmlspecialchars($course['course_duration']); ?>
+                                                                </span>
+                                                            <?php } ?>
+                                                        </div>
+            
+                                                        <div class="course-slide-rating">
+                                                            <span class="stars">
+                                                                <?php
+                                                                for ($i = 1; $i <= 5; $i++) {
+                                                                    if ($i <= $fullStars) {
+                                                                        echo '<i class="fa fa-star"></i>';
+                                                                    } elseif ($i === $fullStars + 1 && $hasHalfStar) {
+                                                                        echo '<i class="fa fa-star-half-o"></i>';
+                                                                    } else {
+                                                                        echo '<i class="fa fa-star-o"></i>';
+                                                                    }
+                                                                }
+                                                                ?>
+                                                            </span>
+                                                            <span class="rating-text">
+                                                                <?php echo number_format($rating, 1); ?>
+                                                                <?php if ($reviews > 0) { ?>
+                                                                    · <?php echo $reviews; ?> reviews
+                                                                <?php } else { ?>
+                                                                    · New course
+                                                                <?php } ?>
+                                                            </span>
+                                                        </div>
+            
+                                                        <?php if (!empty($detailsStr)) { ?>
+                                                            <div class="course-slide-desc">
+                                                                <?php echo htmlspecialchars($detailsStr, ENT_QUOTES, 'UTF-8'); ?>
+                                                            </div>
+                                                        <?php } ?>
+            
+                                                        <div class="course-slide-footer">
+                                                            <!-- CTA to pricing page -->
+                                                            <a href="<?php echo $pricingUrl; ?>"
+                                                               class="btn-course-primary">
+                                                                <i class="fa fa-bolt"></i>
+                                                                <span>Start learning</span>
+                                                            </a>
+            
+                                                            <div class="course-slide-price-wrap">
+                                                                <div class="course-slide-price">
+                                                                    <?php echo CourseUtility::formatMoney($price); ?>
+                                                                </div>
+                                                                <div class="course-slide-price-note">
+                                                                    Access this and similar courses with your plan.
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+            
+                                                    <!-- Image side -->
+                                                    <div class="course-slide-media">
+                                                        <div class="course-slide-media-inner">
+                                                            <img src="<?php echo MyUtility::makeUrl(
+                                                                    'Image',
+                                                                    'show',
+                                                                    [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId],
+                                                                    CONF_WEBROOT_FRONT_URL
+                                                                ) . '?=' . time(); ?>"
+                                                                 alt="<?php echo htmlspecialchars($title); ?>">
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="col-8">
+                                        </div>
+                                    <?php } ?>
+                                </div>
+            
+                                <!-- Next arrow -->
+                                <button type="button" class="course-slider-arrow next" aria-label="Next course">
+                                    <svg viewBox="0 0 24 24" fill="none">
+                                        <path d="M9 5L15 12L9 19"
+                                              stroke="#4b5563" stroke-width="1.8"
+                                              stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+            
+                            <!-- Dots under slider -->
+                            <!-- <?php if ($totalSlides > 1) { ?>
+                                <div class="course-slider-dots" data-slider-dots="recommended-courses">
+                                    <?php for ($i = 0; $i < $totalSlides; $i++) { ?>
+                                        <button type="button"
+                                                class="course-slider-dot <?php echo $i === 0 ? 'active' : ''; ?>"
+                                                data-index="<?php echo $i; ?>"></button>
+                                    <?php } ?>
+                                </div>
+                            <?php } ?> -->
+                        </div>
+            
+                        <!-- RIGHT: VERTICAL MINI LIST -->
+                        <div class="col-lg-4">
+                            <div class="recommended-side-list">
+                                <div class="recommended-side-title">
+                                    More courses you might like
+                                </div>
+            
+                                <?php if (!empty($sideListCourses)) { ?>
+                                    <?php foreach ($sideListCourses as $crs) { ?>
+                                        <div class="course-mini-card">
+                                            <div class="course-mini-card-inner">
+                                                <div class="course-mini-thumb">
+                                                    <img src="<?php echo MyUtility::makeUrl(
+                                                            'Image',
+                                                            'show',
+                                                            [Afile::TYPE_COURSE_IMAGE, $crs['course_id'], 'MEDIUM', $siteLangId],
+                                                            CONF_WEBROOT_FRONT_URL
+                                                        ) . '?=' . time(); ?>"
+                                                         alt="<?php echo htmlspecialchars($crs['course_title']); ?>">
+                                                </div>
                                                 <div class="course-mini-body">
-                                                    <h6>
+                                                    <p class="course-mini-title">
                                                         <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$crs['course_slug']]); ?>"
                                                            style="color:#111827;text-decoration:none;">
                                                             <?php
-                                                            echo (strlen($crs['course_title']) > 50)
-                                                                ? CommonHelper::renderHtml(substr($crs['course_title'], 0, 50)) . '...'
-                                                                : CommonHelper::renderHtml($crs['course_title']);
+                                                            $miniTitle = $crs['course_title'] ?? '';
+                                                            echo (strlen($miniTitle) > 52)
+                                                                ? CommonHelper::renderHtml(substr($miniTitle, 0, 52)) . '…'
+                                                                : CommonHelper::renderHtml($miniTitle);
                                                             ?>
                                                         </a>
-                                                    </h6>
-                                                    <p><?php echo CommonHelper::renderHtml($crs['subcate_name']); ?></p>
+                                                    </p>
+                                                    <div class="course-mini-meta">
+                                                        <?php echo CommonHelper::renderHtml($crs['subcate_name'] ?? ''); ?>
+                                                    </div>
                                                     <div class="course-mini-footer">
                                                         <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$crs['course_slug']]); ?>">
                                                             View course
                                                         </a>
                                                         <span class="text-muted">
-                                                            <?php echo CourseUtility::formatMoney($crs['course_price']); ?>
+                                                            <?php echo CourseUtility::formatMoney($crs['course_price'] ?? 0); ?>
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            <?php
-                                $count++;
-                            }
-                            ?>
+                                    <?php } ?>
+                                <?php } else { ?>
+                                    <p class="text-muted mb-0" style="font-size:12px;">
+                                        More courses will appear here as we add them.
+                                    </p>
+                                <?php } ?>
+                                <div class="view-all-courses-wrap">
+                <a href="<?php echo MyUtility::makeUrl('Courses'); ?>" class="view-all-courses-btn">
+                    Browse all courses
+                </a>
+            </div>
+            
+                            </div>
                         </div>
                     </div>
                 <?php } else { ?>
-                    <div class="col-12">
-                        <p class="text-muted mb-0">No recommended courses to show right now.</p>
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-muted mb-0">No recommended courses to show right now.</p>
+                        </div>
                     </div>
                 <?php } ?>
             </div>
         </div>
+
+        <!-- RECOMMENDED COURSES -->
+      <!-- RECOMMENDED COURSES (HERO SLIDER + SIDE LIST) -->
+
 
         <!-- TUTOR SECTION -->
         <div class="row">
@@ -1115,11 +1746,11 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
     Learn at your own pace, build confidence, and achieve the grades you deserve with expert guidance every step of the way.
 </p>
 
-                           <button type="button"
-        class="btn-tutor-primary"
-        data-bs-toggle="modal" data-bs-target="#quizSignupModal">
-    <span>Find a Tutor</span>
-</button>
+ <a href="<?php echo MyUtility::makeUrl('Teachers'); ?>"
+   class="btn-tutor-primary">
+   <span>Find a Tutor</span>
+</a>
+
 
                         </div>
                     </div>
@@ -1271,30 +1902,75 @@ $('#submitTutorForm').on('click', function () {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const chips  = document.querySelectorAll('.question-indicator-chip');
-    const panel  = document.getElementById('question-explanation-panel');
-    if (!chips.length || !panel) return;
+    var sliderRoot   = document.querySelector('.course-slider-shell[data-slider="recommended-courses"]');
+    if (!sliderRoot) return;
 
-    chips.forEach(function (chip) {
-        chip.addEventListener('click', function () {
-            // remove active from all, then set on clicked
-            chips.forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
+    var slides       = sliderRoot.querySelectorAll('.course-slide');
+    if (!slides.length) return;
 
-            const num   = this.getAttribute('data-number') || '';
-            const qText = this.getAttribute('data-question') || '';
-            const exp   = this.getAttribute('data-explanation') || '';
+    var prevBtn      = sliderRoot.querySelector('.course-slider-arrow.prev');
+    var nextBtn      = sliderRoot.querySelector('.course-slider-arrow.next');
+    var dotsRoot     = document.querySelector('.course-slider-dots[data-slider-dots="recommended-courses"]');
+    var dots         = dotsRoot ? dotsRoot.querySelectorAll('.course-slider-dot') : [];
+    var currentIndex = 0;
+    var intervalMs   = 5000;
+    var timer        = null;
 
-            if (!qText && !exp) {
-                panel.innerHTML = '<p class="text-muted mb-0">No explanation provided for this question yet.</p>';
-                return;
-            }
+    function showSlide(index) {
+        var total = slides.length;
+        if (index < 0) index = total - 1;
+        if (index >= total) index = 0;
 
-            panel.innerHTML =
-                '<h6>Question ' + num + '</h6>' +
-                (qText ? '<p class="q-text"><strong>Question:</strong> ' + qText + '</p>' : '') +
-                (exp   ? '<p class="exp-text"><strong>Explanation:</strong> ' + exp + '</p>' : '');
+        slides.forEach(function (slide, i) {
+            slide.classList.toggle('active', i === index);
         });
-    });
+        if (dots.length) {
+            dots.forEach(function (dot, i) {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+        currentIndex = index;
+    }
+
+    function next(step) {
+        showSlide(currentIndex + step);
+    }
+
+    function resetTimer() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(function () {
+            next(1);
+        }, intervalMs);
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+            next(-1);
+            resetTimer();
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+            next(1);
+            resetTimer();
+        });
+    }
+
+    if (dots.length) {
+        dots.forEach(function (dot) {
+            dot.addEventListener('click', function () {
+                var target = parseInt(this.getAttribute('data-index'), 10);
+                if (!isNaN(target)) {
+                    showSlide(target);
+                    resetTimer();
+                }
+            });
+        });
+    }
+
+    // Init
+    showSlide(0);
+    resetTimer();
 });
+
 </script>
