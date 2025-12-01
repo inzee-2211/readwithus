@@ -1974,3 +1974,47 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chips = document.querySelectorAll('.question-indicator-chip');
+    const panel = document.getElementById('question-explanation-panel');
+
+    if (!chips.length || !panel) {
+        return;
+    }
+
+    chips.forEach(function (chip) {
+        chip.style.cursor = 'pointer'; // optional: nicer UX
+
+        chip.addEventListener('click', function () {
+            // Remove 'active' from all chips
+            chips.forEach(function (c) {
+                c.classList.remove('active');
+            });
+            // Add to clicked chip
+            this.classList.add('active');
+
+            const num   = this.getAttribute('data-number') || '';
+            const qText = this.getAttribute('data-question') || '';
+            const exp   = this.getAttribute('data-explanation') || '';
+
+            if (!qText && !exp) {
+                panel.innerHTML =
+                    '<p class="text-muted mb-0">No explanation provided for this question yet.</p>';
+                return;
+            }
+
+            panel.innerHTML =
+                '<h6>Question ' + num + '</h6>' +
+                (qText
+                    ? '<p class="q-text"><strong>Question:</strong> ' + qText + '</p>'
+                    : ''
+                ) +
+                (exp
+                    ? '<p class="exp-text"><strong>Explanation:</strong> ' + exp + '</p>'
+                    : ''
+                );
+        });
+    });
+});
+</script>

@@ -277,28 +277,35 @@ public function form()
         }
     }
 
-    $data = [
-        'tereq_step'         => 2,
-        'tereq_user_id'      => $userId,
-        'tereq_language_id'  => $this->siteLangId,
-        'tereq_reference'    => $userId . '-' . time(),
-        'tereq_date'         => date('Y-m-d H:i:s'),
-        'tereq_first_name'   => $post['tereq_first_name'],
-        'tereq_last_name'    => $post['tereq_last_name'],
-        'tereq_gender'       => $post['tereq_gender'],
-        'tereq_phone_code'   => $post['tereq_phone_code'],
-        'tereq_phone_number' => $post['tereq_phone_number'],
-        'tereq_status'       => TeacherRequest::STATUS_PENDING,
-        'tereq_status_updated' => date('Y-m-d H:i:s'),
-        'tereq_comments'     => '' ,
-        'tereq_attempts' => '',
-        'tereq_terms'=> '',
-        'tereq_video_link'=> '',
-        'tereq_biography'=> '',
-        'tereq_teach_langs'=> '',
-        'tereq_speak_langs'=> '',
-        'tereq_slang_proficiency'=> '',
-    ];
+   $data = [
+    'tereq_step'         => 2,
+    'tereq_user_id'      => $userId,
+    'tereq_language_id'  => $this->siteLangId,
+    'tereq_reference'    => $userId . '-' . time(),
+    'tereq_date'         => date('Y-m-d H:i:s'),
+
+    'tereq_first_name'   => $post['tereq_first_name'],
+    'tereq_last_name'    => $post['tereq_last_name'],
+    'tereq_gender'       => $post['tereq_gender'],
+    'tereq_phone_code'   => $post['tereq_phone_code'],
+    'tereq_phone_number' => $post['tereq_phone_number'],
+
+    'tereq_status'         => TeacherRequest::STATUS_PENDING,
+    'tereq_status_updated' => date('Y-m-d H:i:s'),
+    'tereq_comments'       => '',
+
+    // 🔹 numeric NOT NULL columns – give real integers
+    'tereq_attempts' => 1,   // or 0, depending on how you want to count attempts
+    'tereq_terms'    => 0,   // not accepted yet on step 1
+
+    // 🔹 text/JSON columns – empty string / empty JSON is fine
+    'tereq_video_link'        => '',
+    'tereq_biography'         => '',
+    'tereq_teach_langs'       => '[]',
+    'tereq_speak_langs'       => '[]',
+    'tereq_slang_proficiency' => '[]',
+];
+
 
     // If there’s already a pending request, update it instead of insert
     $request = TeacherRequest::getRequestByUserId($userId, TeacherRequest::STATUS_PENDING);
@@ -328,29 +335,72 @@ public function form()
     /**
      * Setup Profile Image
      */
-    public function setupProfileImage()
-    {
-        if ($this->userId < 1) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        if (empty($_FILES['user_profile_image'])) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $request = TeacherRequest::getRequestByUserId($this->userId, TeacherRequest::STATUS_PENDING);
-        if (empty($request)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $this->attemptReachedCheck();
-        if (!is_uploaded_file($_FILES['user_profile_image']['tmp_name'])) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_A_FILE'));
-        }
+   public function setupProfileImage()
+{
+    if ($this->userId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+    if (empty($_FILES['user_profile_image'])) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $request = TeacherRequest::getRequestByUserId($this->userId, TeacherRequest::STATUS_PENDING);
+    if (empty($request)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $this->attemptReachedCheck();
+
+    if (!is_uploaded_file($_FILES['user_profile_image']['tmp_name'])) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_PLEASE_SELECT_A_FILE'));
+    }
+
+    // 🔹 1) Check upload directory is writable (for debugging AWS)
+    $uploadRoot = CONF_UPLOADS_PATH; // e.g. /var/www/html/readwithus/user-uploads/
+    if (!is_writable($uploadRoot)) {
+        error_log('[TR][setupProfileImage] Upload folder NOT writable: ' . $uploadRoot);
+        FatUtility::dieJsonError(
+            Label::getLabel('LBL_UPLOAD_FOLDER_NOT_WRITABLE_CONTACT_ADMIN')
+        );
+    }
+
+    // 🔹 2) Try to save and surface any error from Afile
+    try {
+        // Teacher approval image
         $file = new Afile(Afile::TYPE_TEACHER_APPROVAL_IMAGE);
         if (!$file->saveFile($_FILES['user_profile_image'], $this->userId, true)) {
-            FatUtility::dieJsonError($file->getError());
+            $fErr = $file->getError() ?: 'Unknown upload error';
+            error_log('[TR][setupProfileImage] saveFile error: ' . $fErr);
+            FatUtility::dieJsonError($fErr);
         }
-        $file = MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_TEACHER_APPROVAL_IMAGE, $this->userId, Afile::SIZE_LARGE]) . '?' . time();
-        FatUtility::dieJsonSuccess(['msg' => Label::getLabel('MSG_File_uploaded_successfully'), 'file' => $file]);
+
+        // (Optional) also update normal profile image
+        /*
+        $file = new Afile(Afile::TYPE_USER_PROFILE_IMAGE);
+        if (!$file->saveFile($_FILES['user_profile_image'], $this->userId, true)) {
+            $fErr = $file->getError() ?: 'Unknown upload error (profile image)';
+            error_log('[TR][setupProfileImage] saveFile profile error: ' . $fErr);
+            FatUtility::dieJsonError($fErr);
+        }
+        */
+
+    } catch (Throwable $e) {
+        error_log('[TR][setupProfileImage] EXCEPTION: ' . $e->getMessage());
+        FatUtility::dieJsonError('ERR_PROFILE_IMAGE_UPLOAD_FAILED');
     }
+
+    $fileUrl = MyUtility::makeFullUrl(
+        'Image',
+        'show',
+        [Afile::TYPE_TEACHER_APPROVAL_IMAGE, $this->userId, Afile::SIZE_LARGE]
+    ) . '?' . time();
+
+    FatUtility::dieJsonSuccess([
+        'msg'  => Label::getLabel('MSG_File_uploaded_successfully'),
+        'file' => $fileUrl,
+    ]);
+}
+
 
     /**
      * Setup Step2 Form
