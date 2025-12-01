@@ -1019,7 +1019,7 @@ class Afile extends FatModel
             case static::TYPE_CERTIFICATE_LOGO:
             default:
                 /* 4194304 -- 4 mb  */
-                return min($maxUploadSizeAllowed, 10194304);
+                return min($maxUploadSizeAllowed, 8194304);
         }
     }
 
