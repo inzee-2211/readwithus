@@ -192,16 +192,24 @@ if (empty($trendingCourses)) {
     </div>
     <!-- FILTER BAR -->
 <div class="rwu-trending__filters" id="courseFilters">
-  <!-- <button class="filter is-active" data-level="all">All</button> -->
-  <span class="sep" aria-hidden="true"></span>
-  <button class="filter" data-level="gcse">GCSE</button>
-  <!-- <span class="sep" aria-hidden="true"></span>
-  <button class="filter" data-level="ks1">KS1</button>
-  <span class="sep" aria-hidden="true"></span>
-  <button class="filter" data-level="ks2">KS2</button>
-  <span class="sep" aria-hidden="true"></span>
-  <button class="filter" data-level="ks3">KS3</button> -->
+  <button class="filter is-active" data-level-id="all">
+    All
+  </button>
+
+  <?php if (!empty($levels)): ?>
+    <?php foreach ($levels as $levelId => $levelName): ?>
+      <span class="sep" aria-hidden="true"></span>
+      <button
+        class="filter"
+        data-level-id="<?= (int)$levelId; ?>"
+        type="button"
+      >
+        <?= htmlspecialchars($levelName); ?>
+      </button>
+    <?php endforeach; ?>
+  <?php endif; ?>
 </div>
+
 
 
       <div class="grid">
@@ -227,7 +235,11 @@ if (empty($trendingCourses)) {
       : MyUtility::makeUrl('Courses'); // fallback to listing if slug missing
           ?>
           <!-- <a class="rwu-course" href="<?= $viewLink ?>"> -->
-          <article class="rwu-course <?= $idx === 1 ? 'is-featured' : '' ?>">
+<?php $courseLevelId = (int)($c['course_level'] ?? 0); ?>
+<article
+  class="rwu-course <?= $idx === 1 ? 'is-featured' : '' ?>"
+  data-level-id="<?= $courseLevelId; ?>"
+>
             <div class="media">
               <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($title) ?>">
               <!-- <div class="chip">Photography</div> -->
@@ -519,9 +531,13 @@ if (!empty($plans) && is_array($plans)) {
             // home URL with level_id param
             $url = MyUtility::makeUrl('Home') . '?level_id=' . (int)$levelId;
           ?>
-          <a href="<?= $url; ?>" class="level-tab <?= $active; ?>">
-            <?= htmlspecialchars($levelName); ?>
-          </a>
+   <a href="<?= $url; ?>"
+   class="level-tab <?= $active; ?>"
+   data-level-id="<?= (int)$levelId; ?>">
+  <?= htmlspecialchars($levelName); ?>
+</a>
+
+
         <?php endforeach; ?>
       </div>
       </div>
@@ -1008,4 +1024,34 @@ document.getElementById("rwSearchBtn").addEventListener("click", function () {
     });
   });
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+  const filterBar = document.getElementById('courseFilters');
+  if (!filterBar) return;
+
+  const buttons = filterBar.querySelectorAll('.filter');
+  const cards = document.querySelectorAll('.rwu-course');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', function () {
+      const selectedLevel = this.dataset.levelId; // "all" or numeric
+
+      // Active state
+      buttons.forEach(b => b.classList.remove('is-active'));
+      this.classList.add('is-active');
+
+      // Show/hide cards
+      cards.forEach(card => {
+        const cardLevel = card.dataset.levelId;
+        if (!selectedLevel || selectedLevel === 'all' || cardLevel === selectedLevel) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+});
+
 </script>
