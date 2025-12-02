@@ -973,55 +973,113 @@ class Afile extends FatModel
      * @param int $type
      * @return int
      */
+    // public static function getAllowedUploadSize(int $type = null): int
+    // {
+    //     $maxUploadSizeAllowed = CommonHelper::getMaximumFileUploadSize(true);
+    //     switch ($type) {
+    //         case static::TYPE_TEACHER_APPROVAL_IMAGE:
+    //         case static::TYPE_PAYIN:
+    //         case static::TYPE_USER_PROFILE_IMAGE:
+    //         case static::TYPE_BANNER:
+    //         case static::TYPE_FRONT_LOGO:
+    //         case static::TYPE_ADMIN_LOGO:
+    //         case static::TYPE_EMAIL_LOGO:
+    //         case static::TYPE_APPLE_TOUCH_ICON:
+    //         case static::TYPE_BLOG_POST_IMAGE:
+    //         case static::TYPE_PAYMENT_PAGE_LOGO:
+    //         case static::TYPE_ADMIN_PROFILE_IMAGE:
+    //         case static::TYPE_TESTIMONIAL_IMAGE:
+    //         case static::TYPE_CPAGE_BACKGROUND_IMAGE:
+    //         case static::TYPE_CATEGORY_COLLECTION_BG_IMAGE:
+    //         case static::TYPE_LESSON_PACKAGE_IMAGE:
+    //         case static::TYPE_LESSON_PLAN_IMAGE:
+    //         case static::TYPE_BLOG_CONTRIBUTION:
+    //         case static::TYPE_BANNER_SECOND_IMAGE:
+    //         case static::TYPE_TEACHING_LANGUAGES:
+    //         case static::TYPE_BLOG_PAGE_IMAGE:
+    //         case static::TYPE_LESSON_PAGE_IMAGE:
+    //         case static::TYPE_OPENGRAPH_IMAGE:
+    //         case static::TYPE_APPLY_TO_TEACH_BANNER:
+    //         case static::TYPE_USER_QUALIFICATION_FILE:
+    //         case static::TYPE_TEACHER_APPROVAL_PROOF:
+    //         case static::TYPE_LESSON_PLAN_FILE:
+    //             case static::TYPE_LESSON_QUESTIONS_FILE:
+    //         case static::TYPE_PWA_APP_ICON:
+    //         case static::TYPE_PWA_SPLASH_ICON:
+    //         case static::TYPE_HOME_BANNER_DESKTOP:
+    //         case static::TYPE_HOME_BANNER_MOBILE:
+    //         case static::TYPE_HOME_BANNER_IPAD:
+    //         case static::TYPE_FAVICON:
+    //         case static::TYPE_MESSAGE_ATTACHMENT:
+    //         case static::TYPE_CERTIFICATE_BACKGROUND_IMAGE:
+    //         case static::TYPE_ORDER_PAY_RECEIPT:
+    //         case static::TYPE_COURSE_IMAGE:
+    //         case static::TYPE_COURSE_PREVIEW_VIDEO:
+    //         case static::TYPE_GROUP_CLASS_BANNER:
+    //         case static::TYPE_CERTIFICATE_LOGO:
+    //         default:
+    //             /* 4194304 -- 4 mb  */
+    //             return min($maxUploadSizeAllowed, 8194304);
+    //     }
+    // }
     public static function getAllowedUploadSize(int $type = null): int
-    {
-        $maxUploadSizeAllowed = CommonHelper::getMaximumFileUploadSize(true);
-        switch ($type) {
-            case static::TYPE_TEACHER_APPROVAL_IMAGE:
-            case static::TYPE_PAYIN:
-            case static::TYPE_USER_PROFILE_IMAGE:
-            case static::TYPE_BANNER:
-            case static::TYPE_FRONT_LOGO:
-            case static::TYPE_ADMIN_LOGO:
-            case static::TYPE_EMAIL_LOGO:
-            case static::TYPE_APPLE_TOUCH_ICON:
-            case static::TYPE_BLOG_POST_IMAGE:
-            case static::TYPE_PAYMENT_PAGE_LOGO:
-            case static::TYPE_ADMIN_PROFILE_IMAGE:
-            case static::TYPE_TESTIMONIAL_IMAGE:
-            case static::TYPE_CPAGE_BACKGROUND_IMAGE:
-            case static::TYPE_CATEGORY_COLLECTION_BG_IMAGE:
-            case static::TYPE_LESSON_PACKAGE_IMAGE:
-            case static::TYPE_LESSON_PLAN_IMAGE:
-            case static::TYPE_BLOG_CONTRIBUTION:
-            case static::TYPE_BANNER_SECOND_IMAGE:
-            case static::TYPE_TEACHING_LANGUAGES:
-            case static::TYPE_BLOG_PAGE_IMAGE:
-            case static::TYPE_LESSON_PAGE_IMAGE:
-            case static::TYPE_OPENGRAPH_IMAGE:
-            case static::TYPE_APPLY_TO_TEACH_BANNER:
-            case static::TYPE_USER_QUALIFICATION_FILE:
-            case static::TYPE_TEACHER_APPROVAL_PROOF:
-            case static::TYPE_LESSON_PLAN_FILE:
-                case static::TYPE_LESSON_QUESTIONS_FILE:
-            case static::TYPE_PWA_APP_ICON:
-            case static::TYPE_PWA_SPLASH_ICON:
-            case static::TYPE_HOME_BANNER_DESKTOP:
-            case static::TYPE_HOME_BANNER_MOBILE:
-            case static::TYPE_HOME_BANNER_IPAD:
-            case static::TYPE_FAVICON:
-            case static::TYPE_MESSAGE_ATTACHMENT:
-            case static::TYPE_CERTIFICATE_BACKGROUND_IMAGE:
-            case static::TYPE_ORDER_PAY_RECEIPT:
-            case static::TYPE_COURSE_IMAGE:
-            case static::TYPE_COURSE_PREVIEW_VIDEO:
-            case static::TYPE_GROUP_CLASS_BANNER:
-            case static::TYPE_CERTIFICATE_LOGO:
-            default:
-                /* 4194304 -- 4 mb  */
-                return min($maxUploadSizeAllowed, 8194304);
-        }
+{
+    $maxUploadSizeAllowed = CommonHelper::getMaximumFileUploadSize(true);
+
+    // caps in bytes
+    $fourMbCap = min($maxUploadSizeAllowed, 4194304);    // 4 MB
+    $tenMbCap  = min($maxUploadSizeAllowed, 10485760);   // 10 MB
+
+    switch ($type) {
+        case static::TYPE_TEACHER_APPROVAL_IMAGE:
+        case static::TYPE_PAYIN:
+        case static::TYPE_USER_PROFILE_IMAGE:
+        case static::TYPE_BANNER:
+        case static::TYPE_FRONT_LOGO:
+        case static::TYPE_ADMIN_LOGO:
+        case static::TYPE_EMAIL_LOGO:
+        case static::TYPE_APPLE_TOUCH_ICON:
+        case static::TYPE_BLOG_POST_IMAGE:
+        case static::TYPE_PAYMENT_PAGE_LOGO:
+        case static::TYPE_ADMIN_PROFILE_IMAGE:
+        case static::TYPE_TESTIMONIAL_IMAGE:
+        case static::TYPE_CPAGE_BACKGROUND_IMAGE:
+        case static::TYPE_CATEGORY_COLLECTION_BG_IMAGE:
+        case static::TYPE_LESSON_PACKAGE_IMAGE:
+        case static::TYPE_LESSON_PLAN_IMAGE:
+        case static::TYPE_BLOG_CONTRIBUTION:
+        case static::TYPE_BANNER_SECOND_IMAGE:
+        case static::TYPE_TEACHING_LANGUAGES:
+        case static::TYPE_BLOG_PAGE_IMAGE:
+        case static::TYPE_LESSON_PAGE_IMAGE:
+        case static::TYPE_OPENGRAPH_IMAGE:
+        case static::TYPE_APPLY_TO_TEACH_BANNER:
+        case static::TYPE_USER_QUALIFICATION_FILE:
+        case static::TYPE_TEACHER_APPROVAL_PROOF:
+        case static::TYPE_LESSON_PLAN_FILE:
+        case static::TYPE_LESSON_QUESTIONS_FILE:
+        case static::TYPE_PWA_APP_ICON:
+        case static::TYPE_PWA_SPLASH_ICON:
+        case static::TYPE_HOME_BANNER_DESKTOP:
+        case static::TYPE_HOME_BANNER_MOBILE:
+        case static::TYPE_HOME_BANNER_IPAD:
+        case static::TYPE_FAVICON:
+        case static::TYPE_MESSAGE_ATTACHMENT:
+        case static::TYPE_CERTIFICATE_BACKGROUND_IMAGE:
+        case static::TYPE_ORDER_PAY_RECEIPT:
+        case static::TYPE_COURSE_IMAGE:
+        case static::TYPE_GROUP_CLASS_BANNER:
+        case static::TYPE_CERTIFICATE_LOGO:
+        default:
+            /* 4194304 -- 4 mb */
+            return $fourMbCap;
+
+        case static::TYPE_COURSE_PREVIEW_VIDEO:
+            /* 10485760 -- 10 mb */
+            return $tenMbCap;
     }
+}
+
 
     /**
      * Show Video
