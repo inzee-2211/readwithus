@@ -382,6 +382,40 @@ if ($url === 'getTopics') {
     }
     exit;
 }
+// ---------- SUBTOPICS (by quiz_setup_id) ----------
+if ($url === 'getSubtopics') {
+    try {
+        $setupId = (int)($_GET['setupId'] ?? 0);
+        error_log("getSubtopics called with setupId=$setupId");
+
+        if ($setupId < 1) {
+            echo json_encode(['status' => 0, 'msg' => 'Missing setupId']);
+            exit;
+        }
+
+        $sql = "
+            SELECT id, subtopic_name AS name
+            FROM tbl_quiz_management
+            WHERE quiz_setup_id = ?
+            ORDER BY position ASC, subtopic_name ASC
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$setupId]);
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log('getSubtopics('.$setupId.') found '.count($rows).' rows');
+
+        echo json_encode([
+            'status' => 1,
+            'data'   => $rows ?: [],
+        ]);
+    } catch (Exception $e) {
+        error_log("getSubtopics error: " . $e->getMessage());
+        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
+    }
+    exit;
+}
 
 
 
