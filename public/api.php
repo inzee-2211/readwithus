@@ -322,57 +322,67 @@ if ($url === 'getTopics') {
     try {
         $levelId     = (int)($_GET['levelId'] ?? 0);
         $subjectId   = (int)($_GET['subjectId'] ?? 0);
-        $examboardId = (int)($_GET['examboardId'] ?? 0); // optional for non-GCSE
-        $tierId      = (int)($_GET['tierId'] ?? 0);      // optional for non-GCSE
-        $yearId      = (int)($_GET['yearId'] ?? 0);
+        $examboardId = (int)($_GET['examboardId'] ?? 0); // optional
+        $tierId      = (int)($_GET['tierId'] ?? 0);      // optional
+        $yearId      = (int)($_GET['yearId'] ?? 0);      // may be 0 for GCSE
 
-        if ($levelId < 1 || $subjectId < 1 || $yearId < 1) {
-            echo json_encode(['status'=>0,'msg'=>'Missing levelId/subjectId/yearId']); exit;
+        if ($levelId < 1 || $subjectId < 1) {
+            echo json_encode(['status' => 0, 'msg' => 'Missing levelId/subjectId']);
+            exit;
         }
 
-        $where  = ["level_id = ?", "subject_id = ?", "year_id = ?"];
-        $params = [$levelId, $subjectId, $yearId];
-        if ($examboardId > 0) { $where[] = "examboard_id = ?"; $params[] = $examboardId; }
-        if ($tierId > 0)      { $where[] = "tier_id = ?";      $params[] = $tierId; }
+        // 🔍 detect level name to see if this is GCSE
+        $stmtLevel = $pdo->prepare("SELECT level_name FROM course_levels WHERE id = ?");
+        $stmtLevel->execute([$levelId]);
+        $levelName = $stmtLevel->fetchColumn();
+        $levelSlug = strtoupper(trim((string)$levelName));
 
-        // Each setup row = a topic. We return setup.id as the topic id.
-        $sql = "SELECT id, topic_name AS name
-                FROM tbl_quiz_setup
-                WHERE " . implode(' AND ', $where) . "
-                ORDER BY topic_name ASC";
+        // GCSE: year is OPTIONAL; other levels: year is REQUIRED
+        $requiresYear = ($levelSlug !== 'GCSE');
+
+        if ($requiresYear && $yearId < 1) {
+            echo json_encode(['status' => 0, 'msg' => 'Missing yearId for non-GCSE level']);
+            exit;
+        }
+
+        // Base filters
+        $where  = ["level_id = ?", "subject_id = ?"];
+        $params = [$levelId, $subjectId];
+
+        // Only add year filter for non-GCSE
+        if ($requiresYear) {
+            $where[]  = "year_id = ?";
+            $params[] = $yearId;
+        }
+
+        // Optional filters
+        if ($examboardId > 0) {
+            $where[]  = "examboard_id = ?";
+            $params[] = $examboardId;
+        }
+        if ($tierId > 0) {
+            $where[]  = "tier_id = ?";
+            $params[] = $tierId;
+        }
+
+        $sql = "
+            SELECT id, topic_name AS name
+            FROM tbl_quiz_setup
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY topic_name ASC
+        ";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode(['status'=>1,'data'=>$rows ?: []]);
+        echo json_encode(['status' => 1, 'data' => $rows ?: []]);
     } catch (Exception $e) {
-        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+        echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
     }
     exit;
 }
 
-// SUBTOPICS under a chosen setup/topic
-if ($url === 'getSubtopics') {
-    try {
-        // we will pass setupId from the client as "setupId"
-        $setupId = (int)($_GET['setupId'] ?? 0);
-        if ($setupId < 1) { echo json_encode(['status'=>0,'msg'=>'Missing setupId']); exit; }
-
-        $stmt = $pdo->prepare("
-            SELECT id, subtopic_name AS name
-            FROM tbl_quiz_management
-            WHERE quiz_setup_id = ?
-            ORDER BY position ASC, subtopic_name ASC
-        ");
-        $stmt->execute([$setupId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo json_encode(['status'=>1,'data'=>$rows ?: []]);
-    } catch (Exception $e) {
-        echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
-    }
-    exit;
-}
 
 
 // Get Quizzes - FIXED VERSION

@@ -189,30 +189,31 @@ $LEC_ID = (int)$lecture['lecture_id'];
       selectedValues.levelId = opt.id;
 
       // Build complete flow depending on level name
-      if (opt.name === 'GCSE') {
+    if (opt.name === 'GCSE') {
+  // GCSE: NO YEAR STEP
   steps = [
-    { title:"Select Level",     options:[], url:"api.php?url=getCourses" },
-    { title:"Select Subject",   options:[], url:"api.php?url=getSubjects",   paramKeys:["levelId"] },
-    { title:"Select Examboard", options:[], url:"api.php?url=getExamboards", paramKeys:["subjectId","levelId"] },
-    { title:"Select Tier",      options:[], url:"api.php?url=getTiers",      paramKeys:["examboardId"] },
-    { title:"Select Year",      options:[], url:"api.php?url=getYears",      paramKeys:["subjectId","levelId","examboardId","tierId"] },
+    { title: "Select Level",     options: [], url: "api.php?url=getCourses" },
+    { title: "Select Subject",   options: [], url: "api.php?url=getSubjects",   paramKeys: ["levelId"] },
+    { title: "Select Examboard", options: [], url: "api.php?url=getExamboards", paramKeys: ["subjectId", "levelId"] },
+    { title: "Select Tier",      options: [], url: "api.php?url=getTiers",      paramKeys: ["examboardId"] },
 
-    // IMPORTANT: topics come from tbl_quiz_setup with the full path
-    { title:"Select Topic",     options:[], url:"api.php?url=getTopics",     paramKeys:["levelId","subjectId","examboardId","tierId","yearId"] },
+    // Topics directly after Tier (no yearId in paramKeys)
+    { title: "Select Topic",     options: [], url: "api.php?url=getTopics",     paramKeys: ["levelId", "subjectId", "examboardId", "tierId"] },
 
-    // subtopics now come from tbl_quiz_management via setupId (= topicId)
-    { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",  paramKeys:["setupId"] },
+    // Subtopics from tbl_quiz_management via quiz_setup_id
+    { title: "Select Subtopic",  options: [], url: "api.php?url=getSubtopics",  paramKeys: ["setupId"] },
   ];
 } else {
+  // non-GCSE flow stays SAME as you already have:
   steps = [
     { title:"Select Level",     options:[], url:"api.php?url=getCourses" },
     { title:"Select Subject",   options:[], url:"api.php?url=getSubjects",   paramKeys:["levelId"] },
     { title:"Select Year",      options:[], url:"api.php?url=getYears",      paramKeys:["subjectId","levelId"] },
-
     { title:"Select Topic",     options:[], url:"api.php?url=getTopics",     paramKeys:["levelId","subjectId","yearId"] },
     { title:"Select Subtopic",  options:[], url:"api.php?url=getSubtopics",  paramKeys:["setupId"] },
   ];
 }
+
 
 
     } else if (title === 'Select Subject')   { selectedValues.subjectId   = opt.id; }
