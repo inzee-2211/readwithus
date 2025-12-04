@@ -24,3 +24,6 @@ define('CONF_EDITOR_PATH', '/user-uploads/editor');
 define('CONF_STRIPE_SECRET_KEY', 'sk_test_51SSDb7FP4feQExSlXeRFcSIyotbnP5Z2HU2qkckU5C5JFiXNuiebIpX8Lb7TZzcDnpNngAQBrnzlmOisSTiN5vGw00xh0B9QPj'); // Your test secret key
 define('CONF_STRIPE_PUBLISHABLE_KEY', 'pk_test_51SSDb7FP4feQExSlEm1iSJeLa7Gj8SNGHPuIoEzlzrRgaPWCVbXY4EFX34BcFqpJFFBLmInogIQnhVg2LGfZbXBZ00wzvs6H5m'); // Your test publishable key
 define('CONF_STRIPE_WEBHOOK_SECRET', 'whsec_905d926b1df7aef9b8c74d9312a00df1a5fc2388d6c99dbc39f56e7f0ae39c40'); // Your webhook secret
+define('CONF_ENABLE_MATH_EDITOR', 1); // 1 = enabled, 0 = disabled
+define('CONF_MATH_KEYBOARD_DEFAULT', 'basic'); // basic, numeric, advanced
+define('CONF_MATH_MAX_LATEX_LENGTH', 5000); // Maximum LaTeX characters

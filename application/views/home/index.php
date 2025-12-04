@@ -57,9 +57,12 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
         Learn from trusted tutors and smart digital tools designed for students across the UK to study anywhere, anytime.
         
       </p>
-      <p class="sub-heading">
-        Welcome to readwithus.uk. UK's most adaptive platform for student of all ages .Access expert human tutoring, interactive video lessons, AI-assisted practice quizzes, and live exam preparation — all in one place.
-      </p>
+     <p class="sub-heading">
+  Welcome to ReadWithUs.org.uk, the UK's most adaptive platform for students of all ages.
+  Access expert human tutoring, interactive video lessons, AI-assisted practice quizzes,
+  and live exam preparation — all in one place.
+</p>
+
 
       <!-- Search rail -->
       <div class="rw-hero__search">
@@ -302,7 +305,7 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
         • Learn Smarter. Get Personalized Tutoring Tailored to Your Goals.<br />
         • Experience personalised lessons supported by smart learning insights.<br />
         • Improve performance through real-time feedback and progress tracking.<br />
-        • Learn online, anytime flexible scheduling built around your routine.
+        • Learn online, anytime, with flexible scheduling built around your routine.
       </p>
 
     <a href="<?= MyUtility::makeUrl('Teachers'); ?>" class="btn-main">
@@ -514,8 +517,8 @@ if (!empty($plans) && is_array($plans)) {
     <div class="pill">Our Packages</div>
 
     <h2 id="pricing-title" class="title">
-      Choose the <span style="color:#2DADFF">Best Pakages</span> for your learning
-    </h2>
+  Choose the <span style="color:#2DADFF">Best Packages</span> for your learning
+</h2>
 
     <p class="sub">
       Explore flexible plans crafted for every learner – from quick revisions to full-length courses, all at affordable rates.
@@ -641,12 +644,12 @@ if (!empty($plans) && is_array($plans)) {
         </div>
 
         <h2 class="rwu-t-title">
-          What they says <br />
+          What they say <br />
           <span class="accent">About us</span>
         </h2>
 
         <p class="rwu-t-copy">
-          At ReadWithUs, we take pride in transforming education through real connections and results.
+          At Read With Us, we take pride in transforming education through real connections and results.
           Hear from learners and parents who experienced personalized tutoring, interactive lessons,
           and academic growth guided by passionate educators.
         </p>
@@ -797,7 +800,7 @@ if (!empty($plans) && is_array($plans)) {
 
     <!-- Middle: Title -->
     <div class="rwu-cta__title">
-      <h3 id="rwu-cta-title">Let’s Start With Readwithus</h3>
+      <h3 id="rwu-cta-title">Let’s Start With Read With Us</h3>
     </div>
 
     <!-- Right: Actions -->

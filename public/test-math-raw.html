@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Raw MathLive Test</title>
+
+  <!-- ✅ Use jsDelivr, not unpkg -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive-static.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 40px; }
+    h1 { margin-bottom: 16px; }
+    math-field { font-size: 24px; min-height: 48px; }
+  </style>
+</head>
+<body>
+  <h1>Raw MathLive Test</h1>
+  <p>Click inside the field. A math keyboard should appear at the bottom.</p>
+
+  <!-- native element -->
+  <math-field id="mf"
+              virtual-keyboard-mode="onfocus"
+              virtual-keyboard-policy="manual"></math-field>
+
+  <script>
+    console.log('MathLive global:', window.MathLive);
+    console.log('math-field registered?', !!customElements.get('math-field'));
+  </script>
+</body>
+</html>

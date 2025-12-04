@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Math Editor Test - ReadWithUs</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive-static.css" />
+    <script src="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js"></script>
+
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['\\(', '\\)']],
+            displayMath: [['\\[', '\\]']],
+            processEscapes: true
+        }
+    };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script src="js/math-editor.js"></script>
+
+    <style>
+    body {
+        font-family: system-ui, sans-serif;
+        padding: 32px 16px;
+        max-width: 900px;
+        margin: 0 auto;
+        background: #f3f4f6;
+    }
+    h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    p.lead {
+        color: #4b5563;
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    .test-section {
+        border: 1px solid #e5e7eb;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+    }
+    .test-section h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+    
+    .rwu-math-wrapper {
+        position: relative;
+        margin-top: 10px;
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        transition: all 0.2s ease;
+    }
+    
+    .rwu-math-clear {
+        position: absolute;
+        right: 16px;
+        top: 16px;
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        color: #6b7280;
+    }
+    
+    .rwu-math-clear:hover {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .rwu-math-raw {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #6b7280;
+        background: #f3f4f6;
+        padding: 8px;
+        border-radius: 6px;
+        max-height: 80px;
+        overflow-y: auto;
+        word-break: break-all;
+        font-family: monospace;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    button {
+        padding: 10px 20px;
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    button:hover {
+        background: #e5e7eb;
+    }
+    
+    button.primary {
+        background: #2DADFF;
+        color: white;
+        border-color: #2DADFF;
+    }
+    
+    button.primary:hover {
+        background: #1a9ce6;
+    }
+    </style>
+</head>
+<body>
+    <h1>Math Editor Test - ReadWithUs</h1>
+    <p class="lead">
+        Click inside the fields below. An on-screen math keyboard should appear at the
+        bottom of the page. The LaTeX is stored in the hidden inputs.
+    </p>
+
+    <div class="test-section">
+        <h3>Basic Math Field (for younger students)</h3>
+        <div class="rwu-math-wrapper" data-math-field="true" data-keyboard="basic" id="basic-field">
+            <!-- Math field will be inserted here by JS -->
+            <button type="button" class="rwu-math-clear">Clear</button>
+            <input type="hidden" name="test_field_basic" required />
+            <div class="rwu-math-raw"></div>
+        </div>
+        <div class="action-buttons">
+            <button onclick="showLatex('basic-field')">Show LaTeX</button>
+            <button onclick="clearField('basic-field')">Clear Field</button>
+            <button onclick="showKeyboard('basic-field')">Show Keyboard</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Advanced Math Field (for higher levels)</h3>
+        <div class="rwu-math-wrapper" data-math-field="true" data-keyboard="advanced" id="advanced-field">
+            <!-- Math field will be inserted here by JS -->
+            <button type="button" class="rwu-math-clear">Clear</button>
+            <input type="hidden" name="advanced_field" />
+            <div class="rwu-math-raw"></div>
+        </div>
+        <div class="action-buttons">
+            <button onclick="showLatex('advanced-field')">Show LaTeX</button>
+            <button onclick="setExample('advanced-field')">Set Example</button>
+            <button onclick="showKeyboard('advanced-field')">Show Keyboard</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Form Integration Test</h3>
+        <form id="test-form" onsubmit="return handleSubmit(event)">
+            <div class="rwu-math-wrapper" data-math-field="true" data-keyboard="basic" id="form-field">
+                <!-- Math field will be inserted here by JS -->
+                <button type="button" class="rwu-math-clear">Clear</button>
+                <input type="hidden" name="form_field" required />
+                <div class="rwu-math-raw"></div>
+            </div>
+            <div class="action-buttons">
+                <button type="submit" class="primary">Submit Form</button>
+                <button type="button" onclick="validateForm()">Validate</button>
+            </div>
+        </form>
+        <div id="form-result" style="margin-top: 10px; padding: 10px; border-radius: 6px; display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Debug Information</h3>
+        <div style="font-family: monospace; font-size: 12px; background: #f3f4f6; padding: 10px; border-radius: 6px;">
+            <div id="debug-info">Loading...</div>
+        </div>
+        <button onclick="checkMathLive()" style="margin-top: 10px;">Check MathLive Status</button>
+    </div>
+
+    <script>
+    // Debug functions
+    function checkMathLive() {
+        const info = document.getElementById('debug-info');
+        const wrappers = document.querySelectorAll('[data-math-field="true"]');
+        const mathFields = document.querySelectorAll('math-field');
+        
+        info.innerHTML = `
+            MathLive loaded: ${typeof MathLive !== 'undefined'}<br>
+            MathLive version: ${MathLive?.version || 'unknown'}<br>
+            math-field custom element: ${customElements?.get('math-field') ? 'registered' : 'not registered'}<br>
+            RWUMath available: ${typeof RWUMath !== 'undefined'}<br>
+            Number of math wrappers: ${wrappers.length}<br>
+            Number of math-field elements: ${mathFields.length}<br>
+            Window load state: ${document.readyState}
+        `;
+        
+        // Log each wrapper's state
+        wrappers.forEach((wrapper, i) => {
+            console.log(`Wrapper ${i}:`, {
+                id: wrapper.id,
+                initialized: wrapper.getAttribute('data-math-init'),
+                hasMathField: !!wrapper.querySelector('math-field'),
+                hiddenValue: wrapper.querySelector('input[type="hidden"]')?.value
+            });
+        });
+    }
+
+    function showLatex(fieldId) {
+        if (typeof RWUMath === 'undefined') {
+            alert('RWUMath not available. Check console for errors.');
+            return;
+        }
+        const latex = RWUMath.getLatex(fieldId);
+        alert(`LaTeX for ${fieldId}:\n\n${latex}`);
+    }
+
+    function clearField(fieldId) {
+        if (typeof RWUMath === 'undefined') return;
+        RWUMath.setLatex(fieldId, '');
+    }
+
+    function showKeyboard(fieldId) {
+        if (typeof RWUMath === 'undefined') {
+            alert('RWUMath not available. Check console for errors.');
+            return;
+        }
+        RWUMath.showKeyboard(fieldId);
+    }
+
+    function setExample(fieldId) {
+        if (typeof RWUMath === 'undefined') return;
+        const examples = [
+            '\\frac{1}{2} + \\frac{1}{3} = \\frac{5}{6}',
+            'E = mc^2',
+            '\\sqrt{4} = 2',
+            '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}'
+        ];
+        const randomExample = examples[Math.floor(Math.random() * examples.length)];
+        RWUMath.setLatex(fieldId, randomExample);
+    }
+
+    function validateForm() {
+        if (typeof RWUMath === 'undefined') {
+            alert('RWUMath not available.');
+            return;
+        }
+        const form = document.getElementById('test-form');
+        const result = RWUMath.validateForm(form);
+        
+        const resultDiv = document.getElementById('form-result');
+        if (result.isValid) {
+            resultDiv.style.background = '#d1fae5';
+            resultDiv.style.color = '#065f46';
+            resultDiv.textContent = '✓ Form is valid!';
+        } else {
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.color = '#991b1b';
+            resultDiv.textContent = '✗ Form errors: ' + result.errors.join(', ');
+        }
+        resultDiv.style.display = 'block';
+    }
+
+    function handleSubmit(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        
+        const resultDiv = document.getElementById('form-result');
+        resultDiv.innerHTML = `
+            <strong>Form submitted!</strong><br>
+            Data sent to server:<br>
+            <pre style="background: white; padding: 10px; border-radius: 4px; margin-top: 5px;">${JSON.stringify(data, null, 2)}</pre>
+        `;
+        resultDiv.style.background = '#dbeafe';
+        resultDiv.style.color = '#1e40af';
+        resultDiv.style.display = 'block';
+        
+        console.log('Form data:', data);
+        
+        return false;
+    }
+
+    // Initialize debug info
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkMathLive, 1000);
+    });
+    </script>
+</body>
+</html>

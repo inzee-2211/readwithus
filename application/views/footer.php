@@ -138,7 +138,7 @@ $address   = FatApp::getConfig('CONF_ADDRESS_' . $siteLangId, FatUtility::VAR_ST
 
         <!-- Col 2: Explore (footerOneNav) -->
         <div class="rwu-foot-col">
-          <h5>Explore Readwithus</h5>
+          <h5>Explore Read With Us</h5>
           <ul>
             <?php if (!empty($footerOneNav)) {
               foreach ($footerOneNav as $nav) {
