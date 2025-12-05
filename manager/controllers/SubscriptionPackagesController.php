@@ -49,6 +49,7 @@ $levelId = FatUtility::int($posted['spackage_level_id'] ?? 0);
         'spackage_description'     => trim($posted['spackage_description']),
         'spackage_price_monthly'   => $posted['spackage_price_monthly'],
         'spackage_level_id'        => $levelId,
+         'spackage_trial_days'     => (int) ($posted['spackage_trial_days'] ?? 0),
         'spackage_price_yearly'    => ($posted['spackage_price_yearly'] === '' ? null : $posted['spackage_price_yearly']),
         'spackage_subject_limit'   => $posted['spackage_subject_limit'],
         'stripe_price_id_monthly'  => (trim($posted['stripe_price_id_monthly']) === '' ? null : trim($posted['stripe_price_id_monthly'])),
@@ -126,6 +127,11 @@ private function getForm(): Form
     $lim = $f->addRequiredField('Subject Limit', 'spackage_subject_limit');
     $lim->requirements()->setIntPositive();
     $lim->setFieldTagAttribute('placeholder', 'e.g., 1 for Basic, 2 for Gold, 5 for Premium');
+$trial = $f->addTextBox('Trial Days (0 = no trial)', 'spackage_trial_days');
+$trial->requirements()->setInt();
+$trial->requirements()->setRange(0, 365);
+$trial->setFieldTagAttribute('placeholder', 'e.g., 7 for 7-day trial');
+$trial->htmlAfterField = '<small class="note">Leave 0 for no free trial on this package.</small>';
 
     // Stripe IDs
     $pm = $f->addTextBox('Stripe Price ID (Monthly)', 'stripe_price_id_monthly');

@@ -84,35 +84,81 @@ class UsersController extends AdminBaseController
     /**
      * Setup User
      */
-    public function setup()
-    {
-        $this->objPrivilege->canEditUsers();
-        $frm = $this->getForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
-        $userId = FatUtility::int($post['user_id']);
-        $data = User::getDetail($userId);
-        if (empty($data)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        unset($post['user_id']);
-        unset($post['user_email']);
-        unset($post['user_username']);
-        $db = FatApp::getDb();
-        $db->startTransaction();
-        $user = new User($userId);
-        $user->assignValues($post);
-        if (!$user->save()) {
-            $db->rollbackTransaction();
-            FatUtility::dieJsonError($user->getError());
-        }
-        if (!$user->setSettings($post)) {
-            $db->rollbackTransaction();
-        }
-        $db->commitTransaction();
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_SETUP_SUCCESSFUL'));
+    // public function setup()
+    // {
+    //     $this->objPrivilege->canEditUsers();
+    //     $frm = $this->getForm();
+    //     if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+    //         FatUtility::dieJsonError(current($frm->getValidationErrors()));
+    //     }
+    //     $userId = FatUtility::int($post['user_id']);
+    //     $data = User::getDetail($userId);
+    //     if (empty($data)) {
+    //         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    //     }
+    //     unset($post['user_id']);
+    //     unset($post['user_email']);
+    //     unset($post['user_username']);
+    //     $db = FatApp::getDb();
+    //     $db->startTransaction();
+    //     $user = new User($userId);
+    //     $user->assignValues($post);
+    //     if (!$user->save()) {
+    //         $db->rollbackTransaction();
+    //         FatUtility::dieJsonError($user->getError());
+    //     }
+    //     if (!$user->setSettings($post)) {
+    //         $db->rollbackTransaction();
+    //     }
+    //     $db->commitTransaction();
+    //     FatUtility::dieJsonSuccess(Label::getLabel('LBL_SETUP_SUCCESSFUL'));
+    // }
+public function setup()
+{
+    $this->objPrivilege->canEditUsers();
+    $frm = $this->getForm();
+    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        FatUtility::dieJsonError(current($frm->getValidationErrors()));
     }
+
+    $userId = FatUtility::int($post['user_id']);
+    $data = User::getDetail($userId);
+    if (empty($data)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    // 🔹 Normalize free trial flag (checkbox sends value only when checked)
+    if (!empty($post['user_trial_eligible'])) {
+        $post['user_trial_eligible'] = AppConstant::YES; // 1
+    } else {
+        $post['user_trial_eligible'] = AppConstant::NO;  // 0
+    }
+
+    // 🔹 Do NOT allow admin to change used_at here (only system/webhooks should)
+    unset($post['user_trial_used_at']);
+
+    unset($post['user_id']);
+    unset($post['user_email']);
+    unset($post['user_username']);
+
+    $db = FatApp::getDb();
+    $db->startTransaction();
+
+    $user = new User($userId);
+    $user->assignValues($post);
+    if (!$user->save()) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($user->getError());
+    }
+
+    // This writes into tbl_user_settings (including user_trial_eligible)
+    if (!$user->setSettings($post)) {
+        $db->rollbackTransaction();
+    }
+
+    $db->commitTransaction();
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_SETUP_SUCCESSFUL'));
+}
 
     /**
      * Search & List Users
@@ -399,26 +445,90 @@ class UsersController extends AdminBaseController
      * @param int $userId
      * @return Form
      */
+    // private function getForm(int $userId = 0): Form
+    // {
+    //     $frm = new Form('frmUser', ['id' => 'frmUser']);
+    //     $frm->addHiddenField('', 'user_id', $userId);
+    //     $frm->addTextBox(Label::getLabel('LBL_USERNAME'), 'user_username', '');
+    //     $fld = $frm->addRequiredField(Label::getLabel('LBL_FIRST_NAME'), 'user_first_name');
+    //     $frm->addTextBox(Label::getLabel('LBL_LAST_NAME'), 'user_last_name');
+    //     $countries = Country::getAll($this->siteLangId);
+    //     $fld = $frm->addSelectBox(Label::getLabel('LBL_PHONE_CODE'), 'user_phone_code', array_column($countries, 'phone_code', 'country_id'), '', [], Label::getLabel('LBL_SELECT'));
+    //     $fld->requirements()->setRequired(true);
+    //     $fld = $frm->addTextBox(Label::getLabel('LBL_PHONE'), 'user_phone_number');
+    //     $fld->requirements()->setRequired(true);
+    //     $fld->requirements()->setRegularExpressionToValidate(AppConstant::PHONE_NO_REGEX);
+    //     $fld->requirements()->setCustomErrorMessage(Label::getLabel('LBL_PHONE_NO_VALIDATION_MSG'));
+    //     $fld = $frm->addSelectBox(Label::getLabel('LBL_COUNTRY'), 'user_country_id', array_column($countries, 'country_name', 'country_id'), FatApp::getConfig('CONF_COUNTRY'), [], Label::getLabel('LBL_SELECT'));
+    //     $fld->requirements()->setRequired(true);
+    //     $frm->addTextBox(Label::getLabel('LBL_EMAIL'), 'user_email', '');
+    //     $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE_CHANGES'));
+    //     return $frm;
+    // }
     private function getForm(int $userId = 0): Form
-    {
-        $frm = new Form('frmUser', ['id' => 'frmUser']);
-        $frm->addHiddenField('', 'user_id', $userId);
-        $frm->addTextBox(Label::getLabel('LBL_USERNAME'), 'user_username', '');
-        $fld = $frm->addRequiredField(Label::getLabel('LBL_FIRST_NAME'), 'user_first_name');
-        $frm->addTextBox(Label::getLabel('LBL_LAST_NAME'), 'user_last_name');
-        $countries = Country::getAll($this->siteLangId);
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_PHONE_CODE'), 'user_phone_code', array_column($countries, 'phone_code', 'country_id'), '', [], Label::getLabel('LBL_SELECT'));
-        $fld->requirements()->setRequired(true);
-        $fld = $frm->addTextBox(Label::getLabel('LBL_PHONE'), 'user_phone_number');
-        $fld->requirements()->setRequired(true);
-        $fld->requirements()->setRegularExpressionToValidate(AppConstant::PHONE_NO_REGEX);
-        $fld->requirements()->setCustomErrorMessage(Label::getLabel('LBL_PHONE_NO_VALIDATION_MSG'));
-        $fld = $frm->addSelectBox(Label::getLabel('LBL_COUNTRY'), 'user_country_id', array_column($countries, 'country_name', 'country_id'), FatApp::getConfig('CONF_COUNTRY'), [], Label::getLabel('LBL_SELECT'));
-        $fld->requirements()->setRequired(true);
-        $frm->addTextBox(Label::getLabel('LBL_EMAIL'), 'user_email', '');
-        $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE_CHANGES'));
-        return $frm;
-    }
+{
+    $frm = new Form('frmUser', ['id' => 'frmUser']);
+    $frm->addHiddenField('', 'user_id', $userId);
+    $frm->addTextBox(Label::getLabel('LBL_USERNAME'), 'user_username', '');
+    $fld = $frm->addRequiredField(Label::getLabel('LBL_FIRST_NAME'), 'user_first_name');
+    $frm->addTextBox(Label::getLabel('LBL_LAST_NAME'), 'user_last_name');
+
+    $countries = Country::getAll($this->siteLangId);
+    $fld = $frm->addSelectBox(
+        Label::getLabel('LBL_PHONE_CODE'),
+        'user_phone_code',
+        array_column($countries, 'phone_code', 'country_id'),
+        '',
+        [],
+        Label::getLabel('LBL_SELECT')
+    );
+    $fld->requirements()->setRequired(true);
+
+    $fld = $frm->addTextBox(Label::getLabel('LBL_PHONE'), 'user_phone_number');
+    $fld->requirements()->setRequired(true);
+    $fld->requirements()->setRegularExpressionToValidate(AppConstant::PHONE_NO_REGEX);
+    $fld->requirements()->setCustomErrorMessage(Label::getLabel('LBL_PHONE_NO_VALIDATION_MSG'));
+
+    $fld = $frm->addSelectBox(
+        Label::getLabel('LBL_COUNTRY'),
+        'user_country_id',
+        array_column($countries, 'country_name', 'country_id'),
+        FatApp::getConfig('CONF_COUNTRY'),
+        [],
+        Label::getLabel('LBL_SELECT')
+    );
+    $fld->requirements()->setRequired(true);
+
+    $frm->addTextBox(Label::getLabel('LBL_EMAIL'), 'user_email', '');
+
+    /**
+     * 🔹 NEW: Trial eligibility toggle
+     * - Stored in tbl_user_settings.user_trial_eligible (0/1)
+     */
+    $frm->addCheckBox(
+        Label::getLabel('LBL_ALLOW_FREE_TRIAL'),
+        'user_trial_eligible',
+        1,          // value when checked
+        [],         // attributes
+        false,      // no “checked” by default; will be filled from DB
+        0           // default “unchecked” value
+    );
+
+    /**
+     * 🔹 NEW: Read-only info: when trial was used
+     * - Purely informational for admin.
+     * - We’ll prevent changes in setup().
+     */
+    $fldTrialUsed = $frm->addTextBox(
+        Label::getLabel('LBL_TRIAL_USED_AT'),
+        'user_trial_used_at'
+    );
+    $fldTrialUsed->setFieldTagAttribute('readonly', 'readonly');
+
+    $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SAVE_CHANGES'));
+    return $frm;
+}
+
 
     /**
      * Get Change Password Form

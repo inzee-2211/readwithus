@@ -67,6 +67,7 @@ class PricingController extends MyAppController
             $p['name']        = $p['spackage_name'];
             $p['price_month'] = (float)$p['spackage_price_monthly'];
             $p['price_year']  = (float)$p['spackage_price_yearly'];
+             $p['trial_days']  = (int)$p['spackage_trial_days']; 
 
             $isCurrent = ($hasActiveSubscription && (int)$p['spackage_id'] === $currentPackageId);
             $isUpgrade = (
@@ -80,6 +81,10 @@ class PricingController extends MyAppController
             $p['is_upgrade'] = $isUpgrade;
         }
         unset($p);
+ $userDetail = [];
+        if (UserAuth::isUserLogged()) {
+            $userDetail = User::getDetail($this->siteUserId);
+        }
 
         $this->set('plans', $plans);
         $this->set('levels', $levels);
@@ -89,6 +94,7 @@ class PricingController extends MyAppController
         // Pass subscription context to the view
         $this->set('hasActiveSubscription', $hasActiveSubscription);
         $this->set('currentPackageId', $currentPackageId);
+        $this->set('userDetail', $userDetail);
 
         $this->_template->render(true, true, 'pricing/index.php');
     }

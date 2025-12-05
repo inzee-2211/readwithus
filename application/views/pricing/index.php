@@ -10,6 +10,7 @@ $levels          = $levels ?? [];
 $selectedLevelId = $selectedLevelId ?? 0;
 $hasActiveSubscription = $hasActiveSubscription ?? false;
 $currentPackageId      = $currentPackageId ?? 0;
+$userDetail = $userDetail ?? [];
 
 
 
@@ -30,6 +31,7 @@ if (isset($plans) && is_array($plans)) {
         'tag'         => (string)($p['spackage_description'] ?? ''),
         'price_month' => (float)$p['spackage_price_monthly'],
         'price_year'  => (float)$p['spackage_price_yearly'],
+         'trial_days'  => isset($p['spackage_trial_days']) ? (int)$p['spackage_trial_days'] : 0,
         'features'    => [
           'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
           'Unlimited courses in selected subjects',
@@ -47,6 +49,7 @@ if (isset($plans) && is_array($plans)) {
       $plans[$idx]['price_month'] = (float)($plans[$idx]['price_month'] ?? 0);
       $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month']*12));
       $plans[$idx]['features']    = $plans[$idx]['features']    ?? [];
+        $plans[$idx]['trial_days']  = (int)($plans[$idx]['trial_days'] ?? 0);
       $plans[$idx]['is_popular']  = (bool)($plans[$idx]['is_popular'] ?? false);
       $plans[$idx]['is_current']  = (bool)($plans[$idx]['is_current'] ?? false);
       $plans[$idx]['is_upgrade']  = (bool)($plans[$idx]['is_upgrade'] ?? false);
@@ -245,30 +248,51 @@ if (isset($plans) && is_array($plans)) {
         </ul>
 
         <!-- Single CTA that switches href when billing toggle changes -->
-               <?php
-          $hasSub   = !empty($hasActiveSubscription);
-          $isCurrent = !empty($p['is_current']);
-          $isUpgrade = !empty($p['is_upgrade']);
+           <?php
+  $hasSub    = !empty($hasActiveSubscription);
+  $isCurrent = !empty($p['is_current']);
+  $isUpgrade = !empty($p['is_upgrade']);
 
-          // Defaults for guests / no active subscription
-          $ctaLabel = 'Get Started';
-          $ctaHref  = htmlspecialchars($p['cta_month_url']);
-          $ctaClass = 'rwu-plan__cta js-cta';
-          $fineText = 'No contracts. Cancel anytime.';
+  // Defaults for guests / no active subscription
+  $ctaLabel = 'Get Started';
+  $ctaHref  = htmlspecialchars($p['cta_month_url']);
+  $ctaClass = 'rwu-plan__cta js-cta'; // JS will switch month/year URL
+  $fineText = 'No contracts. Cancel anytime.';
 
-          if ($hasSub && $isCurrent) {
-              // Current plan: send user to their courses/dashboard
-              $ctaLabel = 'Go to my courses';
-              $ctaHref  = MyUtility::makeUrl('Courses'); // change to your dashboard route if needed
-              $ctaClass = 'rwu-plan__cta';               // no js-cta => JS won't override href
-              $fineText = 'Already subscribed – explore your courses.';
-          } elseif ($hasSub) {
-              // Other plans: user already has a subscription
-              $ctaLabel = $isUpgrade ? 'Upgrade subscription' : 'Change plan';
-              // href remains the selectSubjects flow
-              $fineText = 'You can change your plan anytime.';
-          }
-        ?>
+  // 🔹 Trial context
+  $isLogged          = UserAuth::isUserLogged();
+  $userTrialEligible = !empty($userDetail['user_trial_eligible'] ?? 0);
+  $trialDays         = (int)($p['trial_days'] ?? 0);
+
+  // Show trial only if:
+  // - user is logged in
+  // - has NO active subscription yet
+  // - this package has trial_days > 0
+  // - admin/system still allows trial for this user
+  $canStartTrial = $isLogged && !$hasSub && $trialDays > 0 && $userTrialEligible;
+
+  if ($hasSub && $isCurrent) {
+      // Current plan: send user to their courses/dashboard
+      $ctaLabel = 'Go to my courses';
+      $ctaHref  = MyUtility::makeUrl('Courses'); // change to your dashboard route if needed
+      $ctaClass = 'rwu-plan__cta';               // no js-cta => JS won't override href
+      $fineText = 'Already subscribed – explore your courses.';
+  } elseif ($hasSub) {
+      // Other plans: user already has a subscription
+      $ctaLabel = $isUpgrade ? 'Upgrade subscription' : 'Change plan';
+      // href remains the selectSubjects flow
+      $fineText = 'You can change your plan anytime.';
+ } elseif ($canStartTrial) {
+    $ctaLabel = sprintf('Start %d-day free trial', $trialDays);
+    // 👉 keep $ctaHref as month/year URL (selectSubjects), just change text
+    $ctaClass = 'rwu-plan__cta js-cta'; // keep js-cta so toggle still updates href
+    $fineText = 'Your card will be charged after the trial ends unless you cancel.';
+}
+ else {
+      // keep default: "Get Started"
+  }
+?>
+
 
         <?php if ($hasSub && $isCurrent): ?>
           <div class="rwu-plan__status" style="margin-bottom:6px;color:#16a34a;font-weight:700;font-size:17px;">

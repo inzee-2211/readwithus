@@ -2,6 +2,7 @@
 defined('SYSTEM_INIT') or die('Invalid Usage');
 require_once CONF_APPLICATION_PATH . 'library/services/StripeClientFactory.php';
 require_once CONF_APPLICATION_PATH . 'library/services/SubscriptionEnrollment.php';
+require_once CONF_APPLICATION_PATH . 'library/services/SubscriptionTrialService.php';
 
 class SubscriptionController extends MyAppController
 {
@@ -124,65 +125,99 @@ class SubscriptionController extends MyAppController
      * URL: /subscription/checkout/{spackageId}/{billing}
      * ----------------------------- */
     public function checkout($spackageId, $billing = 'monthly')
-    {
-        if (!UserAuth::isUserLogged()) {
-            Message::addErrorMessage(Label::getLabel('LBL_PLEASE_LOGIN'));
-            FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
-        }
-
-        $subIntent = $_SESSION['subscription_intent'] ?? null;
-        if (!$subIntent || (int)$subIntent['spackage_id'] !== (int)$spackageId) {
-            Message::addErrorMessage('Please select subjects first.');
-            FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'selectSubjects', [$spackageId, $billing]));
-        }
-
-        $pkg = SubscriptionPackage::getById(FatUtility::int($spackageId));
-        if (!$pkg) {
-            FatUtility::exitWithErrorCode(404);
-        }
-
-        $priceId = ($billing === 'yearly')
-            ? ($pkg['stripe_price_id_yearly']  ?? '')
-            : ($pkg['stripe_price_id_monthly'] ?? '');
-
-        if (!$priceId) {
-            Message::addErrorMessage('Stripe price ID missing for selected billing period.');
-            FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
-        }
-
-        $stripe  = StripeClientFactory::client();
-        $session = $stripe->checkout->sessions->create([
-            'mode'        => 'subscription',
-            'line_items'  => [[ 'price' => $priceId, 'quantity' => 1 ]],
-            'customer_email' => $this->siteUser['user_email'] ?? null,
-            'success_url' => MyUtility::makeFullUrl('Subscription', 'success') . '?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'  => MyUtility::makeFullUrl('Subscription', 'cancel'),
-            'metadata'    => [
-                'user_id'     => (string)$this->siteUserId,
-                'spackage_id' => (string)$pkg['spackage_id'],
-                'billing'     => (string)$billing,
-                'subject_ids' => implode(',', $subIntent['selected_subjects'] ?? []),
-            ],
-        ]);
-
-        // These vars are used by payment/stripe-pay.php
-        $this->set('stripe', ['publishable_key' => StripeClientFactory::publishableKey()]);
-        $this->set('sessionId', $session->id);
-
-        // order structure expected by the template (kept from your code)
-        $this->set('order', [
-            'order_net_amount'     => 0,
-            'order_id'             => 0,
-            'order_currency_code'  => $this->siteCurrency['currency_code'],
-        ]);
-
-        $this->_template->render(true, false, 'payment/stripe-pay.php');
+{
+    if (!UserAuth::isUserLogged()) {
+        Message::addErrorMessage(Label::getLabel('LBL_PLEASE_LOGIN'));
+        FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
     }
+
+    $subIntent = $_SESSION['subscription_intent'] ?? null;
+    if (!$subIntent || (int) $subIntent['spackage_id'] !== (int) $spackageId) {
+        Message::addErrorMessage('Please select subjects first.');
+        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'selectSubjects', [$spackageId, $billing]));
+    }
+
+    $pkg = SubscriptionPackage::getById(FatUtility::int($spackageId));
+    if (!$pkg) {
+        FatUtility::exitWithErrorCode(404);
+    }
+
+    $priceId = ($billing === 'yearly')
+        ? ($pkg['stripe_price_id_yearly'] ?? '')
+        : ($pkg['stripe_price_id_monthly'] ?? '');
+
+    if (!$priceId) {
+        Message::addErrorMessage('Stripe price ID missing for selected billing period.');
+        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+    }
+
+    // 🔹 Compute dynamic trial days for THIS user + package
+    $trialDays = SubscriptionTrialService::computeTrialDays($this->siteUserId, $pkg);
+    $isTrial   = ($trialDays > 0);
+
+    $subjectIdsCsv = implode(',', $subIntent['selected_subjects'] ?? []);
+
+    $stripe  = StripeClientFactory::client();
+
+    // Subscription metadata (for Stripe subscription object)
+    $subscriptionData = [
+        'metadata' => [
+            'user_id'     => (string) $this->siteUserId,
+            'spackage_id' => (string) $pkg['spackage_id'],
+            'billing'     => (string) $billing,
+            'subject_ids' => $subjectIdsCsv,
+            'is_trial'    => $isTrial ? '1' : '0',
+        ],
+    ];
+    if ($trialDays > 0) {
+        $subscriptionData['trial_period_days'] = $trialDays;
+    }
+
+    $session = $stripe->checkout->sessions->create([
+        'mode'       => 'subscription',
+        'line_items' => [
+            [
+                'price'    => $priceId,
+                'quantity' => 1,
+            ],
+        ],
+        // You can still let Stripe create a customer automatically via email
+        'customer_email' => $this->siteUser['user_email'] ?? null,
+
+        'success_url' => MyUtility::makeFullUrl('Subscription', 'success') . '?session_id={CHECKOUT_SESSION_ID}',
+        'cancel_url'  => MyUtility::makeFullUrl('Subscription', 'cancel'),
+
+        // Metadata on Checkout Session (for checkout.session.completed event)
+        'metadata'    => [
+            'user_id'     => (string) $this->siteUserId,
+            'spackage_id' => (string) $pkg['spackage_id'],
+            'billing'     => (string) $billing,
+            'subject_ids' => $subjectIdsCsv,
+            'is_trial'    => $isTrial ? '1' : '0',
+        ],
+
+        // Subscription-level data (trial + subscription metadata)
+        'subscription_data' => $subscriptionData,
+    ]);
+
+    // Used by payment/stripe-pay.php
+    $this->set('stripe', ['publishable_key' => StripeClientFactory::publishableKey()]);
+    $this->set('sessionId', $session->id);
+
+    // Keep the existing "order" structure for template compatibility
+    $this->set('order', [
+        'order_net_amount'    => 0,
+        'order_id'            => 0,
+        'order_currency_code' => $this->siteCurrency['currency_code'],
+    ]);
+
+    $this->_template->render(true, false, 'payment/stripe-pay.php');
+}
 
     /* -----------------------------
      * Step 4: Success – activate in DB
      * ----------------------------- */
-   public function success()
+    public function success()
 {
     if (!UserAuth::isUserLogged()) {
         FatUtility::exitWithErrorCode(403);
@@ -193,35 +228,64 @@ class SubscriptionController extends MyAppController
         FatUtility::exitWithErrorCode(404);
     }
 
-    $stripe       = StripeClientFactory::client();
-    $session      = $stripe->checkout->sessions->retrieve($sessionId, ['expand' => ['subscription']]);
-    $subscription = $session->subscription;
+    // Optionally just fetch session for reassurance/logging
+    $stripe  = StripeClientFactory::client();
+    try {
+        $session = $stripe->checkout->sessions->retrieve($sessionId);
+    } catch (\Exception $e) {
+        // Do not fail hard; just show a generic message
+    }
 
-    $spackageId = (int)($session->metadata->spackage_id ?? 0);
-    $subjectIds = (string)($session->metadata->subject_ids ?? '');
-    $start      = date('Y-m-d H:i:s', $subscription->current_period_start);
-    $end        = date('Y-m-d H:i:s', $subscription->current_period_end);
-
-    // Create/update user subscription
-    UserSubscription::createOrActivate([
-        'usubs_user_id'           => $this->siteUserId,
-        'usubs_spackage_id'       => $spackageId,
-        'usubs_subject_ids'       => $subjectIds,
-        'stripe_subscription_id'  => $subscription->id,
-        'stripe_customer_id'      => (string)$session->customer,
-        'usubs_status'            => 'active',
-        'usubs_start_date'        => $start,
-        'usubs_end_date'          => $end,
-    ]);
-
-    // 🔥 CRITICAL FIX: Sync all subscription courses to order_courses
-    SubscriptionEnrollment::syncForUser($this->siteUserId);
-
-    unset($_SESSION['subscription_intent']);
-
-    Message::addMessage('Subscription activated successfully! All courses are now available.');
+    /**
+     * At this point, our StripeWebhookController should already have
+     * created/updated tbl_user_subscriptions and called SubscriptionEnrollment::syncForUser().
+     *
+     * So here we only show a friendly message and redirect.
+     */
+    Message::addMessage('Thank you! If your payment was successful, your subscription (or trial) is now active.');
     FatApp::redirectUser(MyUtility::makeUrl('Courses'));
 }
+
+//    public function success()
+// {
+//     if (!UserAuth::isUserLogged()) {
+//         FatUtility::exitWithErrorCode(403);
+//     }
+
+//     $sessionId = $_GET['session_id'] ?? '';
+//     if (!$sessionId) {
+//         FatUtility::exitWithErrorCode(404);
+//     }
+
+//     $stripe       = StripeClientFactory::client();
+//     $session      = $stripe->checkout->sessions->retrieve($sessionId, ['expand' => ['subscription']]);
+//     $subscription = $session->subscription;
+
+//     $spackageId = (int)($session->metadata->spackage_id ?? 0);
+//     $subjectIds = (string)($session->metadata->subject_ids ?? '');
+//     $start      = date('Y-m-d H:i:s', $subscription->current_period_start);
+//     $end        = date('Y-m-d H:i:s', $subscription->current_period_end);
+
+//     // Create/update user subscription
+//     UserSubscription::createOrActivate([
+//         'usubs_user_id'           => $this->siteUserId,
+//         'usubs_spackage_id'       => $spackageId,
+//         'usubs_subject_ids'       => $subjectIds,
+//         'stripe_subscription_id'  => $subscription->id,
+//         'stripe_customer_id'      => (string)$session->customer,
+//         'usubs_status'            => 'active',
+//         'usubs_start_date'        => $start,
+//         'usubs_end_date'          => $end,
+//     ]);
+
+//     // 🔥 CRITICAL FIX: Sync all subscription courses to order_courses
+//     SubscriptionEnrollment::syncForUser($this->siteUserId);
+
+//     unset($_SESSION['subscription_intent']);
+
+//     Message::addMessage('Subscription activated successfully! All courses are now available.');
+//     FatApp::redirectUser(MyUtility::makeUrl('Courses'));
+// }
 
     /* -----------------------------
      * Manage subjects (after purchase)

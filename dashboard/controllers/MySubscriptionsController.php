@@ -62,7 +62,9 @@ class MySubscriptionsController extends DashboardController
         ]);
         $srch->addCondition('us.usubs_id', '=', $userSubId);
         $srch->addCondition('us.usubs_user_id', '=', $this->userId);
-        $srch->addCondition('us.usubs_status', '=', 'active');
+        // $srch->addCondition('us.usubs_status', '=', 'active');
+        $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
+
 
         $rs  = $srch->getResultSet();
         $row = $db->fetch($rs);
@@ -128,8 +130,9 @@ class MySubscriptionsController extends DashboardController
         ]);
 
         $srch->addCondition('us.usubs_user_id', '=', $userId);
-        $srch->addCondition('us.usubs_status', '=', 'active');
-        $srch->addDirectCondition('us.usubs_end_date >= NOW()');
+   $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
+$srch->addDirectCondition('us.usubs_end_date >= NOW()');
+
 
         $srch->addOrder('us.usubs_start_date', 'DESC');
         $srch->setPageSize(1);

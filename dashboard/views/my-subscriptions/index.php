@@ -702,15 +702,22 @@ if ($hasSubscription && !empty($subscription['end_date'])) {
                                         <span class="subs-meta__label subs-plan-status-label">
                                             <?php echo Label::getLabel('LBL_STATUS'); ?>
                                         </span>
-                                        <?php if ($subscription['status'] === 'active') { ?>
-                                            <span class="badge badge--success">
-                                                <?php echo ucwords($subscription['status']); ?>
-                                            </span>
-                                        <?php } else { ?>
-                                            <span class="badge badge--secondary">
-                                                <?php echo ucwords($subscription['status']); ?>
-                                            </span>
-                                        <?php } ?>
+                                      <?php
+$status = $subscription['status'] ?? '';
+$isActiveLike = in_array($status, ['active', 'trialing'], true);
+?>
+<?php if ($isActiveLike) { ?>
+    <span class="badge badge--success">
+        <?php echo ($status === 'trialing')
+            ? Label::getLabel('LBL_TRIAL_ACTIVE')
+            : ucwords($status); ?>
+    </span>
+<?php } else { ?>
+    <span class="badge badge--secondary">
+        <?php echo ucwords($status); ?>
+    </span>
+<?php } ?>
+
                                     </div>
                                 </div>
 

@@ -472,6 +472,8 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
 $plans             = $plans ?? [];
 $hasActiveSubscription = $hasActiveSubscription ?? false;
 $currentPackageId      = $currentPackageId ?? 0;
+$userDetail = $userDetail ?? [];
+
 
 // Base path for decorative images used in home hero cards
 // (adjust if your assets live somewhere else)
@@ -488,6 +490,7 @@ if (!empty($plans) && is_array($plans)) {
                 'tag'         => (string)($p['spackage_description'] ?? ''),
                 'price_month' => (float)$p['spackage_price_monthly'],
                 'price_year'  => (float)$p['spackage_price_yearly'],
+                'trial_days'  => isset($p['spackage_trial_days']) ? (int)$p['spackage_trial_days'] : 0,
                 'features'    => [
                     'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
                     'Unlimited courses in selected subjects',
@@ -502,14 +505,20 @@ if (!empty($plans) && is_array($plans)) {
             $plans[$idx]['price_month'] = (float)($plans[$idx]['price_month'] ?? 0);
             $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month']*12));
             $plans[$idx]['features']    = $plans[$idx]['features']    ?? [];
+            $plans[$idx]['trial_days']  = (int)($plans[$idx]['trial_days'] ?? 0);
         }
     }
 
     // Add checkout URL (monthly only, home page is a simple entry point)
     foreach ($plans as $idx => $p) {
-        $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'monthly' ]);
+        $plans[$idx]['cta_month_url'] = MyUtility::makeUrl(
+            'Subscription',
+            'selectSubjects',
+            [ (int)$p['id'], 'monthly' ]
+        );
     }
 }
+
 ?>
 
 <section class="rwu-pricing" aria-labelledby="pricing-title">
@@ -562,15 +571,35 @@ if (!empty($plans) && is_array($plans)) {
             $features = $p['features'] ?? [];
 
             // CTA defaults
+                        // CTA defaults
             $ctaHref  = htmlspecialchars($p['cta_month_url'] ?? '#');
             $ctaLabel = 'Get Started';
-            $fineText = 'No credit card required';
+            $fineText = 'No contracts. Cancel anytime.';
 
-            if (!empty($hasActiveSubscription) && $planId === (int)$currentPackageId) {
+            $hasSub    = !empty($hasActiveSubscription);
+            $isCurrent = $hasSub && ($planId === (int)$currentPackageId);
+
+            // Trial context (same logic as pricing page, but simpler)
+            $isLogged          = UserAuth::isUserLogged();
+            $userTrialEligible = !empty($userDetail['user_trial_eligible'] ?? 0);
+            $trialDays         = (int)($p['trial_days'] ?? 0);
+
+            $canStartTrial = $isLogged && !$hasSub && $trialDays > 0 && $userTrialEligible;
+
+            if ($isCurrent) {
                 $ctaHref  = MyUtility::makeUrl('Courses');
                 $ctaLabel = 'Go to my courses';
                 $fineText = 'You’re currently on this plan.';
+            } elseif ($hasSub) {
+                // user has some other plan – keep same URL but change label if you like
+                $ctaLabel = 'Change plan';
+                $fineText = 'You can switch plans anytime from your account.';
+            } elseif ($canStartTrial) {
+                // show trial text, keep same monthly selectSubjects flow
+                $ctaLabel = sprintf('Start %d-day free trial', $trialDays);
+                $fineText = 'Your card will be charged after the trial ends unless you cancel.';
             }
+
           ?>
 
           <article class="rwu-plan" aria-labelledby="plan-<?= $planId; ?>">

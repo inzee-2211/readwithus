@@ -186,6 +186,22 @@ echo $frm->getFormTag();
                                     </div>
                                 </div>
                             </div>
+                            <!-- Trial Days -->
+<div class="col-md-6">
+    <div class="field-set">
+        <div class="caption-wraper">
+            <label class="field_label">
+                <?php echo $frm->getField('spackage_trial_days')->getCaption(); ?>
+            </label>
+        </div>
+        <div class="field-wraper">
+            <div class="field_cover">
+                <?php echo $frm->getFieldHtml('spackage_trial_days'); ?>
+            </div>
+        </div>
+    </div>
+</div>
+
 
                             <!-- Submit -->
                             <div class="col-md-12">

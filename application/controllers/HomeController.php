@@ -96,12 +96,20 @@ class HomeController extends MyAppController
             $currentPackageId      = (int)$activeSub['usubs_spackage_id'];
         }
     }
+ $userDetail = [];
+    if (UserAuth::isUserLogged()) {
+        $userDetail = User::getAttributesById(
+            $this->siteUserId,
+            ['user_id', 'user_trial_eligible']
+        ) ?: [];
+    }
 
     // 4) Expose to home view (our home rwu-pricing section uses these)
     $this->set('plans', $plans);
     $this->set('selectedLevelId', $selectedLevelId);
     $this->set('hasActiveSubscription', $hasActiveSubscription);
     $this->set('currentPackageId', $currentPackageId);
+     $this->set('userDetail', $userDetail);
 
     // ========= END SUBSCRIPTION PLANS BLOCK =========
 
