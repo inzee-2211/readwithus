@@ -342,58 +342,9 @@ function normalizeQuestions(rows) {
       image   : q.image || '',
       options : opts,
       correct : correct,
-        options_latex: q.options_latex || [],
-            text_latex: q.text_latex || '',
-            answer_latex: q.answer_latex || '',
-            is_math: q.is_math || 0,
       _rawType: String(q.type || '').trim().toLowerCase()
     };
   });
-}
-function isMathQuestion(q) {
-    return q.is_math === 1 || q.is_math === true || 
-           (q.type && q.type.toLowerCase().includes('math')) ||
-           (q.text_latex && q.text_latex.trim() !== '');
-}
-
-// Render math answer field
-function renderMathAnswer(parent, index, q) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'rwu-math-wrapper';
-    wrapper.setAttribute('data-math-field', 'true');
-    wrapper.setAttribute('data-keyboard', 'basic');
-    
-    const target = document.createElement('span');
-    target.className = 'rwu-mathfield rwu-math-target';
-    
-    const hidden = document.createElement('input');
-    hidden.type = 'hidden';
-    hidden.name = `question-${index}`;
-    hidden.className = 'rwu-math-hidden';
-    
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'rwu-math-clear';
-    clearBtn.textContent = 'Clear';
-    
-    const rawPreview = document.createElement('div');
-    rawPreview.className = 'rwu-math-raw';
-    
-    wrapper.appendChild(target);
-    wrapper.appendChild(clearBtn);
-    wrapper.appendChild(hidden);
-    wrapper.appendChild(rawPreview);
-    
-    parent.appendChild(wrapper);
-    
-    // Initialize after a short delay to ensure DOM is ready
-    setTimeout(() => {
-        if (window.RWUMath && typeof RWUMath.initFields === 'function') {
-            RWUMath.initFields();
-        }
-    }, 100);
-    
-    return wrapper;
 }
 
 function deriveType(q) {
@@ -441,7 +392,8 @@ function startTimer() {
 /* ------------------ FETCH QUESTIONS ------------------ */
 function fetchQuestions() {
   $.ajax({
-url: fcom.makeUrl('Quizattemptall', 'getQuestions'),   
+    url: fcom.makeUrl('Quizattempt', 'getQuestions'),
+    type: "POST",
     data: { pageno: 1, subtopicid: userSessionId },
     dataType: "json",
     success: function (response) {
@@ -494,24 +446,13 @@ function updateProgress() {
 }
 
 /* ------------------ RENDERING ------------------ */
-function renderTextarea(parent, index,q) {
-  // const textarea = document.createElement("textarea");
-  // textarea.name = `question-${index}`;
-  // textarea.placeholder = "Type your answer here...";
-  // textarea.style.height = "120px";
-  // textarea.addEventListener('input', updateProgress);
-  // parent.appendChild(textarea);
-     if (isMathQuestion(q)) {
-        return renderMathAnswer(parent, index, q);
-    } else {
-        const textarea = document.createElement("textarea");
-        textarea.name = `question-${index}`;
-        textarea.placeholder = "Type your answer here...";
-        textarea.style.height = "120px";
-        textarea.addEventListener('input', updateProgress);
-        parent.appendChild(textarea);
-        return textarea;
-    }
+function renderTextarea(parent, index) {
+  const textarea = document.createElement("textarea");
+  textarea.name = `question-${index}`;
+  textarea.placeholder = "Type your answer here...";
+  textarea.style.height = "120px";
+  textarea.addEventListener('input', updateProgress);
+  parent.appendChild(textarea);
 }
 
 function loadAllQuestions() {
@@ -652,7 +593,6 @@ function validateAllAnswers() {
 
 function buildUserAnswers() {
   userAnswers = {};
-
   questions.forEach((q, index) => {
     const finalType = deriveType(q);
     let answer = null;
@@ -664,25 +604,13 @@ function buildUserAnswers() {
       const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
       answer = Array.from(selected).map(el => el.value);
     } else {
-      if (isMathQuestion(q)) {
-        const hidden = document.querySelector(
-          `input[name="question-${index}"].rwu-math-hidden`
-        );
-        answer = hidden ? hidden.value : "";
-      } else {
-        const textarea = document.querySelector(`textarea[name="question-${index}"]`);
-        answer = (textarea && textarea.value) ? textarea.value.trim() : "";
-      }
+      const textarea = document.querySelector(`textarea[name="question-${index}"]`);
+      answer = (textarea && textarea.value) ? textarea.value.trim() : "";
     }
 
-    userAnswers[index] = {
-      questionId: q.id,
-      answer: answer,
-      isMath: isMathQuestion(q),
-    };
+    userAnswers[index] = { questionId: q.id, answer: answer };
   });
 }
-
 
 /* ------------------ EVENTS ------------------ */
 /* live tracking for MCQs */
@@ -741,7 +669,8 @@ document.getElementById("submit-btn").addEventListener("click", function () {
   btn.innerText = "Processing...";
 
   $.ajax({
-url: fcom.makeUrl('Quizattemptall', 'submitAnswers'),
+    url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
+    type: "POST",
     data: {
       answers: JSON.stringify(userAnswers),
       subtopicid: userSessionId
@@ -796,7 +725,7 @@ function handleSubmitClick () {
   });
 
   $.ajax({
-    url: fcom.makeUrl('Quizattemptall', 'submitAnswers'),
+    url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
     type: "POST",
     data: {
       answers: JSON.stringify(userAnswers),

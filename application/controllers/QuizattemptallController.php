@@ -237,324 +237,244 @@ class QuizattemptallController extends MyAppController
         $this->_template->render(false, false);
     }
 
- public function submitAnswers()
+    public function submitAnswers()
 {
     $answersJson = FatApp::getPostedData('answers');
-    $subtopicId  = FatApp::getPostedData('subtopicid', FatUtility::VAR_INT, 0);
+    $subtopicId = FatApp::getPostedData('subtopicid');
 
-    // Decode answers JSON
+    // Convert JSON string to PHP array
     $answers = json_decode($answersJson, true);
-    if (!is_array($answers)) {
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
         FatUtility::dieJsonError("Invalid answer data.");
     }
+  
 
-    // *** NEVER hard-code keys in code – move this to config or env ***
+
  $api_key = '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';  
-    if (empty($api_key)) {
-        FatUtility::dieJsonError('AI grading is not configured.');
-    }
+           
 
-    $db = FatApp::getDb();              // <-- define it ONCE
-    $results = [];
-    $questionMarks = 2;                 // TODO: read from DB if needed
+foreach ($answers as $item) {
+    $questionId = $item['questionId'];
+    $userAnswer = $item['answer'];
 
-    foreach ($answers as $item) {
-        $questionId = (int)$item['questionId'];
-        $userAnswer = $item['answer'];
+    // Fetch question data including type and marks
+    $srch = new SearchBase('tbl_quaestion_bank');
+    $srch->addCondition('id', '=', $questionId);
+    $srch->addMultipleFields(['question_title', 'correct_answer', 'question_type']);
+    $rs = $srch->getResultSet();
+    $question = FatApp::getDb()->fetch($rs);
 
-        // Fetch question
-        $srch = new SearchBase('tbl_quaestion_bank');
-        $srch->addCondition('id', '=', $questionId);
-        $srch->addMultipleFields([
-            'question_title',
-            'correct_answer',
-            'question_type'
-            // 'marks' if you later use per-question marks
-        ]);
-        $rs       = $srch->getResultSet();
-        $question = $db->fetch($rs);
+    if (!$question) continue;
 
-        if (!$question) {
-            continue;
-        }
+    $questionType = $question['question_type'];
+   // $questionMarks = (float) $question['marks'];
+    $questionMarks = 2;
+    $questionTitle = $question['question_title'];
+    $correctAnswer = $question['correct_answer'];
 
-        $questionType   = $question['question_type'];
-        $questionTitle  = $question['question_title'];
-        $correctAnswer  = $question['correct_answer'];
+    if ($questionType === 'Story-Based') {
+        // === ChatGPT Grading ===
+        $prompt = "You are a teacher grading a student's answer. ...";  
+        $prompt = str_replace(
+            ['{question}', '{student_answer}', '{marks}'],
+            [$questionTitle, $userAnswer, $questionMarks],
+            $prompt
+        );
 
-        if ($questionType === 'Story-Based') {
-            /** -------- AI GRADING -------- */
-            $prompt = "You are a teacher grading a student's answer.\n"
-                . "Question: {question}\n"
-                . "Student Answer: {student_answer}\n"
-                . "Total Marks: {marks}\n\n"
-                . "Return a short evaluation in this format:\n"
-                . "Marks: X/{marks}\n"
-                . "Explanation: <your explanation here>";
-
-            $prompt = str_replace(
-                ['{question}', '{student_answer}', '{marks}'],
-                [$questionTitle, $userAnswer, $questionMarks],
-                $prompt
-            );
-
-            $data = [
-                "model"    => "gpt-3.5-turbo",
-                "messages" => [
-                    ["role" => "system", "content" => "You are a helpful assistant and an expert teacher."],
-                    ["role" => "user", "content" => $prompt],
-                ],
-                "temperature" => 0.0,
-                "max_tokens"  => 300,
-            ];
-
-            $ch = curl_init('https://api.openai.com/v1/chat/completions');
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode($data),
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/json',
-                    'Authorization: Bearer ' . $api_key,
-                ],
-            ]);
-
-            $response     = curl_exec($ch);
-            $curlError    = curl_error($ch);
-            curl_close($ch);
-
-            if ($curlError) {
-                FatUtility::dieJsonError('AI grading failed: ' . $curlError);
-            }
-
-            $responseData = json_decode($response, true);
-
-            $obtainedMarks = 0.0;
-            $explanation   = 'No explanation provided';
-            $isCorrect     = false;
-
-            if (isset($responseData['choices'][0]['message']['content'])) {
-                $gptResponse = $responseData['choices'][0]['message']['content'];
-
-                // Extract marks => "Marks: X/{marks}"
-                if (preg_match('/\b([\d\.]+)\s*\/\s*' . preg_quote($questionMarks, '/') . '\b/', $gptResponse, $m)) {
-                    $obtainedMarks = (float)$m[1];
-                }
-
-                // Extract explanation
-                if (preg_match('/Explanation:\s*(.*)/s', $gptResponse, $m2)) {
-                    $explanation = trim($m2[1]);
-                }
-
-                $isCorrect = $obtainedMarks > 0;
-            }
-
-            $results[] = [
-                'questionId'      => $questionId,
-                'userAnswer'      => $userAnswer,
-                'correctAnswer'   => null,
-                'isCorrect'       => $isCorrect,
-                'marksObtained'   => $obtainedMarks,
-                'explanation'     => $explanation,
-                // 'userAnswerLatex' / 'correctAnswerLatex' can be attached here later
-            ];
-        } else {
-            /** -------- MCQ / NON-AI GRADING -------- */
-            $correctArray = array_map('trim', explode(',', (string)$correctAnswer));
-            $userArray    = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-
-            sort($correctArray);
-            sort($userArray);
-
-            $isCorrect     = ($correctArray === $userArray);
-            $obtainedMarks = $isCorrect ? $questionMarks : 0.0;
-
-            $results[] = [
-                'questionId'      => $questionId,
-                'userAnswer'      => $userArray,
-                'correctAnswer'   => $correctArray,
-                'isCorrect'       => $isCorrect,
-                'marksObtained'   => $obtainedMarks,
-                'explanation'     => '',
-            ];
-        }
-    } // end foreach answers
-
-    if (empty($results)) {
-        FatUtility::dieJsonError('No answers to save.');
-    }
-
-    /** -------- Totals & Result Status -------- */
-    $totalQuestions = count($results);
-    $totalCorrect   = 0;
-    $totalMarks     = 0.0;
-
-    foreach ($results as $res) {
-        $totalMarks += (float)$res['marksObtained'];
-        if (!empty($res['isCorrect'])) {
-            $totalCorrect++;
-        }
-    }
-
-    $maxMarks          = $totalQuestions * $questionMarks;
-    $passingPercentage = 80;
-    $percentage        = $maxMarks > 0 ? ($totalMarks / $maxMarks) * 100 : 0;
-    $resultStatus      = ($percentage >= $passingPercentage) ? 'pass' : 'fail';
-
-    /** -------- Insert attempt row -------- */
-    $userId = $_SESSION['quiz_user']['id'] ?? 0;
-
-    $quizAttemptData = [
-        'user_id'         => $userId,
-        'subtopic_id'     => $subtopicId,
-        'total_questions' => $totalQuestions,
-        'total_correct'   => $totalCorrect,
-        'total_marks'     => $maxMarks,
-        'marks_obtained'  => $totalMarks,
-        'result'          => $resultStatus,
-    ];
-
-    if (!$db->insertFromArray('tbl_quiz_attempts', $quizAttemptData)) {
-        FatUtility::dieJsonError('Failed to insert quiz attempt');
-    }
-
-    $attemptId = $db->getInsertId();
-
-    /** -------- Insert answers (once!) -------- */
-    foreach ($results as $res) {
-        $answerData = [
-            'attempt_id'     => $attemptId,
-            'question_id'    => $res['questionId'],
-            'user_answer'    => is_array($res['userAnswer'])
-                ? implode(',', $res['userAnswer'])
-                : (string)$res['userAnswer'],
-            'correct_answer' => is_array($res['correctAnswer'] ?? null)
-                ? implode(',', $res['correctAnswer'])
-                : (string)($res['correctAnswer'] ?? ''),
-            'marks_obtained' => $res['marksObtained'],
-            'is_correct'     => !empty($res['isCorrect']) ? 1 : 0,
+        $data = [
+            "model" => "gpt-3.5-turbo",
+            "messages" => [
+                ["role" => "system", "content" => "You are a helpful assistant and an expert teacher."],
+                ["role" => "user", "content" => $prompt]
+            ],
+            "temperature" => 0.0,
+            "max_tokens" => 300
         ];
 
-        // Optional LaTeX support later:
-        if (!empty($res['userAnswerLatex'] ?? '')) {
-            $answerData['user_answer_latex'] = $res['userAnswerLatex'];
-        }
-        if (!empty($res['correctAnswerLatex'] ?? '')) {
-            $answerData['correct_answer_latex'] = $res['correctAnswerLatex'];
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $api_key
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $responseData = json_decode($response, true);
+
+        $obtainedMarks = 0;
+        $explanation = 'No explanation provided';
+        $isCorrect = false;
+
+        if (isset($responseData['choices'][0]['message']['content'])) {
+            $gptResponse = $responseData['choices'][0]['message']['content'];
+
+            // Extract marks
+            preg_match('/\b([\d\.]+)\s*\/\s*' . preg_quote($questionMarks, '/') . '\b/', $gptResponse, $matches);
+            $obtainedMarks = isset($matches[1]) ? floatval($matches[1]) : 0;
+
+            // Explanation
+            preg_match('/Explanation:\s*(.*)/s', $gptResponse, $explanationMatches);
+            $explanation = isset($explanationMatches[1]) ? trim($explanationMatches[1]) : $explanation;
+
+            $isCorrect = $obtainedMarks > 0;
         }
 
-        if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
-            FatUtility::dieJsonError('Failed to insert answer for question ID: ' . $res['questionId']);
-        }
+        $results[] = [
+            'questionId' => $questionId,
+            'userAnswer' => $userAnswer,
+            'correctAnswer' => null,
+            'isCorrect' => $isCorrect,
+            'marksObtained' => $obtainedMarks,
+            'explanation' => $explanation,
+        ];
+    } else {
+        // === MCQ Logic ===
+        $correctArray = explode(',', $correctAnswer);
+        $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+
+        sort($correctArray);
+        sort($userArray);
+
+        $isCorrect = ($correctArray === $userArray);
+        $marksObtained = $isCorrect ? $questionMarks : 0;
+
+        $results[] = [
+            'questionId' => $questionId,
+            'userAnswer' => $userArray,
+            'correctAnswer' => $correctArray,
+            'isCorrect' => $isCorrect,
+            'marksObtained' => $marksObtained,
+            'explanation' => '',
+        ];
     }
+}
 
-    /** -------- Response -------- */
+
+$totalCorrect = 0;
+$totalMarks = 0;
+$marksObtained = 0;
+
+// Store results after loop
+
+ 
+if (is_array($results) && count($results) > 0) {
+foreach ($results as $res) {
+    $totalMarks += isset($res['marksObtained']) ? $res['marksObtained'] : 0;
+    if ($res['isCorrect']) {
+        $totalCorrect++;
+    }
+}
+}
+$totalQuestions = count($results);
+
+$passingPercentage = 80;
+$tm= $totalQuestions * $questionMarks;
+$percentage = ($totalMarks / $tm) * 100;
+
+$resultStatus = $percentage >= $passingPercentage ? 'pass' : 'fail';
+$db = FatApp::getDb();
+
+$userid='';
+if(isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id']))
+{
+    $userid=$_SESSION['quiz_user']['id'];
+}
+
+$quizAttemptData = [
+    'user_id' => $userid,
+    'subtopic_id' => $subtopicId,
+    'total_questions' => $totalQuestions,
+    'total_correct' => $totalCorrect,
+    'total_marks' => $totalQuestions * $questionMarks, // if uniform
+    'marks_obtained' => $totalMarks,
+    'result'=>$resultStatus
+];
+
+if (!$db->insertFromArray('tbl_quiz_attempts', $quizAttemptData)) {
+    dieWithError('Failed to insert quiz attempt');
+}
+
+$attemptId = $db->getInsertId(); // You’ll need this to link answers
+
+foreach ($results as $res) {
+    $answerData = [
+        'attempt_id' => $attemptId,
+        'question_id' => $res['questionId'],
+        'user_answer' => is_array($res['userAnswer']) ? implode(',', $res['userAnswer']) : $res['userAnswer'],
+       'correct_answer' => is_array($res['correctAnswer']) ? implode(',', $res['correctAnswer']) : (string)$res['correctAnswer'],
+        'marks_obtained' => $res['marksObtained'],
+        'is_correct' => $res['isCorrect'] ? 1 : 0,
+    ];
+
+    if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
+        dieWithError('Failed to insert answer for question ID: ' . $res['questionId']);
+    }
+}
+
+
     FatUtility::dieJsonSuccess([
-        'message'      => 'Quiz submitted successfully!',
-        'success'      => 1,
-        'attemptid'    => $attemptId,
-        'status'       => $resultStatus,
-        'marksObtained'=> $totalMarks,
-        'totalMarks'   => $maxMarks,
-        'percentage'   => round($percentage, 2),
+        'message' => 'Quiz submitted successfully!',
+        'success' => 123, // if you have results to show
+        'attemptid'=>$attemptId,
+        'status'=>$resultStatus,
+        'marksObtained'=>$totalMarks,
+        'totalMarks'=>$totalQuestions * $questionMarks,
     ]);
 }
 
-public function getQuestions()
-{
-    $posts = FatApp::getPostedData();
-    $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
-    
-    $db = FatApp::getDb();
-    $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = " . $subtopicId . " ORDER BY RAND() LIMIT 10";
-    $result = $db->query($query);
-
-    if ($result) {
-        $quizzes = $db->fetchAll($result);
-        
-        $formattedQuestions = [];
-        foreach ($quizzes as $quiz) {
-            $formattedQuestions[] = [
-                "id" => $quiz['id'],
-                "text" => $quiz['question_title'],
-                "text_latex" => $quiz['question_title_latex'] ?? '',
-                "type" => $quiz['question_type'],
-                "is_math" => (int)($quiz['is_math'] ?? 0),
-                "options" => array_values(array_filter([
-                    $quiz['answer_a'], 
-                    $quiz['answer_b'], 
-                    $quiz['answer_c'], 
-                    $quiz['answer_d']
-                ])),
-                "options_latex" => array_values(array_filter([
-                    $quiz['answer_a_latex'] ?? null,
-                    $quiz['answer_b_latex'] ?? null,
-                    $quiz['answer_c_latex'] ?? null,
-                    $quiz['answer_d_latex'] ?? null,
-                ])),
-                "answer" => explode(",", $quiz['correct_answer']),
-                "answer_latex" => $quiz['correct_answer_latex'] ?? '',
-                "hint" => $quiz['hint'],
-                "explanation" => $quiz['explanation'],
-                "image" => $quiz['image'] ?? ''
-            ];
-        }
-        
-        FatUtility::dieJsonSuccess([
-            'success' => true,
-            'data' => $formattedQuestions
-        ]);
-    } else {
-        FatUtility::dieJsonError("No questions found.");
-    }
-}
-
-    // public function getQuestions()
-    // {
-    //     $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
-    //     $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
+    public function getQuestions()
+    {
+        $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
+        $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
       
-    //     $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
-    //     //echo $subtopicId;die;
-    //     $db = FatApp::getDb();
-    //     $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = ".$subtopicId." ORDER BY RAND() LIMIT 10";
+        $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
+        //echo $subtopicId;die;
+        $db = FatApp::getDb();
+        $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = ".$subtopicId." ORDER BY RAND() LIMIT 10";
  
 
-    //   //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
+      //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
     
-    //     $result = $db->query($query);
+        $result = $db->query($query);
     
-    //     if ($result) {
-    //         $quizzes = $db->fetchAll($result);
+        if ($result) {
+            $quizzes = $db->fetchAll($result);
     
             
-    //         $formattedQuestions = [];
-    //         foreach ($quizzes as $quiz) {
-    //             $formattedQuestions[] = [
-    //                 "id" => $quiz['id'],
-    //                 "text" => $quiz['question_title'],
-    //                 "type" => $quiz['question_type'],
-    //                 "options" => array_values(array_filter([
-    //                     $quiz['answer_a'], 
-    //                     $quiz['answer_b'], 
-    //                     $quiz['answer_c'], 
-    //                     $quiz['answer_d']
-    //                 ])),  
-    //                 "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
-    //                 "hint" => $quiz['hint'],
-    //                 "explanation" => $quiz['explanation'],
-    //                 "image" => $quiz['image'] ?? ''
-    //             ];
-    //         }
+            $formattedQuestions = [];
+            foreach ($quizzes as $quiz) {
+                $formattedQuestions[] = [
+                    "id" => $quiz['id'],
+                    "text" => $quiz['question_title'],
+                    "type" => $quiz['question_type'],
+                    "options" => array_values(array_filter([
+                        $quiz['answer_a'], 
+                        $quiz['answer_b'], 
+                        $quiz['answer_c'], 
+                        $quiz['answer_d']
+                    ])),  
+                    "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
+                    "hint" => $quiz['hint'],
+                    "explanation" => $quiz['explanation'],
+                    "image" => $quiz['image'] ?? ''
+                ];
+            }
      
-    //         FatUtility::dieJsonSuccess([
-    //             'success' => true,
-    //             'data' => $formattedQuestions
-    //         ]);
-    //     } else {
-    //         FatUtility::dieJsonError("No questions found.");
-    //     }
-    // }
+            FatUtility::dieJsonSuccess([
+                'success' => true,
+                'data' => $formattedQuestions
+            ]);
+        } else {
+            FatUtility::dieJsonError("No questions found.");
+        }
+    }
     
     public function getQuizizzList()
 {
