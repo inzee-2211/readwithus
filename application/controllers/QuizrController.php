@@ -175,25 +175,28 @@ class QuizrController extends MyAppController
     /* -------------------------------------------------------------
        5. Email parent if result = fail
     -------------------------------------------------------------- */
-    if (!empty($resultText)) {
+     if (!empty($resultText)) {
         $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
+        $studentName = $_SESSION['quiz_user']['full_name'] ?? 'your child';
+        $subjectName = $_SESSION['subjectName'] ?? ($subtopicName ?? 'this subject');
+
+        // Debug log so we know what’s going on
+        error_log("QuizrController index: resultText={$resultText}, parentEmail={$parentEmail}");
 
         if ($resultText === 'fail' && !empty($parentEmail)) {
-            $to      = $parentEmail;
-            $subject = "Quiz Result Notification";
 
-            $message = "Subject: Your child's recent results & how we can help them improve
+            $subject = "Your child's quiz result on Read With Us";
 
-Dear Parent,
+            $message = "Dear Parent,
 
-We're writing to inform you about your child's recent performance in their quiz assessment. Unfortunately, they did not achieve a passing grade this time.
+Your child {$studentName} recently attempted a quiz in {$subjectName} and did not achieve a passing grade this time.
 
 We understand this can be worrying, but this result does NOT define their potential. At Read With Us, every setback is a chance to rebuild confidence with the right support.
 
 We offer:
-• Interactive topic quizzes  
-• Revision modules focused on weaker areas  
-• Full course access guided by expert educators  
+• Interactive topic quizzes
+• Revision modules focused on weaker areas
+• Full course access guided by expert educators
 
 \"It's not about being the best, it's about being better than you were yesterday.\"
 
@@ -201,14 +204,17 @@ We recommend revisiting the topic and retrying the quiz to strengthen understand
 
 Warm regards,
 The Read With Us Team
-support@readwithus.org.uk
+info@readwithus.org.uk
 www.readwithus.org.uk";
 
-            $headers  = "From: support@readwithus.org.uk\r\n";
-            $headers .= "Reply-To: no-reply@readwithus.org.uk\r\n";
-            $headers .= "X-Mailer: PHP/" . phpversion();
+            // Convert newlines to <br> so it looks nice in HTML
+            $bodyHtml = nl2br($message);
 
-            @mail($to, $subject, $message, $headers);
+            if (!FatMailer::sendRaw([$parentEmail], $subject, $bodyHtml)) {
+                error_log("QuizrController: failed to send parent email to {$parentEmail}");
+            } else {
+                error_log("QuizrController: parent email sent to {$parentEmail}");
+            }
         }
     }
 
@@ -240,6 +246,8 @@ www.readwithus.org.uk";
 
     $this->_template->render();
 }
+
+
 
 /**
  * Get recommended courses based on level and subject.

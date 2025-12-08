@@ -159,6 +159,68 @@ if (FatApp::getConfig('CONF_SEND_EMAIL') == AppConstant::NO) {
         $this->markArchiveSent();
         return true;
     }
+    /**
+     * Send a simple, hardcoded email using existing SMTP config.
+     * No DB template needed.
+     */
+    /**
+     * Send a simple, hardcoded email using existing SMTP config.
+     * No DB template needed.
+     */
+    public static function sendRaw(array $toArr, string $subject, string $body): bool
+    {
+        // Respect global flags already used in the system
+        if (!ALLOW_EMAILS || FatApp::getConfig('CONF_SEND_EMAIL') == AppConstant::NO) {
+            return true; // pretend success if emails are globally disabled
+        }
+
+        $mail = new PHPMailer();
+
+        if (FatApp::getConfig('CONF_SEND_SMTP_EMAIL')) {
+            $mail->isSMTP();
+            $mail->SMTPAuth   = true;
+            $mail->Host       = FatApp::getConfig("CONF_SMTP_HOST");
+            $mail->Port       = FatApp::getConfig("CONF_SMTP_PORT");
+            $mail->Username   = FatApp::getConfig("CONF_SMTP_USERNAME");
+            $mail->Password   = FatApp::getConfig("CONF_SMTP_PASSWORD");
+            $mail->SMTPSecure = FatApp::getConfig("CONF_SMTP_SECURE");
+        } else {
+            $mail->isMail();
+        }
+
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+
+        // FROM = same as rest of system, but use safe defaults
+        $langId   = FatApp::getConfig('CONF_SITE_LANG', FatUtility::VAR_INT, 1); // <-- SAFE: has default
+        $fromEmail = FatApp::getConfig('CONF_FROM_EMAIL', FatUtility::VAR_STRING, '');
+        $fromName  = FatApp::getConfig('CONF_FROM_NAME_' . $langId, FatUtility::VAR_STRING, 'Read With Us');
+
+        if (empty($fromEmail)) {
+            // If even FROM email is not configured, fail gracefully
+            error_log('FatMailer::sendRaw error: CONF_FROM_EMAIL not configured');
+            return false;
+        }
+
+        $mail->setFrom($fromEmail, $fromName);
+
+        foreach ($toArr as $to) {
+            if (!empty($to)) {
+                $mail->addAddress($to);
+            }
+        }
+
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        if (!$mail->send()) {
+            error_log('FatMailer::sendRaw error: ' . $mail->ErrorInfo);
+            return false;
+        }
+
+        return true;
+    }
+
 
     private function getLayout()
     {
