@@ -138,12 +138,21 @@ class FatMailer extends FatModel
         if (!$this->addToArchive($subject, $body)) {
             return false;
         }
-        if (
-                !ALLOW_EMAILS || $tempalte['etpl_quick_send'] == AppConstant::NO ||
-                FatApp::getConfig('CONF_SEND_EMAIL') == AppConstant::NO
-        ) {
-            return true;
-        }
+       if (!ALLOW_EMAILS) {
+    $this->error = 'Emails are disabled (ALLOW_EMAILS is false).';
+    return false;
+}
+
+if ($tempalte['etpl_quick_send'] == AppConstant::NO) {
+    $this->error = 'Email template [' . $this->template . '] is not marked for quick send.';
+    return false;
+}
+
+if (FatApp::getConfig('CONF_SEND_EMAIL') == AppConstant::NO) {
+    $this->error = 'Global email sending (CONF_SEND_EMAIL) is disabled in configuration.';
+    return false;
+}
+
         if (!$this->sendByPhpMailer($subject, $body)) {
             return false;
         }

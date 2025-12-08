@@ -14,7 +14,7 @@ define('CONF_USE_FAT_CACHE', true);
 define('CONF_DEF_CACHE_TIME', 2592000); // in seconds (2592000 = 30 days)
 define('CONF_IMG_CACHE_TIME', 14400); // in seconds (1400 = 4 hours)
 define('CONF_HOME_PAGE_CACHE_TIME', 28800); // in seconds (28800 = 8 hours)
-define('ALLOW_EMAILS', false);
+define('ALLOW_EMAILS', true);
 define('ENCRYPTION_KEY', 'vt%qkpCDRWB*bq@R&#4e');
 define('ENCRYPTION_IV', 'r&!qmJ#zvQaIK9VKsnZa');
 define('CONF_ZOOM_VERSION', '2.5.0');
