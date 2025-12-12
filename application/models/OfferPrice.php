@@ -57,20 +57,41 @@ class OfferPrice extends MyAppModel
      * @param int $lessons
      * @return bool
      */
-    public function increaseLesson(int $teacherId, int $lessons = 1): bool
-    {
-        if ($this->learnerId < 1) {
-            $this->error = Label::getLabel('LBL_INVALID_REQUEST');
-            return false;
-        }
-        $query = 'INSERT INTO ' . static::DB_TBL . '(offpri_teacher_id, offpri_learner_id, offpri_lessons) VALUES ("' .
-                $teacherId . '","' . $this->learnerId . '" ,"' . $lessons . '") ON DUPLICATE KEY UPDATE offpri_lessons = `offpri_lessons` + ' . $lessons;
-        if (!FatApp::getDb()->query($query)) {
-            $this->error = FatApp::getDb()->getError();
-            return false;
-        }
-        return true;
+    // public function increaseLesson(int $teacherId, int $lessons = 1): bool
+    // {
+    //     if ($this->learnerId < 1) {
+    //         $this->error = Label::getLabel('LBL_INVALID_REQUEST');
+    //         return false;
+    //     }
+    //     $query = 'INSERT INTO ' . static::DB_TBL . '(offpri_teacher_id, offpri_learner_id, offpri_lessons) VALUES ("' .
+    //             $teacherId . '","' . $this->learnerId . '" ,"' . $lessons . '") ON DUPLICATE KEY UPDATE offpri_lessons = `offpri_lessons` + ' . $lessons;
+    //     if (!FatApp::getDb()->query($query)) {
+    //         $this->error = FatApp::getDb()->getError();
+    //         return false;
+    //     }
+    //     return true;
+    // }
+public function increaseLesson(int $teacherId, int $lessons = 1): bool
+{
+    if ($this->learnerId < 1) {
+        $this->error = Label::getLabel('LBL_INVALID_REQUEST');
+        return false;
     }
+
+    // Always provide a value for offpri_classes (0), so DB never complains.
+    $query = 'INSERT INTO ' . static::DB_TBL . ' 
+                (offpri_teacher_id, offpri_learner_id, offpri_lessons, offpri_classes)
+              VALUES 
+                ("' . $teacherId . '","' . $this->learnerId . '","' . $lessons . '", "0")
+              ON DUPLICATE KEY UPDATE 
+                offpri_lessons = `offpri_lessons` + ' . $lessons;
+
+    if (!FatApp::getDb()->query($query)) {
+        $this->error = FatApp::getDb()->getError();
+        return false;
+    }
+    return true;
+}
 
     /**
      * Increase Class
@@ -79,20 +100,41 @@ class OfferPrice extends MyAppModel
      * @param int $classes
      * @return bool
      */
-    public function increaseClass(int $teacherId, int $classes = 1): bool
-    {
-        if ($this->learnerId < 1) {
-            $this->error = Label::getLabel('LBL_INVALID_REQUEST');
-            return false;
-        }
-        $query = 'INSERT INTO ' . static::DB_TBL . '(offpri_teacher_id, offpri_learner_id, offpri_classes) VALUES ("' .
-                $teacherId . '","' . $this->learnerId . '" ,"' . $classes . '") ON DUPLICATE KEY UPDATE offpri_classes = `offpri_classes` + ' . $classes;
-        if (!FatApp::getDb()->query($query)) {
-            $this->error = FatApp::getDb()->getError();
-            return false;
-        }
-        return true;
+    // public function increaseClass(int $teacherId, int $classes = 1): bool
+    // {
+    //     if ($this->learnerId < 1) {
+    //         $this->error = Label::getLabel('LBL_INVALID_REQUEST');
+    //         return false;
+    //     }
+    //     $query = 'INSERT INTO ' . static::DB_TBL . '(offpri_teacher_id, offpri_learner_id, offpri_classes) VALUES ("' .
+    //             $teacherId . '","' . $this->learnerId . '" ,"' . $classes . '") ON DUPLICATE KEY UPDATE offpri_classes = `offpri_classes` + ' . $classes;
+    //     if (!FatApp::getDb()->query($query)) {
+    //         $this->error = FatApp::getDb()->getError();
+    //         return false;
+    //     }
+    //     return true;
+    // }
+public function increaseClass(int $teacherId, int $classes = 1): bool
+{
+    if ($this->learnerId < 1) {
+        $this->error = Label::getLabel('LBL_INVALID_REQUEST');
+        return false;
     }
+
+    // Also send offpri_lessons as 0 for new rows (nice & consistent).
+    $query = 'INSERT INTO ' . static::DB_TBL . ' 
+                (offpri_teacher_id, offpri_learner_id, offpri_lessons, offpri_classes)
+              VALUES 
+                ("' . $teacherId . '","' . $this->learnerId . '","0","' . $classes . '")
+              ON DUPLICATE KEY UPDATE 
+                offpri_classes = `offpri_classes` + ' . $classes;
+
+    if (!FatApp::getDb()->query($query)) {
+        $this->error = FatApp::getDb()->getError();
+        return false;
+    }
+    return true;
+}
 
     /**
      * Get Search Object
@@ -306,23 +348,64 @@ class OfferPrice extends MyAppModel
         return $offers;
     }
 
-    public function updateTeacherStats(int $teacherId): bool
-    {
-        $srch = new SearchBase(static::DB_TBL);
-        $srch->doNotCalculateRecords();
-        $srch->addFld('SUM(offpri_lessons) AS testat_lessons');
-        $srch->addFld('SUM(offpri_classes) AS testat_classes');
-        $srch->addFld('COUNT(offpri_learner_id) AS testat_students');
-        $srch->addCondition('offpri_teacher_id', '=', $teacherId);
-        $row = FatApp::getDb()->fetch($srch->getResultSet());
-        $row['testat_user_id'] = $teacherId;
-        $record = new TableRecord(User::DB_TBL_STAT);
-        $record->assignValues($row);
-        if (!$record->addNew([], $row)) {
-            $this->error = $record->getError();
-            return false;
-        }
-        return true;
+    // public function updateTeacherStats(int $teacherId): bool
+    // {
+    //     $srch = new SearchBase(static::DB_TBL);
+    //     $srch->doNotCalculateRecords();
+    //     $srch->addFld('SUM(offpri_lessons) AS testat_lessons');
+    //     $srch->addFld('SUM(offpri_classes) AS testat_classes');
+    //     $srch->addFld('COUNT(offpri_learner_id) AS testat_students');
+    //     $srch->addCondition('offpri_teacher_id', '=', $teacherId);
+    //     $row = FatApp::getDb()->fetch($srch->getResultSet());
+    //     $row['testat_user_id'] = $teacherId;
+    //     $record = new TableRecord(User::DB_TBL_STAT);
+    //     $record->assignValues($row);
+    //     if (!$record->addNew([], $row)) {
+    //         $this->error = $record->getError();
+    //         return false;
+    //     }
+    //     return true;
+    // }
+public function updateTeacherStats(int $teacherId): bool
+{
+    $srch = new SearchBase(static::DB_TBL);
+    $srch->doNotCalculateRecords();
+    $srch->addFld('SUM(offpri_lessons) AS testat_lessons');
+    $srch->addFld('SUM(offpri_classes) AS testat_classes');
+    $srch->addFld('COUNT(offpri_learner_id) AS testat_students');
+    $srch->addCondition('offpri_teacher_id', '=', $teacherId);
+
+    $row = FatApp::getDb()->fetch($srch->getResultSet()) ?: [];
+
+    // Build a clean row with ONLY existing columns
+    $data = [
+        'testat_user_id'   => $teacherId,
+        'testat_lessons'   => FatUtility::int($row['testat_lessons']  ?? 0),
+        'testat_classes'   => FatUtility::int($row['testat_classes']  ?? 0),
+        'testat_students'  => FatUtility::int($row['testat_students'] ?? 0),
+        // this column exists and previously complained about default value
+        'testat_ratings'   => FatUtility::float($row['testat_ratings'] ?? 0),
+        "testat_reviewes"  => FatUtility::int($row['testat_reviewes'] ?? 0),
+        "testat_courses"   => FatUtility::int($row['testat_courses']   ?? 0),
+        "testat_minprice"   => FatUtility::float($row['testat_minprice']   ?? 0.00),
+        "testat_maxprice"   => FatUtility::float($row['testat_maxprice']   ?? 0.00),
+        "testat_preference" => FatUtility::int($row['testat_preference'] ?? 0),
+        "testat_qualification" => FatUtility::int($row['testat_qualification'] ?? 0),
+        "testat_teachlang"   => FatUtility::int($row['testat_teachlang']   ?? 0),
+        "testat_speaklang"  => FatUtility::int($row['testat_speaklang']  ?? 0),
+        "testat_availability" => FatUtility::int($row['testat_availability'] ?? 0),
+    ];
+
+    $record = new TableRecord(User::DB_TBL_STAT);
+    $record->assignValues($data);
+
+    if (!$record->addNew([], $data)) {
+        $this->error = $record->getError();
+        return false;
     }
+
+    return true;
+}
+
 
 }

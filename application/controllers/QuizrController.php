@@ -177,7 +177,7 @@ class QuizrController extends MyAppController
     -------------------------------------------------------------- */
      if (!empty($resultText)) {
         $parentEmail = $_SESSION['quiz_user']['parent_email'] ?? '';
-        $studentName = $_SESSION['quiz_user']['full_name'] ?? 'your child';
+        $studentName = $_SESSION['quiz_user']['full_name'] ?? 'Your child';
         $subjectName = $_SESSION['subjectName'] ?? ($subtopicName ?? 'this subject');
 
         // Debug log so we know what’s going on
@@ -189,7 +189,7 @@ class QuizrController extends MyAppController
 
             $message = "Dear Parent,
 
-Your child {$studentName} recently attempted a quiz in {$subjectName} and did not achieve a passing grade this time.
+{$studentName} recently attempted a quiz in {$subjectName} and did not achieve a passing grade this time.
 
 We understand this can be worrying, but this result does NOT define their potential. At Read With Us, every setback is a chance to rebuild confidence with the right support.
 

@@ -237,30 +237,46 @@ class OrderPayment extends FatModel
      * @return bool
      */
     private function sendEmailNotification(): bool
-    {
-        $user = User::getAttributesById($this->order['order_user_id']);
-        $variables = [
-            '{orderid}' => Order::formatOrderId($this->order['order_id']),
-            '{order_link}' => MyUtility::makeFullUrl('Orders', 'view', [$this->order['order_id']], CONF_WEBROOT_BACKEND),
-            '{payment}' => MyUtility::formatMoney($this->order['order_net_amount']),
-            '{customer}' => $user['user_first_name'] . ' ' . $user['user_last_name'],
-        ];
-        $mail = new FatMailer($user['user_lang_id'], 'order_paid_to_customer');
-        $mail->setVariables($variables);
-        if (!$mail->sendMail([$user['user_email']])) {
-            $this->error = $mail->getError();
-            return false;
-        }
-        $langId = MyUtility::getSystemLanguage()['language_id'] ?? 1;
-        $mail = new FatMailer($langId, 'order_paid_to_admin');
-
-        $mail->setVariables($variables);
-        if (!$mail->sendMail([FatApp::getConfig('CONF_SITE_OWNER_EMAIL')])) {
-            $this->error = $mail->getError();
-            return false;
-        }
+{
+    // If you have a global toggle, short-circuit when emails are off
+    if (defined('ALLOW_EMAILS') && !ALLOW_EMAILS) {
         return true;
     }
+    // Or, if your config key is different, use that instead:
+    // if (!FatApp::getConfig('CONF_ALLOW_EMAILS', FatUtility::VAR_INT, 0)) {
+    //     return true;
+    // }
+
+    $user = User::getAttributesById($this->order['order_user_id']);
+    $variables = [
+        '{orderid}'    => Order::formatOrderId($this->order['order_id']),
+        '{order_link}' => MyUtility::makeFullUrl('Orders', 'view', [$this->order['order_id']], CONF_WEBROOT_BACKEND),
+        '{payment}'    => MyUtility::formatMoney($this->order['order_net_amount']),
+        '{customer}'   => $user['user_first_name'] . ' ' . $user['user_last_name'],
+    ];
+
+    // ------- Mail to customer -------
+    $mail = new FatMailer($user['user_lang_id'], 'order_paid_to_customer');
+    $mail->setVariables($variables);
+    if (!$mail->sendMail([$user['user_email']])) {
+        // Log but DO NOT fail payment
+        error_log('OrderPayment email (customer) failed: ' . $mail->getError());
+        // DO NOT set $this->error and DO NOT return false
+    }
+
+    // ------- Mail to admin -------
+    $langId = MyUtility::getSystemLanguage()['language_id'] ?? 1;
+    $mail   = new FatMailer($langId, 'order_paid_to_admin');
+    $mail->setVariables($variables);
+    if (!$mail->sendMail([FatApp::getConfig('CONF_SITE_OWNER_EMAIL')])) {
+        // Log but DO NOT fail payment
+        error_log('OrderPayment email (admin) failed: ' . $mail->getError());
+    }
+
+    // Always return true so payment flow continues
+    return true;
+}
+
 
     /**
      * Send System Notification

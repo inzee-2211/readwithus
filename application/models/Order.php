@@ -85,6 +85,8 @@ class Order extends MyAppModel
                 'ordles_lesson_endtime' => null,
                 'ordles_duration' => $lesson['ordles_duration'],
                 'ordles_status' => Lesson::UNSCHEDULED,
+                'ordles_reviewed' => 0,
+                'ordles_metool_id' => 0,
             
             ];
             foreach ($lesson['lessons'] as $value) {
@@ -127,7 +129,8 @@ class Order extends MyAppModel
             'ordles_tlang_id' => $subscription['ordles_tlang_id'],
             'ordles_commission' => $comm['comm_lessons'],
             'ordles_duration' => $subscription['ordles_duration'],
-            'ordles_status' => Lesson::UNSCHEDULED
+            'ordles_status' => Lesson::UNSCHEDULED,
+            'ordles_reviewed' => 0,
         ];
         foreach ($subscription['lessons'] as $key => $value) {
             $value = array_merge($value, $lessonData);

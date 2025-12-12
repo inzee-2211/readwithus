@@ -329,6 +329,7 @@ class CartController extends LoggedUserController
         if (!$order->placeOrder($post['order_type'], $post['order_pmethod_id'], $post['add_and_pay'])) {
             FatUtility::dieJsonError($order->getError());
         }
+        
         $orderId = $order->getMainTableRecordId();
         if ($cartNetAmount == 0) {
             $payment = new OrderPayment($orderId);
