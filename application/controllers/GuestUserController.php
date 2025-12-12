@@ -8,8 +8,51 @@ use Google\Service\Oauth2;
  * @package YoCoach
  * @author Fatbit Team
  */
+
+
+if (!function_exists('write_log')) {
+    /**
+     * Simple file logger.
+     *
+     * @param string $message  Short message (what happened)
+     * @param array  $context  Extra data (will be JSON encoded)
+     * @param string $channel  Optional “channel” name (redirect, auth, stripe, etc.)
+     */
+    function write_log(string $message, array $context = [], string $channel = 'app'): void
+    {
+        // Base logs directory: /application/logs
+        $baseDir = CONF_INSTALLATION_PATH . 'application' . DIRECTORY_SEPARATOR . 'logs';
+
+        // Ensure directory exists
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+        }
+
+        // One file per day & channel, e.g. redirect-2025-12-12.log
+        $filePath = sprintf(
+            '%s%s%s-%s.log',
+            $baseDir,
+            DIRECTORY_SEPARATOR,
+            $channel,
+            date('Y-m-d')
+        );
+
+        // Build log line
+        $line = sprintf(
+            "[%s] %s %s\n",
+            date('Y-m-d H:i:s'),
+            $message,
+            $context ? json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ''
+        );
+
+        // Append line (ignore errors; this is debugging helper)
+        @file_put_contents($filePath, $line, FILE_APPEND | LOCK_EX);
+    }
+}
+
 class GuestUserController extends MyAppController
 {
+    
  private function getDashboardUrl(): string
     {
         // /dashboard/my-subscriptions
@@ -23,6 +66,12 @@ class GuestUserController extends MyAppController
     public function __construct(string $action)
     {
         parent::__construct($action);
+        write_log('GuestUser::__construct', [
+        'action'    => $action,
+        'siteUserId'=> $this->siteUserId,
+        'uri'       => $_SERVER['REQUEST_URI'] ?? '',
+    ], 'auth');
+
         $actions = ['verifyEmail', 'configureEmail', 'updateEmail'];
         if (!in_array($action, $actions) && $this->siteUserId > 0) {
             if (FatUtility::isAjaxCall()) {

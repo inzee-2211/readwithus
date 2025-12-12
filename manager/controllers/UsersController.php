@@ -6,6 +6,48 @@
  * @package YoCoach
  * @author Fatbit Team
  */
+
+
+if (!function_exists('write_log')) {
+    /**
+     * Simple file logger.
+     *
+     * @param string $message  Short message (what happened)
+     * @param array  $context  Extra data (will be JSON encoded)
+     * @param string $channel  Optional “channel” name (redirect, auth, stripe, etc.)
+     */
+    function write_log(string $message, array $context = [], string $channel = 'app'): void
+    {
+        // Base logs directory: /application/logs
+        $baseDir = CONF_INSTALLATION_PATH . 'application' . DIRECTORY_SEPARATOR . 'logs';
+
+        // Ensure directory exists
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+        }
+
+        // One file per day & channel, e.g. redirect-2025-12-12.log
+        $filePath = sprintf(
+            '%s%s%s-%s.log',
+            $baseDir,
+            DIRECTORY_SEPARATOR,
+            $channel,
+            date('Y-m-d')
+        );
+
+        // Build log line
+        $line = sprintf(
+            "[%s] %s %s\n",
+            date('Y-m-d H:i:s'),
+            $message,
+            $context ? json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ''
+        );
+
+        // Append line (ignore errors; this is debugging helper)
+        @file_put_contents($filePath, $line, FILE_APPEND | LOCK_EX);
+    }
+}
+
 class UsersController extends AdminBaseController
 {
 
@@ -234,26 +276,78 @@ public function setup()
      * 
      * @param int $userId
      */
-    public function login($userId)
-    {
+    // public function login($userId)
+    // {
 
         
-        $this->objPrivilege->canEditUsers();
-        $data = User::getDetail($userId);
-        if (empty($data)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
-        $data['user_email'] = FatUtility::convertToType($data['user_email'], FatUtility::VAR_STRING);
+    //     $this->objPrivilege->canEditUsers();
+    //     $data = User::getDetail($userId);
+    //     if (empty($data)) {
+    //         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    //     }
+    //     $data['user_email'] = FatUtility::convertToType($data['user_email'], FatUtility::VAR_STRING);
         
-        $userAuth = new UserAuth();
-        UserAuth::logout();
-        TeacherRequest::closeSession();
-        if (!$userAuth->login($data['user_email'], $data['user_password'], MyUtility::getUserIp(), false)) {
-            FatUtility::dieJsonError($userAuth->getError());
-        }
+    //     $userAuth = new UserAuth();
+    //     UserAuth::logout();
+    //     TeacherRequest::closeSession();
+    //     if (!$userAuth->login($data['user_email'], $data['user_password'], MyUtility::getUserIp(), false)) {
+    //         FatUtility::dieJsonError($userAuth->getError());
+    //     }
   
-        FatUtility::dieJsonSuccess(['redirectUrl' => MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD)]);
+    //     FatUtility::dieJsonSuccess(['redirectUrl' => MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD)]);
+    // }
+    public function login($userId)
+{
+    $this->objPrivilege->canEditUsers();
+
+    // 🔹 Log that admin is trying to impersonate
+    write_log('Admin impersonation attempt', [
+        'adminId'   => $this->siteUserId ?? null,             // current admin
+        'userId'    => (int) $userId,                         // target learner
+        'ip'        => MyUtility::getUserIp(),
+        'uri'       => $_SERVER['REQUEST_URI'] ?? '',
+        'sessionId' => session_id(),
+    ], 'impersonate');
+
+    $data = User::getDetail($userId);
+    if (empty($data)) {
+        write_log('Admin impersonation failed: user not found', [
+            'userId' => (int) $userId,
+        ], 'impersonate');
+
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
+
+    $data['user_email'] = FatUtility::convertToType($data['user_email'], FatUtility::VAR_STRING);
+
+    $userAuth = new UserAuth();
+
+    write_log('Admin impersonation: logging out current session', [
+        'adminId' => $this->siteUserId ?? null,
+    ], 'impersonate');
+
+    UserAuth::logout();
+    TeacherRequest::closeSession();
+
+    if (!$userAuth->login($data['user_email'], $data['user_password'], MyUtility::getUserIp(), false)) {
+        write_log('Admin impersonation: login() failed', [
+            'userId'  => (int) $userId,
+            'reason'  => $userAuth->getError(),
+        ], 'impersonate');
+
+        FatUtility::dieJsonError($userAuth->getError());
+    }
+
+    write_log('Admin impersonation: login() success', [
+        'impersonatedUserId' => (int) $userId,
+        'redirectTo'         => MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD),
+    ], 'impersonate');
+
+    FatUtility::dieJsonSuccess([
+        'redirectUrl' => MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD)
+    ]);
+}
+
 
     /**
      * User Transaction
