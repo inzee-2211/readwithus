@@ -21,7 +21,6 @@ $mathEditorEnabled = defined('CONF_ENABLE_MATH_EDITOR') && CONF_ENABLE_MATH_EDIT
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive-static.css" />
 <script src="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js"></script>
-<script src="js/math-editor.js"></script>
 
 <!-- MathJax v3 for LaTeX rendering -->
 <script>
