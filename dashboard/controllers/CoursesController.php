@@ -934,7 +934,8 @@ public function submitForApproval(int $courseId)
             $this->siteLangId
         );
 
-        // OPTIONAL: log eligibility criteria too
+        // Log eligibility criteria (already good)
+        $criteria = null;
         if (method_exists($course, 'isEligibleForApproval')) {
             $criteria = $course->isEligibleForApproval();
             app_debug_log('courses-approval', 'Eligibility check', [
@@ -944,15 +945,37 @@ public function submitForApproval(int $courseId)
         }
 
         if (!$course->submitApprovalRequest()) {
-            $err = $course->getError();
-            app_debug_log('courses-approval', 'submitApprovalRequest FAILED', [
-                'courseId' => $courseId,
-                'userId'   => $this->siteUserId,
-                'error'    => $err,
+
+            $courseError = $course->getError();
+
+            // Pull DB-level error if any
+            $db      = FatApp::getDb();
+            $dbError = method_exists($db, 'getError') ? $db->getError() : null;
+
+            // Also log current course flags (status/active/approved etc.)
+            $courseAttrs = Course::getAttributesById($courseId, [
+                'course_id',
+                'course_user_id',
+                'course_status',
+                'course_active',
+                'course_approved',
             ]);
-            FatUtility::dieJsonError($err ?: 'Unknown backend error while submitting course');
+
+            app_debug_log('courses-approval', 'submitApprovalRequest FAILED (detailed)', [
+                'courseId'    => $courseId,
+                'userId'      => $this->siteUserId,
+                'error'       => $courseError,
+                'dbError'     => $dbError,
+                'courseAttrs' => $courseAttrs,
+                'criteria'    => $criteria,
+            ]);
+
+            // Return something useful to the frontend as well
+            $msg = $courseError ?: ($dbError ?: 'Unknown backend error while submitting course');
+            FatUtility::dieJsonError($msg);
         }
 
+        // Success path
         app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS', [
             'courseId' => $courseId,
             'userId'   => $this->siteUserId,
@@ -973,6 +996,7 @@ public function submitForApproval(int $courseId)
         FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-01)');
     }
 }
+
 
     /**
      * Add/Remove Course from user favorites list
