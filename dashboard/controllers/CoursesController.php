@@ -62,7 +62,34 @@ if (!function_exists('app_require')) {
             "Required file not found. Tried:\n- " . implode("\n- ", $attempted)
         );
     }
+    
 }
+if (!function_exists('app_debug_log')) {
+    /**
+     * Simple JSON line logger into application/logs/<channel>-YYYY-MM-DD.log
+     */
+    function app_debug_log(string $channel, string $message, array $context = []): void
+    {
+        // Base dir: /var/www/html/application/logs
+        $base = rtrim(CONF_APPLICATION_PATH, "/\\") . '/logs';
+
+        if (!is_dir($base)) {
+            @mkdir($base, 0775, true);
+        }
+
+        $file = $base . '/' . $channel . '-' . date('Y-m-d') . '.log';
+
+        $payload = [
+            'time'    => date('Y-m-d H:i:s'),
+            'uri'     => $_SERVER['REQUEST_URI'] ?? '',
+            'message' => $message,
+            'context' => $context,
+        ];
+
+        @file_put_contents($file, json_encode($payload) . PHP_EOL, FILE_APPEND);
+    }
+}
+
 app_require('library/services/UnifiedCourseAccess.php');
 /**
  * This Controller is used for handling courses
@@ -847,18 +874,80 @@ private function cleanIntendedLearnersData(array $post): array
      * @param int $courseId
      * @return bool
      */
-    public function submitForApproval(int $courseId)
-    {
+    // public function submitForApproval(int $courseId)
+    // {
+    //     if ($courseId < 1) {
+    //         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    //     }
+    //     $course = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
+    //     if (!$course->submitApprovalRequest()) {
+    //         FatUtility::dieJsonError($course->getError());
+    //     }
+    //     Message::addMessage(Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'));
+    //     FatUtility::dieJsonSuccess('');
+    // }
+public function submitForApproval(int $courseId)
+{
+    app_debug_log('courses-approval', 'submitForApproval called', [
+        'courseId' => $courseId,
+        'userId'   => $this->siteUserId,
+        'type'     => $this->siteUserType,
+    ]);
+
+    try {
         if ($courseId < 1) {
+            app_debug_log('courses-approval', 'Invalid courseId', [
+                'courseId' => $courseId,
+            ]);
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
-        $course = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
-        if (!$course->submitApprovalRequest()) {
-            FatUtility::dieJsonError($course->getError());
+
+        $course = new Course(
+            $courseId,
+            $this->siteUserId,
+            $this->siteUserType,
+            $this->siteLangId
+        );
+
+        // OPTIONAL: log eligibility criteria too
+        if (method_exists($course, 'isEligibleForApproval')) {
+            $criteria = $course->isEligibleForApproval();
+            app_debug_log('courses-approval', 'Eligibility check', [
+                'courseId' => $courseId,
+                'criteria' => $criteria,
+            ]);
         }
+
+        if (!$course->submitApprovalRequest()) {
+            $err = $course->getError();
+            app_debug_log('courses-approval', 'submitApprovalRequest FAILED', [
+                'courseId' => $courseId,
+                'userId'   => $this->siteUserId,
+                'error'    => $err,
+            ]);
+            FatUtility::dieJsonError($err ?: 'Unknown backend error while submitting course');
+        }
+
+        app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS', [
+            'courseId' => $courseId,
+            'userId'   => $this->siteUserId,
+        ]);
+
         Message::addMessage(Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'));
-        FatUtility::dieJsonSuccess('');
+        FatUtility::dieJsonSuccess([
+            'msg' => Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'),
+        ]);
+
+    } catch (Throwable $e) {
+        app_debug_log('courses-approval', 'EXCEPTION in submitForApproval', [
+            'courseId'  => $courseId,
+            'userId'    => $this->siteUserId,
+            'exception' => $e->getMessage(),
+            'trace'     => $e->getTraceAsString(),
+        ]);
+        FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-01)');
     }
+}
 
     /**
      * Add/Remove Course from user favorites list
