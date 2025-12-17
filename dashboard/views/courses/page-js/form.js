@@ -398,85 +398,13 @@ $(function () {
         searchResources(document.frmResourceSearch, $(_obj).data('page'));
     };
     /* ] */
-    // submitForReview = function () {
-    //     if (confirm(langLbl.confirmCourseSubmission)) {
-    //         fcom.updateWithAjax(fcom.makeUrl('Courses', 'submitForApproval', [courseId]), '', function (res) {
-    //             window.location = fcom.makeUrl('Courses');
-    //         });
-    //     }
-    // }
     submitForReview = function () {
-    if (typeof courseId === 'undefined' || !courseId) {
-        console.error('[submitForReview] courseId missing:', courseId);
-        alert('Course id missing – please reload the page.');
-        return;
-    }
-
-    if (!confirm(langLbl.confirmCourseSubmission)) {
-        console.log('[submitForReview] User cancelled confirmation dialog.');
-        return;
-    }
-
-    var url = fcom.makeUrl('Courses', 'submitForApproval', [courseId]);
-
-    console.log('[submitForReview] About to send request', {
-        courseId: courseId,
-        url: url
-    });
-
-    // IMPORTANT: use raw $.ajax so we can see raw response & errors
-    $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'text', // don't force JSON, we will parse manually
-        beforeSend: function () {
-            console.log('[submitForReview] Request is being sent...');
-        },
-        success: function (data, textStatus, jqXHR) {
-            console.log('[submitForReview] HTTP status:', jqXHR.status);
-            console.log('[submitForReview] Raw response TEXT:', data);
-
-            // Try to parse JSON if it looks like JSON
-            var resp = null;
-            try {
-                resp = JSON.parse(data);
-                console.log('[submitForReview] Parsed JSON:', resp);
-            } catch (e) {
-                console.warn('[submitForReview] Response is not valid JSON:', e);
-            }
-
-            // If our framework responded in JSON
-            if (resp && typeof resp.status !== 'undefined') {
-                if (resp.status == 1) {
-                    var msg = resp.msg || 'Approval requested successfully';
-                    console.log('[submitForReview] SUCCESS:', msg, resp);
-
-                    $.mbsmessage(msg, false, 'alert--success');
-                    setTimeout(function () {
-                        window.location.href = fcom.makeUrl('Courses');
-                    }, 1500);
-                } else {
-                    var errMsg = resp.msg || 'Unknown error while submitting course';
-                    console.error('[submitForReview] BACKEND ERROR:', errMsg, resp);
-                    $.mbsmessage(errMsg, true, 'alert--danger');
-                    alert('Submit failed: ' + errMsg);
-                }
-            } else {
-                // Not JSON – probably a PHP error / HTML
-                console.error('[submitForReview] Unexpected non-JSON response. See above raw text.');
-                alert('Submit failed: backend returned unexpected response (check Console → Network).');
-            }
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.error('[submitForReview] AJAX ERROR:', textStatus, errorThrown);
-            console.log('[submitForReview] HTTP status:', jqXHR.status);
-            console.log('[submitForReview] Raw response TEXT:', jqXHR.responseText);
-            alert('Request failed: ' + textStatus + ' – see console for details.');
+        if (confirm(langLbl.confirmCourseSubmission)) {
+            fcom.updateWithAjax(fcom.makeUrl('Courses', 'submitForApproval', [courseId]), '', function (res) {
+                window.location = fcom.makeUrl('Courses');
+            });
         }
-    });
-};
-
-
+    }
 });
 $(document).ready(function(){
     $('body').on('input', 'input[type="text"], textarea', function () {

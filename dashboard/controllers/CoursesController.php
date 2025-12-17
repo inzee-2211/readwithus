@@ -70,9 +70,24 @@ if (!function_exists('app_debug_log')) {
      */
     function app_debug_log(string $channel, string $message, array $context = []): void
     {
-        // Base dir: /var/www/html/application/logs
-        $base = rtrim(CONF_APPLICATION_PATH, "/\\") . '/logs';
+        // Try to resolve project root in a robust way
+        // dashboard/controllers/CoursesController.php -> __DIR__ = .../dashboard/controllers
+        // dirname(__DIR__, 2) -> ... (project root)
+        $projectRoot = realpath(dirname(__DIR__, 2));
+        if ($projectRoot === false) {
+            // Fallback: rely on CONF_APPLICATION_PATH if it exists
+            if (defined('CONF_APPLICATION_PATH')) {
+                $projectRoot = rtrim(dirname(CONF_APPLICATION_PATH), "/\\");
+            } else {
+                // Last resort: current directory
+                $projectRoot = realpath('.') ?: '.';
+            }
+        }
 
+        // application/logs
+        $base = $projectRoot . '/application/logs';
+
+        // Ensure dir exists
         if (!is_dir($base)) {
             @mkdir($base, 0775, true);
         }
@@ -86,9 +101,19 @@ if (!function_exists('app_debug_log')) {
             'context' => $context,
         ];
 
-        @file_put_contents($file, json_encode($payload) . PHP_EOL, FILE_APPEND);
+        $line = json_encode($payload) . PHP_EOL;
+
+        // Try to write. If it fails, log to Apache/PHP error.log
+        $ok = @file_put_contents($file, $line, FILE_APPEND);
+        if ($ok === false) {
+            error_log(
+                'app_debug_log: FAILED to write log file: ' . $file .
+                ' | payload=' . $line
+            );
+        }
     }
 }
+
 
 app_require('library/services/UnifiedCourseAccess.php');
 /**
