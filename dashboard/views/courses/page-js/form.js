@@ -405,7 +405,7 @@ $(function () {
     //         });
     //     }
     // }
-    function submitForReview() {
+     submitForReview=function() {
     if (typeof courseId === 'undefined' || !courseId) {
         console.error('submitForReview: courseId missing', courseId);
         alert('Course id missing – please reload the page.');
