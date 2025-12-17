@@ -144,7 +144,8 @@ $textLength = 155;
                                                                                         </a> -->
                                                             <?php   ?>
                                                             <a href="javascript:void(0);"
-                                                                onclick="cancelForm('<?php echo $question['question_id']; ?>');"
+                                                               onclick="removeQuizQuestion(<?php echo (int)$question['question_id']; ?>);"
+
                                                                 class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                                                                 <svg class="icon icon--cancel icon--small">
                                                                     <use
@@ -227,12 +228,14 @@ $pagingArr = [
     'recordCount' => $recordCount,
     'pageCount' => ceil($recordCount / $post['pagesize'])
 ];
-$this->includeTemplate('_partial/pagination.php', $pagingArr, false);
-echo FatUtility::createHiddenFormFromData($post, ['name' => 'frmSearchPaging']);
+
 ?>
 
 
 </form>
+<?php
+$this->includeTemplate('_partial/pagination.php', $pagingArr, false);
+echo FatUtility::createHiddenFormFromData($post, ['name' => 'frmSearchPaging']);?>
 <?php echo $frm->getExternalJS(); ?>
 <script type="text/javascript">
     $(function() {

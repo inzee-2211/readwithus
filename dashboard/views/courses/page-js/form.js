@@ -398,13 +398,42 @@ $(function () {
         searchResources(document.frmResourceSearch, $(_obj).data('page'));
     };
     /* ] */
-    submitForReview = function () {
-        if (confirm(langLbl.confirmCourseSubmission)) {
-            fcom.updateWithAjax(fcom.makeUrl('Courses', 'submitForApproval', [courseId]), '', function (res) {
-                window.location = fcom.makeUrl('Courses');
-            });
-        }
+    // submitForReview = function () {
+    //     if (confirm(langLbl.confirmCourseSubmission)) {
+    //         fcom.updateWithAjax(fcom.makeUrl('Courses', 'submitForApproval', [courseId]), '', function (res) {
+    //             window.location = fcom.makeUrl('Courses');
+    //         });
+    //     }
+    // }
+    function submitForReview() {
+    if (typeof courseId === 'undefined' || !courseId) {
+        console.error('submitForReview: courseId missing', courseId);
+        alert('Course id missing – please reload the page.');
+        return;
     }
+
+    console.log('submitForReview: submitting courseId =', courseId);
+
+    fcom.updateWithAjax(
+        fcom.makeUrl('Courses', 'submitForApproval', [courseId]),
+        '',
+        function (resp) {
+            console.log('submitForApproval response:', resp);
+
+            // Show raw message so we SEE backend error
+            if (resp.status == 1) {
+                $.mbsmessage(resp.msg || 'Submitted for approval', false, 'alert--success');
+                setTimeout(function () {
+                    window.location.href = fcom.makeUrl('Courses'); // or existing redirect
+                }, 1500);
+            } else {
+                $.mbsmessage(resp.msg || 'Unknown error while submitting course', true, 'alert--danger');
+                alert('Submit failed: ' + (resp.msg || 'No message from server'));
+            }
+        }
+    );
+}
+
 });
 $(document).ready(function(){
     $('body').on('input', 'input[type="text"], textarea', function () {

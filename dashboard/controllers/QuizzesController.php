@@ -104,6 +104,24 @@ class QuizzesController extends DashboardController
      *
      * @param mixed $courseId
      */
+public function removeQuestion()
+{
+    $quizId = FatUtility::int(FatApp::getPostedData('quiz_id', FatUtility::VAR_INT, 0));
+    $questionId = FatUtility::int(FatApp::getPostedData('question_id', FatUtility::VAR_INT, 0));
+
+    if ($quizId < 1 || $questionId < 1) {
+        FatUtility::dieJsonError('Invalid request');
+    }
+
+    // TODO: use your actual mapping table name/columns
+    $db = FatApp::getDb();
+    $db->deleteRecords('tbl_quiz_questions', [
+        'smt' => 'quiz_id = ? AND question_id = ?',
+        'vals' => [$quizId, $questionId]
+    ]);
+
+    FatUtility::dieJsonSuccess(['msg' => 'Removed']);
+}
 
   
     public function form($courseId = 0)

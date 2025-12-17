@@ -20,12 +20,31 @@ $(function () {
             getCourseEligibility();
         }, {process: process});
     };
-    intendedLearnersForm = function () {
-        fcom.ajax(fcom.makeUrl('Quizzes', 'intendedLearnersForm', [courseId]), '', function (res) {
-            $('#pageContentJs').html(res);
-            getCourseEligibility();
-        });
-    };
+    // intendedLearnersForm = function () {
+    //     fcom.ajax(fcom.makeUrl('Quizzes', 'intendedLearnersForm', [courseId]), '', function (res) {
+    //         $('#pageContentJs').html(res);
+    //         getCourseEligibility();
+    //     });
+    // };
+    intendedLearnersForm = function (page = 1) {
+  var frm = document.frmSearchPaging;
+  if (frm && frm.pageno) {
+    $(frm.pageno).val(page);
+  }
+
+  fcom.ajax(
+    fcom.makeUrl('Quizzes', 'intendedLearnersForm', [courseId]),
+    frm ? fcom.frmData(frm) : { pageno: page },
+    function (res) {
+      $('#pageContentJs').html(res);
+      getCourseEligibility();
+    }
+  );
+};
+
+goToSearchPage = function (page) {
+  intendedLearnersForm(page);
+};
 
     settingsForm = function () {
         fcom.ajax(fcom.makeUrl('Quizzes', 'settingsForm', [courseId]), '', function (res) {
@@ -71,13 +90,29 @@ $(function () {
             getCourseEligibility();
         });
     };
+removeQuizQuestion = function (questionId) {
+  if (!confirm(langLbl.confirmRemove || 'Remove this question?')) return;
 
-    goToSearchPage = function (page) {
+  const data = { quiz_id: courseId, question_id: questionId };
+
+  fcom.updateWithAjax(
+    fcom.makeUrl('Quizzes', 'removeQuestion'), // backend action
+    data,
+    function () {
+      // reload current page of the questions list
+      const frm = document.frmSearchPaging;
+      const page = frm && frm.pageno ? parseInt($(frm.pageno).val() || 1, 10) : 1;
+      intendedLearnersForm(page);
+    }
+  );
+};
+
+    // goToSearchPage = function (page) {
        
-         var frm = document.frmSearchPaging;
-          $(frm.pageno).val(page);
-          // search(frm);
-    };
+    //      var frm = document.frmSearchPaging;
+    //       $(frm.pageno).val(page);
+    //       // search(frm);
+    // };
     search = function (frm) {
         console.log(fcom.frmData(frm));
         // fcom.ajax(fcom.makeUrl('Quizzes', 'priceForm'), fcom.frmData(frm), function (res) {
