@@ -927,6 +927,34 @@ public function submitForApproval(int $courseId)
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
 
+        // Make sure course exists and belongs to this teacher
+        $courseAttrs = Course::getAttributesById($courseId, [
+            'course_id',
+            'course_user_id',
+            'course_status',
+            'course_active',
+            'course_approved',
+        ]);
+
+        if (empty($courseAttrs) || (int)$courseAttrs['course_user_id'] !== (int)$this->siteUserId) {
+            app_debug_log('courses-approval', 'Course not found or not owned by user', [
+                'courseId' => $courseId,
+                'userId'   => $this->siteUserId,
+                'courseAttrs' => $courseAttrs,
+            ]);
+            FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_NOT_FOUND'));
+        }
+
+        // If already submitted, don't allow again
+        if ((int)$courseAttrs['course_approved'] === 1) {
+            app_debug_log('courses-approval', 'Course already submitted for approval', [
+                'courseId' => $courseId,
+                'userId'   => $this->siteUserId,
+            ]);
+            FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_ALREADY_SUBMITTED_FOR_APPROVAL'));
+        }
+
+        // Build Course object just to reuse eligibility logic
         $course = new Course(
             $courseId,
             $this->siteUserId,
@@ -934,7 +962,6 @@ public function submitForApproval(int $courseId)
             $this->siteLangId
         );
 
-        // Log eligibility criteria (already good)
         $criteria = null;
         if (method_exists($course, 'isEligibleForApproval')) {
             $criteria = $course->isEligibleForApproval();
@@ -942,41 +969,37 @@ public function submitForApproval(int $courseId)
                 'courseId' => $courseId,
                 'criteria' => $criteria,
             ]);
+
+            if (empty($criteria['course_is_eligible'])) {
+                $msg = Label::getLabel('LBL_COURSE_NOT_ELIGIBLE_FOR_APPROVAL');
+                app_debug_log('courses-approval', 'Not eligible for approval', [
+                    'courseId' => $courseId,
+                    'criteria' => $criteria,
+                ]);
+                FatUtility::dieJsonError($msg);
+            }
         }
 
-        if (!$course->submitApprovalRequest()) {
+        // ✅ Manually mark as "submitted for approval"
+        $db = FatApp::getDb();
+        $data = ['course_approved' => 1];
 
-            $courseError = $course->getError();
+        $where = [
+            'smt'  => 'course_id = ? AND course_user_id = ?',
+            'vals' => [$courseId, $this->siteUserId],
+        ];
 
-            // Pull DB-level error if any
-            $db      = FatApp::getDb();
-            $dbError = method_exists($db, 'getError') ? $db->getError() : null;
-
-            // Also log current course flags (status/active/approved etc.)
-            $courseAttrs = Course::getAttributesById($courseId, [
-                'course_id',
-                'course_user_id',
-                'course_status',
-                'course_active',
-                'course_approved',
+        if (!$db->updateFromArray(Course::DB_TBL, $data, $where)) {
+            $dbError = method_exists($db, 'getError') ? $db->getError() : '';
+            app_debug_log('courses-approval', 'DB update FAILED while submitting for approval', [
+                'courseId' => $courseId,
+                'userId'   => $this->siteUserId,
+                'dbError'  => $dbError,
             ]);
-
-            app_debug_log('courses-approval', 'submitApprovalRequest FAILED (detailed)', [
-                'courseId'    => $courseId,
-                'userId'      => $this->siteUserId,
-                'error'       => $courseError,
-                'dbError'     => $dbError,
-                'courseAttrs' => $courseAttrs,
-                'criteria'    => $criteria,
-            ]);
-
-            // Return something useful to the frontend as well
-            $msg = $courseError ?: ($dbError ?: 'Unknown backend error while submitting course');
-            FatUtility::dieJsonError($msg);
+            FatUtility::dieJsonError($dbError ?: 'Failed to submit course for approval.');
         }
 
-        // Success path
-        app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS', [
+        app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS (controller override)', [
             'courseId' => $courseId,
             'userId'   => $this->siteUserId,
         ]);
@@ -993,9 +1016,10 @@ public function submitForApproval(int $courseId)
             'exception' => $e->getMessage(),
             'trace'     => $e->getTraceAsString(),
         ]);
-        FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-01)');
+        FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-OVR-01)');
     }
 }
+
 
 
     /**
