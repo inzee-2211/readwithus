@@ -423,18 +423,82 @@ class MyUtility extends FatUtility
      * @param string $path
      * @return bool
      */
-    public static function setCookie(string $name, string $value, int $expires = 604800, string $path = CONF_WEBROOT_FRONT_URL, bool $httponly = true): bool
-    {
-        $secure = (bool) FatApp::getConfig('CONF_USE_SSL');
-        return setCookie($name, $value, [
-            'path' => $path,
-            'httponly' => $httponly,
-            'secure' => $secure,
-            'expires' => time() + $expires,
-            'domain' => $_SERVER['HTTP_HOST'],
-            'samesite' => $secure ? 'none' : '',
-        ]);
+    // public static function setCookie(string $name, string $value, int $expires = 604800, string $path = CONF_WEBROOT_FRONT_URL, bool $httponly = true): bool
+    // {
+    //     $secure = (bool) FatApp::getConfig('CONF_USE_SSL');
+    //     return setCookie($name, $value, [
+    //         'path' => $path,
+    //         'httponly' => $httponly,
+    //         'secure' => $secure,
+    //         'expires' => time() + $expires,
+    //         'domain' => $_SERVER['HTTP_HOST'],
+    //         'samesite' => $secure ? 'none' : '',
+    //     ]);
+    // }
+public static function setCookie(
+    string $name,
+    string $value,
+    int $expires = 604800,
+    string $path = CONF_WEBROOT_FRONT_URL,
+    bool $httponly = true
+): bool {
+    $secure = (bool) FatApp::getConfig('CONF_USE_SSL');
+
+    /**
+     * 1️⃣ Normalize cookie path
+     *    - If a full URL (https://readwithus.org.uk/), extract only the path "/"
+     *    - If empty, use "/"
+     *    - If relative (like "dashboard"), prefix with "/"
+     */
+    if (empty($path)) {
+        $path = '/';
+    } elseif (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+        // Strip scheme + host, keep only path
+        $parsedPath = parse_url($path, PHP_URL_PATH);
+        $path = ($parsedPath !== null && $parsedPath !== '') ? $parsedPath : '/';
+    } elseif ($path[0] !== '/') {
+        $path = '/' . $path;
     }
+
+    /**
+     * 2️⃣ Compute expiry time
+     *    - Most places pass "seconds from now" (604800, -604800, etc.)
+     *    - One place passes time() - 3600 (absolute timestamp) for deletion
+     *    - To avoid breaking anything, we use a small heuristic:
+     *      > 5 years in seconds → treat as absolute timestamp
+     *      otherwise → treat as offset from now
+     */
+    if ($expires > 0) {
+        // 5 years in seconds
+        $fiveYears = 157680000;
+
+        if ($expires > $fiveYears) {
+            // Probably an absolute timestamp (like time() - 3600 bug case)
+            $expireTime = $expires;
+        } else {
+            // Offset in seconds
+            $expireTime = time() + $expires;
+        }
+    } else {
+        // 0 or negative → direct offset (used for deletion with -604800, etc.)
+        $expireTime = time() + $expires;
+    }
+
+    $options = [
+        'expires'  => $expireTime,
+        'path'     => $path,
+        'domain'   => $_SERVER['HTTP_HOST'] ?? '',
+        'secure'   => $secure,
+        'httponly' => $httponly,
+    ];
+
+    // Only send SameSite when secure (as you already intended)
+    if ($secure) {
+        $options['samesite'] = 'none';
+    }
+
+    return setcookie($name, $value, $options);
+}
 
     /**
      * Make URL

@@ -310,15 +310,55 @@ class CommonHelper
         return $data;
     }
 
-    public static function setSeesionCookieParams()
-    {
-        $secure = FatApp::getConfig('CONF_USE_SSL', FatUtility::VAR_BOOLEAN, false);
-        $params = ['httponly' => true, 'secure' => $secure, 'path' => CONF_WEBROOT_FRONT_URL,];
-        if ($secure) {
-            $params['samesite'] = 'none';
-        }
-        session_set_cookie_params($params);
+    // public static function setSeesionCookieParams()
+    // {
+    //     $secure = FatApp::getConfig('CONF_USE_SSL', FatUtility::VAR_BOOLEAN, false);
+    //     $params = ['httponly' => true, 'secure' => $secure, 'path' => CONF_WEBROOT_FRONT_URL,];
+    //     if ($secure) {
+    //         $params['samesite'] = 'none';
+    //     }
+    //     session_set_cookie_params($params);
+    // }
+
+public static function setSeesionCookieParams()
+{
+    $secure = FatApp::getConfig('CONF_USE_SSL', FatUtility::VAR_BOOLEAN, false);
+
+    // 🔧 Normalize cookie path: convert any full URL to just its path
+    $path = '/';
+    if (defined('CONF_WEBROOT_FRONT_URL')) {
+        $raw = CONF_WEBROOT_FRONT_URL;
+    } elseif (defined('CONF_WEBROOT_FRONTEND')) {
+        $raw = CONF_WEBROOT_FRONTEND;
+    } else {
+        $raw = '/';
     }
+
+    if (!empty($raw)) {
+        // If it starts with http/https, extract only the PATH part
+        if (strpos($raw, 'http://') === 0 || strpos($raw, 'https://') === 0) {
+            $parsedPath = parse_url($raw, PHP_URL_PATH);
+            $path = ($parsedPath !== null && $parsedPath !== '') ? $parsedPath : '/';
+        } else {
+            // If it's not a URL, ensure it starts with '/'
+            $path = ($raw[0] === '/') ? $raw : '/' . $raw;
+        }
+    }
+
+    $params = [
+        'httponly' => true,
+        'secure'   => $secure,
+        'path'     => $path,
+    ];
+
+    if ($secure) {
+        // You already had this – keep behaviour the same
+        $params['samesite'] = 'none';
+    }
+
+    session_set_cookie_params($params);
+}
+
 
     public static function replaceStringData($str, $replacements = [], $replaceTags = false)
     {

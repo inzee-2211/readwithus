@@ -235,7 +235,8 @@ class UserAuth extends FatModel
         if (!FatApp::getDb()->insertFromArray(static::DB_TBL_USER_AUTH, $values)) {
             return false;
         }
-        MyUtility::setCookie(static::COOKIES_ELEMENT, $authToken, $rememberMeDays * 86400, CONF_WEBROOT_FRONTEND);
+        // MyUtility::setCookie(static::COOKIES_ELEMENT, $authToken, $rememberMeDays * 86400, CONF_WEBROOT_FRONTEND);
+        MyUtility::setCookie(static::COOKIES_ELEMENT, $authToken, $rememberMeDays * 86400, '/');
         return true;
     }
 
@@ -244,7 +245,8 @@ class UserAuth extends FatModel
         FatApp::getDb()->deleteRecords(static::DB_TBL_USER_AUTH, [
             'smt' => 'usrtok_token = ?', 'vals' => [$_COOKIE[static::COOKIES_ELEMENT] ?? '']
         ]);
-        MyUtility::setCookie(static::COOKIES_ELEMENT, '', time() - 3600, CONF_WEBROOT_FRONTEND);
+        // MyUtility::setCookie(static::COOKIES_ELEMENT, '', time() - 3600, CONF_WEBROOT_FRONTEND);
+        MyUtility::setCookie(static::COOKIES_ELEMENT, '', time() - 3600, '/');
     }
 
     public function signup(array $data): bool
