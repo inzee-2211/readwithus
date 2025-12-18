@@ -29,39 +29,56 @@ class HomeController extends AdminBaseController
         if (strpos($_SERVER['HTTP_USER_AGENT'], 'Trident/7.0; rv:11.0') !== false) {
             $this->_template->addCss('css/ie.css');
         }
+           if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
         $datetime = FatApp::getConfig('CONF_SALES_REPORT_GENERATED_DATE');
         $regendatedtime = str_replace('{datetime}', $datetime . ' (UTC)', Label::getLabel('LBL_REPORT_GENERATED_ON_{datetime}'));
         $this->sets([
             'objPrivilege' => $this->objPrivilege,
             'stats' => AdminStatistic::getDashboardStats(),
             'regendatedtime' => $regendatedtime,
-            'analyticsToken' => (new GoogleAnalytics())->getAnalyticsToken(),
+            // 'analyticsToken' => (new GoogleAnalytics())->getAnalyticsToken(),
         ]);
+
         $this->_template->render();
     }
 
     /**
      * Dashboard Stat Chart
      */
-    public function dashboardStatChart()
-    {
-        $userData = array_column(AdminStatistic::getUsersStat(MyDate::TYPE_LAST_12_MONTH), 'totalUser', 'groupDate');
-        $lessonData = array_column(AdminStatistic::getAdminLessonEarningStats(MyDate::TYPE_LAST_12_MONTH), 'les_earnings', 'groupDate');
-        $classData = array_column(AdminStatistic::getAdminClassEarningStats(MyDate::TYPE_LAST_12_MONTH), 'cls_earnings', 'groupDate');
-        $courseData = array_column(AdminStatistic::getAdminCourseEarningStats(MyDate::TYPE_LAST_12_MONTH), 'crs_earnings', 'groupDate');
-        FatUtility::dieJsonSuccess([
-            'userData' => $userData,
-            'lessonData' => $lessonData,
-            'classData' => $classData,
-            'courseData' => $courseData
-        ]);
-    }
+    // public function dashboardStatChart()
+    // {
+    //     $userData = array_column(AdminStatistic::getUsersStat(MyDate::TYPE_LAST_12_MONTH), 'totalUser', 'groupDate');
+    //     $lessonData = array_column(AdminStatistic::getAdminLessonEarningStats(MyDate::TYPE_LAST_12_MONTH), 'les_earnings', 'groupDate');
+    //     $classData = array_column(AdminStatistic::getAdminClassEarningStats(MyDate::TYPE_LAST_12_MONTH), 'cls_earnings', 'groupDate');
+    //     $courseData = array_column(AdminStatistic::getAdminCourseEarningStats(MyDate::TYPE_LAST_12_MONTH), 'crs_earnings', 'groupDate');
+    //     FatUtility::dieJsonSuccess([
+    //         'userData' => $userData,
+    //         'lessonData' => $lessonData,
+    //         'classData' => $classData,
+    //         'courseData' => $courseData
+    //     ]);
+    // }
+public function dashboardStatChart()
+{
+    if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
 
+    $userData   = array_column(AdminStatistic::getUsersStat(MyDate::TYPE_LAST_12_MONTH), 'totalUser', 'groupDate');
+    $lessonData = array_column(AdminStatistic::getAdminLessonEarningStats(MyDate::TYPE_LAST_12_MONTH), 'les_earnings', 'groupDate');
+    $classData  = array_column(AdminStatistic::getAdminClassEarningStats(MyDate::TYPE_LAST_12_MONTH), 'cls_earnings', 'groupDate');
+    $courseData = array_column(AdminStatistic::getAdminCourseEarningStats(MyDate::TYPE_LAST_12_MONTH), 'crs_earnings', 'groupDate');
+
+    FatUtility::dieJsonSuccess(compact('userData','lessonData','classData','courseData'));
+}
     /**
      * Dashboard Stats
      */
     public function topClassLanguages()
+
+    
     {
+        if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
         $interval = FatApp::getPostedData('interval', FatUtility::VAR_INT, MyDate::TYPE_ALL);
         $interval = (!array_key_exists($interval, MyDate::getDurationTypesArr())) ? MyDate::TYPE_ALL : $interval;
         $this->set('statsInfo', AdminStatistic::classTopLanguage($this->siteLangId, $interval, 50));
@@ -73,6 +90,7 @@ class HomeController extends AdminBaseController
      */
     public function topLessonLanguages()
     {
+        if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
         $interval = FatApp::getPostedData('interval', FatUtility::VAR_INT, MyDate::TYPE_ALL);
         $interval = (!array_key_exists($interval, MyDate::getDurationTypesArr())) ? MyDate::TYPE_ALL : $interval;
         $this->set('statsInfo', AdminStatistic::lessonTopLanguage($this->siteLangId, $interval, 50));
@@ -84,6 +102,7 @@ class HomeController extends AdminBaseController
      */
     public function topCourseCategories()
     {
+        if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
         $interval = FatApp::getPostedData('interval', FatUtility::VAR_INT, MyDate::TYPE_ALL);
         $interval = (!array_key_exists($interval, MyDate::getDurationTypesArr())) ? MyDate::TYPE_ALL : $interval;
         $this->set('statsInfo', AdminStatistic::courseTopCategories($this->siteLangId, $interval, 50));
@@ -95,6 +114,7 @@ class HomeController extends AdminBaseController
      */
     public function getGoogleAnalytics()
     {
+        if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
         $analytics = new GoogleAnalytics();
         $sessionData = $analytics->getSessions();
         $response = ['session' => [], 'organicSearches' => [], 'sessionErrorMsg' => '', 'organicSearchesErrorMsg' => ''];
@@ -130,6 +150,7 @@ class HomeController extends AdminBaseController
      */
     public function setLanguage($langId = 0)
     {
+        if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
         FatCache::clearAll();
         $langId = FatUtility::int($langId);
         if ($langId > 0) {

@@ -64,55 +64,55 @@ if (!function_exists('app_require')) {
     }
     
 }
-if (!function_exists('app_debug_log')) {
-    /**
-     * Simple JSON line logger into application/logs/<channel>-YYYY-MM-DD.log
-     */
-    function app_debug_log(string $channel, string $message, array $context = []): void
-    {
-        // Try to resolve project root in a robust way
-        // dashboard/controllers/CoursesController.php -> __DIR__ = .../dashboard/controllers
-        // dirname(__DIR__, 2) -> ... (project root)
-        $projectRoot = realpath(dirname(__DIR__, 2));
-        if ($projectRoot === false) {
-            // Fallback: rely on CONF_APPLICATION_PATH if it exists
-            if (defined('CONF_APPLICATION_PATH')) {
-                $projectRoot = rtrim(dirname(CONF_APPLICATION_PATH), "/\\");
-            } else {
-                // Last resort: current directory
-                $projectRoot = realpath('.') ?: '.';
-            }
-        }
+// if (!function_exists('app_debug_log')) {
+//     /**
+//      * Simple JSON line logger into application/logs/<channel>-YYYY-MM-DD.log
+//      */
+//     function app_debug_log(string $channel, string $message, array $context = []): void
+//     {
+//         // Try to resolve project root in a robust way
+//         // dashboard/controllers/CoursesController.php -> __DIR__ = .../dashboard/controllers
+//         // dirname(__DIR__, 2) -> ... (project root)
+//         $projectRoot = realpath(dirname(__DIR__, 2));
+//         if ($projectRoot === false) {
+//             // Fallback: rely on CONF_APPLICATION_PATH if it exists
+//             if (defined('CONF_APPLICATION_PATH')) {
+//                 $projectRoot = rtrim(dirname(CONF_APPLICATION_PATH), "/\\");
+//             } else {
+//                 // Last resort: current directory
+//                 $projectRoot = realpath('.') ?: '.';
+//             }
+//         }
 
-        // application/logs
-        $base = $projectRoot . '/application/logs';
+//         // application/logs
+//         $base = $projectRoot . '/application/logs';
 
-        // Ensure dir exists
-        if (!is_dir($base)) {
-            @mkdir($base, 0775, true);
-        }
+//         // Ensure dir exists
+//         if (!is_dir($base)) {
+//             @mkdir($base, 0775, true);
+//         }
 
-        $file = $base . '/' . $channel . '-' . date('Y-m-d') . '.log';
+//         $file = $base . '/' . $channel . '-' . date('Y-m-d') . '.log';
 
-        $payload = [
-            'time'    => date('Y-m-d H:i:s'),
-            'uri'     => $_SERVER['REQUEST_URI'] ?? '',
-            'message' => $message,
-            'context' => $context,
-        ];
+//         $payload = [
+//             'time'    => date('Y-m-d H:i:s'),
+//             'uri'     => $_SERVER['REQUEST_URI'] ?? '',
+//             'message' => $message,
+//             'context' => $context,
+//         ];
 
-        $line = json_encode($payload) . PHP_EOL;
+//         $line = json_encode($payload) . PHP_EOL;
 
-        // Try to write. If it fails, log to Apache/PHP error.log
-        $ok = @file_put_contents($file, $line, FILE_APPEND);
-        if ($ok === false) {
-            error_log(
-                'app_debug_log: FAILED to write log file: ' . $file .
-                ' | payload=' . $line
-            );
-        }
-    }
-}
+//         // Try to write. If it fails, log to Apache/PHP error.log
+//         $ok = @file_put_contents($file, $line, FILE_APPEND);
+//         if ($ok === false) {
+//             error_log(
+//                 'app_debug_log: FAILED to write log file: ' . $file .
+//                 ' | payload=' . $line
+//             );
+//         }
+//     }
+// }
 
 
 app_require('library/services/UnifiedCourseAccess.php');
@@ -913,17 +913,11 @@ private function cleanIntendedLearnersData(array $post): array
     // }
 public function submitForApproval(int $courseId)
 {
-    app_debug_log('courses-approval', 'submitForApproval called', [
-        'courseId' => $courseId,
-        'userId'   => $this->siteUserId,
-        'type'     => $this->siteUserType,
-    ]);
+ 
 
     try {
         if ($courseId < 1) {
-            app_debug_log('courses-approval', 'Invalid courseId', [
-                'courseId' => $courseId,
-            ]);
+          
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
 
@@ -937,20 +931,13 @@ public function submitForApproval(int $courseId)
         ]);
 
         if (empty($courseAttrs) || (int)$courseAttrs['course_user_id'] !== (int)$this->siteUserId) {
-            app_debug_log('courses-approval', 'Course not found or not owned by user', [
-                'courseId' => $courseId,
-                'userId'   => $this->siteUserId,
-                'courseAttrs' => $courseAttrs,
-            ]);
+          
             FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_NOT_FOUND'));
         }
 
         // If already submitted, don't allow again
         if ((int)$courseAttrs['course_approved'] === 1) {
-            app_debug_log('courses-approval', 'Course already submitted for approval', [
-                'courseId' => $courseId,
-                'userId'   => $this->siteUserId,
-            ]);
+        
             FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_ALREADY_SUBMITTED_FOR_APPROVAL'));
         }
 
@@ -965,17 +952,11 @@ public function submitForApproval(int $courseId)
         $criteria = null;
         if (method_exists($course, 'isEligibleForApproval')) {
             $criteria = $course->isEligibleForApproval();
-            app_debug_log('courses-approval', 'Eligibility check', [
-                'courseId' => $courseId,
-                'criteria' => $criteria,
-            ]);
+        
 
             if (empty($criteria['course_is_eligible'])) {
                 $msg = Label::getLabel('LBL_COURSE_NOT_ELIGIBLE_FOR_APPROVAL');
-                app_debug_log('courses-approval', 'Not eligible for approval', [
-                    'courseId' => $courseId,
-                    'criteria' => $criteria,
-                ]);
+             
                 FatUtility::dieJsonError($msg);
             }
         }
@@ -991,18 +972,14 @@ public function submitForApproval(int $courseId)
 
         if (!$db->updateFromArray(Course::DB_TBL, $data, $where)) {
             $dbError = method_exists($db, 'getError') ? $db->getError() : '';
-            app_debug_log('courses-approval', 'DB update FAILED while submitting for approval', [
-                'courseId' => $courseId,
-                'userId'   => $this->siteUserId,
-                'dbError'  => $dbError,
-            ]);
+         
             FatUtility::dieJsonError($dbError ?: 'Failed to submit course for approval.');
         }
 
-        app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS (controller override)', [
-            'courseId' => $courseId,
-            'userId'   => $this->siteUserId,
-        ]);
+        // app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS (controller override)', [
+        //     'courseId' => $courseId,
+        //     'userId'   => $this->siteUserId,
+        // ]);
 
         Message::addMessage(Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'));
         FatUtility::dieJsonSuccess([
@@ -1010,16 +987,15 @@ public function submitForApproval(int $courseId)
         ]);
 
     } catch (Throwable $e) {
-        app_debug_log('courses-approval', 'EXCEPTION in submitForApproval', [
-            'courseId'  => $courseId,
-            'userId'    => $this->siteUserId,
-            'exception' => $e->getMessage(),
-            'trace'     => $e->getTraceAsString(),
-        ]);
+        // app_debug_log('courses-approval', 'EXCEPTION in submitForApproval', [
+        //     'courseId'  => $courseId,
+        //     'userId'    => $this->siteUserId,
+        //     'exception' => $e->getMessage(),
+        //     'trace'     => $e->getTraceAsString(),
+        // ]);
         FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-OVR-01)');
     }
 }
-
 
 
     /**
