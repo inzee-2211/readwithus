@@ -18,9 +18,15 @@ class AdminStatistic
     public static function getDashboardStats(bool $recalculate = false)
     {
         $stats = json_decode(FatApp::getConfig('CONF_ADMIN_DASHBOARD_STATS'), true);
-        if (!$recalculate) {
-            return $stats;
-        }
+        // if (!$recalculate) {
+        //     return $stats;
+        // }
+            if (!$recalculate && is_array($stats)) {
+                     $stats['ALL_TEACHERS_TOTAL'] = static::getTeachersTotal(true);
+        $stats['TM_TEACHERS_TOTAL']  = static::getTeachersTotal(false);
+        // merge subscription stats live even when using cached dashboard
+        return array_merge($stats, static::getSubscriptionStats());
+    }
         $stats = [
             'TM_LESSONS_REVENUE' => static::getLessonsRevenue(),
             'ALL_LESSONS_REVENUE' => static::getLessonsRevenue(true),
@@ -52,7 +58,11 @@ class AdminStatistic
             'ALL_UNSCHEDULE_LESSONS' => static::getUnscheduleLessons(true),
             'TM_USERS_TOTAL' => static::getUsersTotal(),
             'ALL_USERS_TOTAL' => static::getUsersTotal(true),
+            'TM_TEACHERS_TOTAL' => static::getTeachersTotal(),
+    'ALL_TEACHERS_TOTAL' => static::getTeachersTotal(true),
         ];
+            $stats = array_merge($stats, static::getSubscriptionStats());
+            
         if ($recalculate) {
             $assignValues = ['conf_name' => 'CONF_ADMIN_DASHBOARD_STATS', 'conf_val' => json_encode($stats)];
             if (!FatApp::getDb()->insertFromArray(Configurations::DB_TBL, $assignValues, false, [], $assignValues)) {
@@ -145,6 +155,138 @@ class AdminStatistic
         $records = FatApp::getDb()->fetch($srch->getResultSet());
         return $records['earnings'] ?? 0.00;
     }
+
+
+//STATS ADDED BY REHAN
+/**
+ * Get Teachers Total
+ *
+ * @param bool $all
+ * @return int
+ */
+private static function getTeachersTotal(bool $all = false): int
+{
+    $srch = new SearchBase(User::DB_TBL, 'user');
+    $srch->addDirectCondition('user_deleted IS NULL');
+    // Marked as teacher
+    $srch->addCondition('user_is_teacher', '=', 1);
+
+    if (!$all) {
+        $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, NULL, true);
+        $srch->addCondition('user_created', '>=', $datetime['startDate']);
+        $srch->addCondition('user_created', '<=', $datetime['endDate']);
+    }
+
+    $srch->addMultipleFields(['COUNT(user_id) AS totalTeacher']);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $records = FatApp::getDb()->fetch($srch->getResultSet());
+    return $records['totalTeacher'] ?? 0;
+}
+
+/* ---------- Subscription / payment stats (new) ---------- */
+
+public static function getSubscriptionStats(): array
+{
+    return [
+        'SUB_ACTIVE_COUNT'      => static::getActiveSubscriptionsCount(),
+        'SUB_EXPIRED_COUNT'     => static::getExpiredSubscriptionsCount(),
+        'SUB_REVENUE_ALL'       => static::getSubscriptionRevenue(true),
+        'SUB_REVENUE_THISMONTH' => static::getSubscriptionRevenue(false),
+    ];
+}
+
+/**
+ * Number of currently active (paid or trialing) subscriptions.
+ */
+private static function getActiveSubscriptionsCount(): int
+{
+    $db   = FatApp::getDb();
+    $srch = new SearchBase('tbl_user_subscriptions', 'usubs');
+
+    // Count "active" + "trialing" as active
+    $srch->addCondition('usubs_status', 'IN', ['active', 'trialing']);
+
+    $srch->addMultipleFields(['COUNT(*) AS total']);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    return FatUtility::int($row['total'] ?? 0);
+}
+
+/**
+ * Number of expired / cancelled subscriptions.
+ */
+private static function getExpiredSubscriptionsCount(): int
+{
+    $db   = FatApp::getDb();
+    $srch = new SearchBase('tbl_user_subscriptions', 'usubs');
+
+    // Canceled or past_due
+    $srch->addCondition('usubs_status', 'IN', ['canceled', 'past_due']);
+
+    $srch->addMultipleFields(['COUNT(*) AS total']);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    return FatUtility::int($row['total'] ?? 0);
+}
+
+/**
+ * Total subscription revenue.
+ * Uses tbl_user_subscriptions + tbl_subscription_packages ONLY.
+ * - Ignores pure free trials (usubs_is_trial = 1)
+ * - "All" = all time
+ * - "This month" = by usubs_created date
+ */
+private static function getSubscriptionRevenue(bool $all = false): float
+{
+    $db   = FatApp::getDb();
+    $srch = new SearchBase('tbl_user_subscriptions', 'usubs');
+
+    // Join package to get plan prices
+    $srch->joinTable(
+        'tbl_subscription_packages',
+        'INNER JOIN',
+        'spkg.spackage_id = usubs.usubs_spackage_id',
+        'spkg'
+    );
+
+    // Only paid subs (skip free trials)
+    $srch->addCondition('usubs_is_trial', '=', 0);
+
+    // Include all finished/active subs in revenue
+    $srch->addCondition('usubs_status', 'IN', ['active', 'trialing', 'past_due', 'canceled']);
+
+    if (!$all) {
+        // Revenue counted in month the subscription row was created
+        $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, null, true);
+        $srch->addCondition('usubs_created', '>=', $datetime['startDate']);
+        $srch->addCondition('usubs_created', '<=', $datetime['endDate']);
+    }
+
+    $srch->addMultipleFields([
+        "SUM(
+            CASE
+                WHEN usubs_billing_interval = 'month'
+                    THEN IFNULL(spkg.spackage_price_monthly, 0)
+                WHEN usubs_billing_interval = 'year'
+                    THEN IFNULL(spkg.spackage_price_yearly, 0)
+                ELSE 0
+            END
+        ) AS revenue"
+    ]);
+
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    return FatUtility::float($row['revenue'] ?? 0.0);
+}
+
 
     /**
      * Get Lessons Total

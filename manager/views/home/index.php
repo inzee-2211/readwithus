@@ -171,6 +171,7 @@ $durationType = MyDate::getDurationTypesArr();
                 </div>
             </div>
         </div>
+        
         <div class="gap"></div>
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6">
@@ -186,22 +187,78 @@ $durationType = MyDate::getDurationTypesArr();
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6 col-md-6 col-sm-6">
-                <div class="box box--white box--stats">
-                    <div class="box__body">
-                        <img src="<?php echo CONF_WEBROOT_URL ?>images/users.svg" alt="" class="stats__icon">
-                        <h6 class="-txt-uppercase"><?php echo Label::getLabel('LBL_TOTAL_USERS'); ?></h6>
-                        <h3 class="counter" data-currency="0"><?php echo $stats['ALL_USERS_TOTAL'] ?? 0; ?></h3>
-                        <p><?php echo Label::getLabel('LBL_THIS_MONTH'); ?> <strong><?php echo $stats['TM_USERS_TOTAL'] ?? 0; ?></strong></p>
-                        <?php if ($objPrivilege->canViewUsers(true)) { ?>
-                            <a href="<?php echo MyUtility::makeUrl('Users'); ?>" class="stats__link"></a>
-                        <?php } ?>
-                    </div>
-                </div>
-            </div>
+           <div class="col-lg-6 col-md-6 col-sm-6">
+    <div class="box box--white box--stats">
+        <div class="box__body">
+            <img src="<?php echo CONF_WEBROOT_URL ?>images/users.svg" alt="" class="stats__icon">
+
+            <h6 class="-txt-uppercase">
+                <?php echo Label::getLabel('LBL_TOTAL_USERS'); ?>
+            </h6>
+
+            <!-- All users -->
+            <h3 class="counter" data-currency="0">
+                <?php echo $stats['ALL_USERS_TOTAL'] ?? 0; ?>
+            </h3>
+
+            <!-- This month + teachers -->
+            <p>
+                <?php echo Label::getLabel('LBL_THIS_MONTH'); ?>
+                <strong><?php echo $stats['TM_USERS_TOTAL'] ?? 0; ?></strong>
+
+                &nbsp;|&nbsp;
+
+                <?php echo Label::getLabel('LBL_TEACHERS'); ?>
+                <strong><?php echo $stats['ALL_TEACHERS_TOTAL'] ?? 0; ?></strong>
+            </p>
+
+            <?php if ($objPrivilege->canViewUsers(true)) { ?>
+                <a href="<?php echo MyUtility::makeUrl('Users'); ?>" class="stats__link"></a>
+            <?php } ?>
+        </div>
+    </div>
+</div>
+
         </div>
         <div class="gap"></div>
+  <div class="gap"></div>
+<div class="row">
+    <div class="col-lg-3 col-md-3 col-sm-3">
+        <div class="box box--white box--stats">
+            <div class="box__body">
+                <img src="<?php echo CONF_WEBROOT_URL ?>images/subscriptions.svg" alt="" class="stats__icon">
+                <h6 class="-txt-uppercase"><?php echo Label::getLabel('LBL_ACTIVE_SUBSCRIPTIONS'); ?></h6>
+                <h3 class="counter" data-currency="0">
+                    <?php echo $stats['SUB_ACTIVE_COUNT'] ?? 0; ?>
+                </h3>
+                <p><?php echo Label::getLabel('LBL_EXPIRED'); ?>
+                    <strong><?php echo $stats['SUB_EXPIRED_COUNT'] ?? 0; ?></strong>
+                </p>
+                <?php if ($objPrivilege->canViewSalesReport(true)) { ?>
+                    <a href="<?php echo MyUtility::makeUrl('Subscriptions'); ?>" class="stats__link"></a>
+                <?php } ?>
+            </div>
+        </div>
+    </div>
 
+    <div class="col-lg-3 col-md-3 col-sm-3">
+        <div class="box box--white box--stats">
+            <div class="box__body">
+                <img src="<?php echo CONF_WEBROOT_URL ?>images/reve-1.svg" alt="" class="stats__icon">
+                <h6 class="-txt-uppercase"><?php echo Label::getLabel('LBL_SUBSCRIPTION_REVENUE'); ?></h6>
+                <h3 class="counter" data-currency="1">
+                    <?php echo MyUtility::formatMoney($stats['SUB_REVENUE_ALL'] ?? 0); ?>
+                </h3>
+                <p><?php echo Label::getLabel('LBL_THIS_MONTH'); ?>
+                    <strong><?php echo MyUtility::formatMoney($stats['SUB_REVENUE_THISMONTH'] ?? 0); ?></strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- you can add two more cards here: e.g. Total Teachers, Payment Count -->
+</div>
+  <div class="gap"></div>
         <div class="box box--white">
             <div class="box__head padding-bottom-0">
                 <h4><?php echo Label::getLabel('LBL_STATISTICS'); ?></h4>
@@ -287,6 +344,8 @@ $durationType = MyDate::getDurationTypesArr();
                             </li>
                         </ul>
                     </div>
+                  
+
                     <div class="box__body">
                         <div class="scrollbar scrollbar-js">
                             <ul class="list list--vertical theme--txtcolor theme--hovercolor topLessonLanguage"></ul>
