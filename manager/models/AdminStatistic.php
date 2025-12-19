@@ -22,6 +22,11 @@ class AdminStatistic
         //     return $stats;
         // }
             if (!$recalculate && is_array($stats)) {
+                $stats['TM_ADMIN_EARNINGS']  = static::getAdminEarnings(false);
+        $stats['ALL_ADMIN_EARNINGS'] = static::getAdminEarnings(true);
+                 $stats['ALL_COURSES_TOTAL']  = static::getCoursesTotal(true);
+        $stats['TM_COURSES_TOTAL']   = static::getCoursesTotal(false);
+                 $stats['ALL_USERS_TOTAL']    = static::getUsersTotal(true);
                      $stats['ALL_TEACHERS_TOTAL'] = static::getTeachersTotal(true);
         $stats['TM_TEACHERS_TOTAL']  = static::getTeachersTotal(false);
         // merge subscription stats live even when using cached dashboard
@@ -141,23 +146,94 @@ class AdminStatistic
      * @param bool $all
      * @return float
      */
-    private static function getAdminEarnings(bool $all = false): float
-    {
-        $srch = new SearchBase('tbl_sales_stats', 'slstat');
-        if (!$all) {
-            $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, CONF_SERVER_TIMEZONE, false, 'Y-m-d');
-            $srch->addCondition('slstat_date', '>=', $datetime['startDate']);
-            $srch->addCondition('slstat_date', '<=', $datetime['endDate']);
-        }
-        $srch->addFld('SUM(IFNULL(slstat_les_earnings, 0) + IFNULL(slstat_cls_earnings, 0) + IFNULL(slstat_crs_earnings, 0)) as earnings');
-        $srch->doNotCalculateRecords();
-        $srch->setPageSize(1);
-        $records = FatApp::getDb()->fetch($srch->getResultSet());
-        return $records['earnings'] ?? 0.00;
+    /**
+ * Get Admin Earnings
+ *
+ * - From tbl_sales_stats:
+ *      slstat_les_earnings + slstat_cls_earnings + slstat_crs_earnings
+ * - PLUS subscription revenue (non-trial subs) from tbl_user_subscriptions
+ *
+ * @param bool $all
+ * @return float
+ */
+private static function getAdminEarnings(bool $all = false): float
+{
+    $db   = FatApp::getDb();
+
+    // 1) Earnings from lessons / classes / courses (aggregated sales stats)
+    $srch = new SearchBase('tbl_sales_stats', 'slstat');
+
+    if (!$all) {
+        $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, CONF_SERVER_TIMEZONE, false, 'Y-m-d');
+        $srch->addCondition('slstat_date', '>=', $datetime['startDate']);
+        $srch->addCondition('slstat_date', '<=', $datetime['endDate']);
     }
+
+    $srch->addFld(
+        'SUM(
+            IFNULL(slstat_les_earnings, 0)
+          + IFNULL(slstat_cls_earnings, 0)
+          + IFNULL(slstat_crs_earnings, 0)
+        ) AS earnings'
+    );
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row          = $db->fetch($srch->getResultSet());
+    $orderEarning = FatUtility::float($row['earnings'] ?? 0.0);
+
+    // 2) Earnings from subscriptions
+    // Uses tbl_user_subscriptions + tbl_subscription_packages
+    $subscriptionEarning = static::getSubscriptionRevenue($all);
+
+    // Total admin earnings = orders + subscriptions
+    return $orderEarning + $subscriptionEarning;
+}
+
 
 
 //STATS ADDED BY REHAN
+
+/**
+ * Get Courses Total
+ *
+ * All = all approved + published courses (not deleted)
+ * This month = approved + published courses created this month
+ */
+// private static function getCoursesTotal(bool $all = false): int
+// {
+//     $srch = new CourseSearch(0, 0, User::SUPPORT);
+//     $srch->applyPrimaryConditions(); // Yo! – usually already filters out deleted etc.
+
+//     // Extra safety: only non-deleted, published courses
+//     $srch->addDirectCondition('course.course_deleted IS NULL');
+//     $srch->addCondition('course.course_status', '=', Course::PUBLISHED);
+
+//     // Join approval table and keep ONLY approved requests
+//     $srch->joinTable(
+//         Course::DB_TBL_APPROVAL_REQUEST,
+//         'INNER JOIN',
+//         'course.course_id = coapre.coapre_course_id',
+//         'coapre'
+//     );
+//     $srch->addCondition('coapre.coapre_status', '=', Course::REQUEST_APPROVED);
+
+//     // Limit to "this month" when $all = false
+//     if (!$all) {
+//         $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, null, true);
+//         $srch->addCondition('course.course_created', '>=', $datetime['startDate']);
+//         $srch->addCondition('course.course_created', '<=', $datetime['endDate']);
+//     }
+
+//     // DISTINCT in case a course ever has multiple approval rows
+//     $srch->addMultipleFields(['COUNT(DISTINCT course.course_id) AS totalCourses']);
+//     $srch->doNotCalculateRecords();
+//     $srch->setPageSize(1);
+
+//     $records = FatApp::getDb()->fetch($srch->getResultSet());
+//     return (int)($records['totalCourses'] ?? 0);
+// }
+
 /**
  * Get Teachers Total
  *
@@ -544,21 +620,44 @@ private static function getSubscriptionRevenue(bool $all = false): float
      * @param bool $all
      * @return int
      */
-    private static function getUsersTotal(bool $all = false): int
-    {
-        $srch = new SearchBase(User::DB_TBL, 'user');
-        $srch->addDirectCondition('user_deleted IS NULL');
-        if (!$all) {
-            $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, NULL, true);
-            $srch->addCondition('user_created', '>=', $datetime['startDate']);
-            $srch->addCondition('user_created', '<=', $datetime['endDate']);
-        }
-        $srch->addMultipleFields(['COUNT(user_id) AS totalUser']);
-        $srch->doNotCalculateRecords();
-        $srch->setPageSize(1);
-        $records = FatApp::getDb()->fetch($srch->getResultSet());
-        return $records['totalUser'] ?? 0;
+    // private static function getUsersTotal(bool $all = false): int
+    // {
+    //     $srch = new SearchBase(User::DB_TBL, 'user');
+    //     $srch->addDirectCondition('user_deleted IS NULL');
+    //     if (!$all) {
+    //         $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, NULL, true);
+    //         $srch->addCondition('user_created', '>=', $datetime['startDate']);
+    //         $srch->addCondition('user_created', '<=', $datetime['endDate']);
+    //     }
+    //     $srch->addMultipleFields(['COUNT(user_id) AS totalUser']);
+    //     $srch->doNotCalculateRecords();
+    //     $srch->setPageSize(1);
+    //     $records = FatApp::getDb()->fetch($srch->getResultSet());
+    //     return $records['totalUser'] ?? 0;
+    // }
+private static function getUsersTotal(bool $all = false): int
+{
+    $srch = new SearchBase(User::DB_TBL, 'user');
+
+    // only real users
+    $srch->addDirectCondition('user_deleted IS NULL');
+    $srch->addCondition('user_active', '=', 1);
+    $srch->addDirectCondition('user_verified IS NOT NULL');
+
+    if (!$all) {
+        $datetime = MyDate::getStartEndDate(MyDate::TYPE_THIS_MONTH, NULL, true);
+        $srch->addCondition('user_created', '>=', $datetime['startDate']);
+        $srch->addCondition('user_created', '<=', $datetime['endDate']);
     }
+
+    $srch->addMultipleFields(['COUNT(user_id) AS totalUser']);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $records = FatApp::getDb()->fetch($srch->getResultSet());
+    return $records['totalUser'] ?? 0;
+}
+
 
     /**
      * Lesson Top Language

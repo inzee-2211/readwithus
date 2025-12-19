@@ -1,18 +1,14 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
- $frm->setFormTagAttribute('class', 'form');
- 
+$frm->setFormTagAttribute('class', 'form');
 $frm->setFormTagAttribute('onsubmit', 'search(this);return false;');
-
 
 if ($siteUserType == User::TEACHER) {
     $statusFld = $frm->getField('grpcls_status');
 } elseif ($siteUserType == User::LEARNER) {
     $statusFld = $frm->getField('ordcls_status');
 }
-// echo '<pre>';
-// print_r($frm->getAllFields());  // Check if 'keyword' exists
-// echo '</pre>';die;
+
 $viewFld = $frm->getField('view');
 $keywordFld = $frm->getField('title');
 $keywordFld->addFieldTagAttribute('placeholder', Label::getLabel('LBL_TITLE'));
@@ -24,7 +20,6 @@ $startdateFld->setFieldTagAttribute('onchange', 'getSubCategoriessearch(this.val
 
 $enddateFld = $frm->getField('grpcls_subcate_id');
 $enddateFld->setFieldTagAttribute('id', 'subCategoriesSearch');
- 
 
 $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
 ?>
@@ -37,23 +32,30 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
     <div class="page__head">
         <div class="row align-items-center justify-content-between">
             <div class="col-sm-6">
-                <h1><?php //echo Label::getLabel('LBL_MANAGE_CLASSES'); ?> Questions</h1>
+                <h1>Questions</h1>
             </div>
             <div class="col-sm-auto">
                 <div class="buttons-group d-flex align-items-center">
                     <a href="javascript:void(0)" class="btn btn--secondary slide-toggle-js">
-                        <svg class="icon icon--search icon--small margin-right-2"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#search'; ?>"></use></svg>
+                        <svg class="icon icon--search icon--small margin-right-2">
+                            <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#search'; ?>"></use>
+                        </svg>
                         <?php echo Label::getLabel('LBL_SEARCH'); ?>
                     </a>
                     <?php if ($siteUserType == User::TEACHER) { ?>
-                        <!-- <a href="javascript:void(0);" onclick="addForm(0);" class="btn color-secondary btn--bordered margin-left-4">
-                            <svg class="icon icon--add icon--small margin-right-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path></svg>
-                            <?php //echo Label::getLabel('LBL_ADD_CLASS'); ?> Add Question
-                        </a> -->
                         <a href="javascript:void(0);" onclick="openQuestionAddChooser();" class="btn color-secondary btn--bordered margin-left-4">
-    <svg class="icon icon--add icon--small margin-right-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path></svg>
-    Add Question
-</a>
+                            <svg class="icon icon--add icon--small margin-right-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path>
+                            </svg>
+                            Add Question
+                        </a>
+
+                        <!-- Bulk Delete button (new) -->
+                        <button type="button"
+                                class="btn btn--bordered color-third margin-left-4"
+                                onclick="bulkDeleteSelected();">
+                            <?php echo Label::getLabel('LBL_BULK_DELETE'); ?>
+                        </button>
                     <?php } ?>
                 </div>
             </div>
@@ -78,7 +80,14 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
                             </div>
                             <div class="infobar__content">
                                 <div class="upcoming-lesson display-inline">
-                                    <?php echo Label::getLabel('LBL_NEXT_CLASS:'); ?> <date class=" bold-600"> <?php echo date('Y-m-d', $upcomingClass['grpcls_starttime_unix']); ?></date> <?php echo Label::getLabel('LBL_AT'); ?> <time class=". bold-600"><?php echo date('H:i', $upcomingClass['grpcls_starttime_unix']); ?></time>
+                                    <?php echo Label::getLabel('LBL_NEXT_CLASS:'); ?>
+                                    <date class=" bold-600">
+                                        <?php echo date('Y-m-d', $upcomingClass['grpcls_starttime_unix']); ?>
+                                    </date>
+                                    <?php echo Label::getLabel('LBL_AT'); ?>
+                                    <time class=". bold-600">
+                                        <?php echo date('H:i', $upcomingClass['grpcls_starttime_unix']); ?>
+                                    </time>
                                     <?php if ($siteUserType == User::LEARNER) { ?>
                                         <?php echo Label::getLabel('LBL_WITH'); ?>
                                         <div class="avtar-meta display-inline">
@@ -99,14 +108,20 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
                     <div class="col-lg-4 col-sm-6">
                         <div class="upcoming-lesson-action d-flex align-items-center justify-content-between justify-content-sm-end">
                             <div class="timer margin-right-4">
-                                <div class="timer__media"><span><svg class="icon icon--clock icon--small">
+                                <div class="timer__media">
+                                    <span>
+                                        <svg class="icon icon--clock icon--small">
                                             <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#clock'; ?>"></use>
-                                        </svg></span></div>
+                                        </svg>
+                                    </span>
+                                </div>
                                 <div class="timer__content">
                                     <div class="timer__controls timer-js style colorDefinition size_sm" id="classStartTimer" timestamp="<?php echo $upcomingClass['grpcls_start_datetime_utc']; ?>">00:00:00:00</div>
                                 </div>
                             </div>
-                            <a href="<?php echo MyUtility::makeUrl('Classes', 'view', [$classId]); ?>" class="btn bg-secondary"><?php echo Label::getLabel('LBL_ENTER_CLASSROOM') ?></a>
+                            <a href="<?php echo MyUtility::makeUrl('Classes', 'view', [$classId]); ?>" class="btn bg-secondary">
+                                <?php echo Label::getLabel('LBL_ENTER_CLASSROOM') ?>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -116,7 +131,7 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
         <!-- [ FILTERS ========= -->
         <div class="page-filter">
             <?php echo $frm->getFormTag(); ?>
-           
+
             <div class="search-filter slide-target-js">
                 <div class="row">
                     <div class="col-lg-3 col-sm-8">
@@ -208,8 +223,8 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
             </div>
             </form>
             <?php echo $frm->getExternalJS(); ?>
-        </div>  
-        <!-- ] ========= -->    
+        </div>
+        <!-- ] ========= -->
         <!-- [ PAGE PANEL ========= -->
         <div class="page-content" id="listing"></div>
         <!-- ] -->
@@ -217,14 +232,14 @@ $frm->getField('btn_clear')->addFieldTagAttribute('onClick', 'clearSearch();');
     <script>
         $(document).ready(function () {
             search(document.frmClassSearch);
-<?php if (!empty($upcomingClass)) { ?>
-                $("#classStartTimer").yocoachTimer({recordId: '<?php echo $classId; ?>', recordType: 'CLASS'});
-<?php } ?>
+            <?php if (!empty($upcomingClass)) { ?>
+            $("#classStartTimer").yocoachTimer({recordId: '<?php echo $classId; ?>', recordType: 'CLASS'});
+            <?php } ?>
         });
     </script>
-    <script>
-function openQuestionAddChooser() {
-  var html = `
+        <script>
+        function openQuestionAddChooser() {
+            var html = `
   <div class="facebox-panel" style="max-width:300px; padding:12px 12px 8px; margin:0 auto;">
 
     <div class="facebox-panel__head"><h4>Add Questions</h4></div>
@@ -248,23 +263,65 @@ function openQuestionAddChooser() {
       </div>
     </div>
   </div>`;
-  $.facebox(html);
-}
-function chooseSingle() {
-  // Wait for the chooser to fully close, then open the single form
-  $(document).one('afterClose.facebox', function () {
-    addForm(0);
-  });
-  $.facebox.close();
-}
+            $.facebox(html);
+        }
 
-function openBulkForm() {
-  $.facebox(function() {
-    $.ajax({
-      url: '<?php echo MyUtility::makeUrl("Questions", "bulkForm"); ?>',
-      success: function(res){ $.facebox(res); },
-      error: function(){ $.facebox('<div class="pad-8">Failed to load bulk form.</div>'); }
-    });
-  });
-}
-</script>
+        function chooseSingle() {
+            $(document).one('afterClose.facebox', function () {
+                addForm(0);
+            });
+            $.facebox.close();
+        }
+
+        function openBulkForm() {
+            $.facebox(function () {
+                $.ajax({
+                    url: '<?php echo MyUtility::makeUrl("Questions", "bulkForm"); ?>',
+                    success: function (res) {
+                        $.facebox(res);
+                    },
+                    error: function () {
+                        $.facebox('<div class="pad-8">Failed to load bulk form.</div>');
+                    }
+                });
+            });
+        }
+
+        // === Bulk select helpers ===
+        function toggleSelectAllQuestions(master) {
+            var isChecked = $(master).prop('checked');
+            $('#listing').find('input.question-select').prop('checked', isChecked);
+        }
+
+        function bulkDeleteSelected() {
+            var ids = [];
+            $('#listing').find('input.question-select:checked').each(function () {
+                ids.push($(this).val());
+            });
+
+            if (ids.length === 0) {
+                alert('Please select at least one question.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete the selected questions?')) {
+                return;
+            }
+
+            // Use PHP-generated URL instead of fcom.makeUrl
+            var url = '<?php echo MyUtility::makeUrl("Questions", "bulkDelete"); ?>';
+
+            fcom.updateWithAjax(
+                url,
+                { question_ids: ids },
+                function (res) {
+                    // Refresh listing after successful delete
+                    search(document.frmClassSearch);
+                    // Reset master checkbox
+                    $('#selectAllQuestions').prop('checked', false);
+                }
+            );
+        }
+    </script>
+
+</div>

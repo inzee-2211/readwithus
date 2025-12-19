@@ -463,22 +463,39 @@ public function removeQuestion()
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
         
-        $srch = new QuestionSearch($langId, $userId, $userType);
-        $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question  .question_subcat', 'subcate');
-       $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question  .question_cat', 'cate');
-          $srch->addMultipleFields([
-            '*',           
-             'cate.cate_identifier as  catname',
-           'subcate.cate_identifier as subcatname'
-            ]);
+    //     $srch = new QuestionSearch($langId, $userId, $userType);
+    //     $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question  .question_subcat', 'subcate');
+    //    $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question  .question_cat', 'cate');
+    //       $srch->addMultipleFields([
+    //         '*',           
+    //          'cate.cate_identifier as  catname',
+    //        'subcate.cate_identifier as subcatname'
+    //         ]);
  
             
-            if (isset($userId) && !empty($userId)) {
-            $srch->addCondition('question_added_by', '=', $userId);
-            }
+    //         if (isset($userId) && !empty($userId)) {
+    //         $srch->addCondition('question_added_by', '=', $userId);
+    //         }
 
  
-        $srch->addCondition('question_status', '=', 1);
+    //     $srch->addCondition('question_status', '=', 1);
+    $srch = new QuestionSearch($langId, $userId, $userType);
+$srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question.question_subcat', 'subcate');
+$srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question.question_cat', 'cate');
+$srch->addMultipleFields([
+    'question.*',
+    'cate.cate_identifier as catname',
+    'subcate.cate_identifier as subcatname'
+]);
+
+if (!empty($userId)) {
+    $srch->addCondition('question_added_by', '=', $userId);
+}
+
+/** Only active & not soft-deleted questions */
+$srch->addCondition('question_status', '=', 1);
+$srch->addCondition('question_deleted', '=', 0);   // 👈 NEW LINE
+
         $srch->addOrder('question_id', 'DESC');
         $srch->setPageSize($post['pagesize']);
          $srch->setPageNumber($post['pageno']);
@@ -619,22 +636,44 @@ public function removeQuestion()
        }
        
        
-        $srch = new QuestionSearch($langId, $userId, $userType);
-         $srch->joinTable('tbl_quiz_questions', 'INNER JOIN', 'quizquestion.question_id = question .question_id', 'quizquestion');
-        $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question  .question_subcat', 'subcate');
-        $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question  .question_cat', 'cate');
+        // $srch = new QuestionSearch($langId, $userId, $userType);
+        //  $srch->joinTable('tbl_quiz_questions', 'INNER JOIN', 'quizquestion.question_id = question .question_id', 'quizquestion');
+        // $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question  .question_subcat', 'subcate');
+        // $srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question  .question_cat', 'cate');
  
-            $srch->addMultipleFields([
-            '*',           // Select all fields from questions table
-             'cate.cate_identifier as  catname',
-           'subcate.cate_identifier as subcatname'
-            ]);
+        //     $srch->addMultipleFields([
+        //     '*',           // Select all fields from questions table
+        //      'cate.cate_identifier as  catname',
+        //    'subcate.cate_identifier as subcatname'
+        //     ]);
   
-            if (isset($userId) && !empty($userId)) {
-            $srch->addCondition('quizquestion.quiz_id', '=', $courseId);
-            }
+        //     if (isset($userId) && !empty($userId)) {
+        //     $srch->addCondition('quizquestion.quiz_id', '=', $courseId);
+        //     }
 
-         $srch->addCondition('question_status', '=', 1);
+        //  $srch->addCondition('question_status', '=', 1);
+        $srch = new QuestionSearch($langId, $userId, $userType);
+$srch->joinTable(
+    'tbl_quiz_questions',
+    'INNER JOIN',
+    'quizquestion.question_id = question.question_id',
+    'quizquestion'
+);
+$srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'subcate.cate_id = question.question_subcat', 'subcate');
+$srch->joinTable(Category::DB_TBL, 'LEFT JOIN', 'cate.cate_id = question.question_cat', 'cate');
+
+$srch->addMultipleFields([
+    'question.*',
+    'cate.cate_identifier as catname',
+    'subcate.cate_identifier as subcatname'
+]);
+
+$srch->addCondition('quizquestion.quiz_id', '=', $courseId);
+
+/** Only active & not soft-deleted questions */
+$srch->addCondition('question_status', '=', 1);
+$srch->addCondition('question_deleted', '=', 0);   // 👈 NEW
+
          $srch->setPageSize($post['pagesize']);
          $srch->setPageNumber($post['pageno']);
          $query = $srch->getQuery(); 

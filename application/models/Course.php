@@ -778,15 +778,12 @@ public static function getCourseLevels(int $key = null)
             $this->error = $this->getError();
             return false;
         }
-        if (!$this->sendApprovalRequestEmailToAdmin()) {
-            $db->rollbackTransaction();
-            $this->error = $db->getError();
-            return false;
-        }
+        
         if (!$db->commitTransaction()) {
             $this->error = $db->getError();
             return false;
         }
+         $this->sendApprovalRequestEmailToAdmin();
         return true;
     }
 

@@ -369,35 +369,106 @@ class QuestionsController extends DashboardController
     /**
      * Render Cancel Class Form
      */
-    public function cancelForm()
-    {
-        $courseId = FatApp::getPostedData('classId', FatUtility::VAR_INT, 0);
-        $srch = new QuestionSearch($this->siteLangId, 0, User::SUPPORT);
+   public function cancelForm()
+{
+    $courseId = FatApp::getPostedData('classId', FatUtility::VAR_INT, 0);
+    $srch = new QuestionSearch($this->siteLangId, 0, User::SUPPORT);
 
-        $srch->addCondition('question.question_id', '=', $courseId);
-        $srch->applyPrimaryConditions();
- 
-        $courses = $srch->fetchAndFormat();
-       
-        if (empty($courses)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        }
- 
-                $db = FatApp::getDb(); // Get the database connection instance
-                $data = ['question_deleted' => 1]; // Column and new value
-                
-                // Specify the conditions for updating
-                $where = ['smt' => 'question_id = ?', 'vals' => [$courseId]];
-                
-                // Perform the update
-                if (!$db->updateFromArray('tbl_questions', $data, $where)) {
-                    FatUtility::dieJsonError($db->getError());
-                }
-                
-                // Return success response
-                FatUtility::dieJsonSuccess(Label::getLabel('LBL_Record_Updated_Successfully'));
-     
+    $srch->addCondition('question.question_id', '=', $courseId);
+    $srch->applyPrimaryConditions();
+
+    $courses = $srch->fetchAndFormat();
+
+    if (empty($courses)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
+
+    $db = FatApp::getDb();
+
+    // 1) Soft delete the question
+    $data  = ['question_deleted' => 1];
+    $where = ['smt' => 'question_id = ?', 'vals' => [$courseId]];
+
+    if (!$db->updateFromArray('tbl_questions', $data, $where)) {
+        FatUtility::dieJsonError($db->getError());
+    }
+
+    // 2) Remove mappings from quizzes
+    $db->deleteRecords('tbl_quiz_questions', [
+        'smt'  => 'question_id = ?',
+        'vals' => [$courseId],
+    ]);
+
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_Record_Updated_Successfully'));
+}
+
+public function bulkDelete()
+{
+    // Get raw posted array (no type filter here!)
+    $questionIds = FatApp::getPostedData('question_ids', null, []);
+
+    if (!is_array($questionIds) || empty($questionIds)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_NO_QUESTION_SELECTED'));
+    }
+
+    // Normalize IDs (int-cast + unique + non-empty)
+    $questionIds = array_unique(
+        array_filter(
+            array_map('intval', $questionIds)
+        )
+    );
+
+    if (empty($questionIds)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $db     = FatApp::getDb();
+    $userId = $this->siteUserId;
+    $idList = implode(',', $questionIds); // safe – all ints
+
+    $db->startTransaction();
+
+    /* 1) Remove mappings from quizzes */
+    if (
+        !$db->deleteRecords(
+            'tbl_quiz_questions',
+            ['smt' => "question_id IN ($idList)", 'vals' => []]
+        )
+    ) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($db->getError());
+    }
+
+    /* 2) Remove uploaded files for these questions (if any) */
+    if (class_exists('Afile')) {
+        $file = new Afile(Afile::TYPE_LESSON_QUESTIONS_FILE);
+        foreach ($questionIds as $qid) {
+            if (!$file->removeFile($qid, 0, true) && $file->getError()) {
+                $db->rollbackTransaction();
+                FatUtility::dieJsonError($file->getError());
+            }
+        }
+    }
+
+    /* 3) Hard delete questions (but only those created by this teacher) */
+    if (
+        !$db->deleteRecords(
+            'tbl_questions',
+            [
+                'smt'  => "question_id IN ($idList) AND question_added_by = ?",
+                'vals' => [$userId],
+            ]
+        )
+    ) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($db->getError());
+    }
+
+    $db->commitTransaction();
+
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_QUESTIONS_DELETED_SUCCESSFULLY'));
+}
+
 
     /**
      * Cancel Class

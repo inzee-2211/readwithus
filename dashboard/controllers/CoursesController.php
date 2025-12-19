@@ -899,103 +899,18 @@ private function cleanIntendedLearnersData(array $post): array
      * @param int $courseId
      * @return bool
      */
-    // public function submitForApproval(int $courseId)
-    // {
-    //     if ($courseId < 1) {
-    //         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-    //     }
-    //     $course = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
-    //     if (!$course->submitApprovalRequest()) {
-    //         FatUtility::dieJsonError($course->getError());
-    //     }
-    //     Message::addMessage(Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'));
-    //     FatUtility::dieJsonSuccess('');
-    // }
-public function submitForApproval(int $courseId)
-{
- 
-
-    try {
+    public function submitForApproval(int $courseId)
+    {
         if ($courseId < 1) {
-          
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
-
-        // Make sure course exists and belongs to this teacher
-        $courseAttrs = Course::getAttributesById($courseId, [
-            'course_id',
-            'course_user_id',
-            'course_status',
-            'course_active',
-            'course_approved',
-        ]);
-
-        if (empty($courseAttrs) || (int)$courseAttrs['course_user_id'] !== (int)$this->siteUserId) {
-          
-            FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_NOT_FOUND'));
+        $course = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
+        if (!$course->submitApprovalRequest()) {
+            FatUtility::dieJsonError($course->getError());
         }
-
-        // If already submitted, don't allow again
-        if ((int)$courseAttrs['course_approved'] === 1) {
-        
-            FatUtility::dieJsonError(Label::getLabel('LBL_COURSE_ALREADY_SUBMITTED_FOR_APPROVAL'));
-        }
-
-        // Build Course object just to reuse eligibility logic
-        $course = new Course(
-            $courseId,
-            $this->siteUserId,
-            $this->siteUserType,
-            $this->siteLangId
-        );
-
-        $criteria = null;
-        if (method_exists($course, 'isEligibleForApproval')) {
-            $criteria = $course->isEligibleForApproval();
-        
-
-            if (empty($criteria['course_is_eligible'])) {
-                $msg = Label::getLabel('LBL_COURSE_NOT_ELIGIBLE_FOR_APPROVAL');
-             
-                FatUtility::dieJsonError($msg);
-            }
-        }
-
-        // ✅ Manually mark as "submitted for approval"
-        $db = FatApp::getDb();
-        $data = ['course_approved' => 1];
-
-        $where = [
-            'smt'  => 'course_id = ? AND course_user_id = ?',
-            'vals' => [$courseId, $this->siteUserId],
-        ];
-
-        if (!$db->updateFromArray(Course::DB_TBL, $data, $where)) {
-            $dbError = method_exists($db, 'getError') ? $db->getError() : '';
-         
-            FatUtility::dieJsonError($dbError ?: 'Failed to submit course for approval.');
-        }
-
-        // app_debug_log('courses-approval', 'submitApprovalRequest SUCCESS (controller override)', [
-        //     'courseId' => $courseId,
-        //     'userId'   => $this->siteUserId,
-        // ]);
-
         Message::addMessage(Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'));
-        FatUtility::dieJsonSuccess([
-            'msg' => Label::getLabel('LBL_APPROVAL_REQUESTED_SUCCESSFULLY'),
-        ]);
-
-    } catch (Throwable $e) {
-        // app_debug_log('courses-approval', 'EXCEPTION in submitForApproval', [
-        //     'courseId'  => $courseId,
-        //     'userId'    => $this->siteUserId,
-        //     'exception' => $e->getMessage(),
-        //     'trace'     => $e->getTraceAsString(),
-        // ]);
-        FatUtility::dieJsonError('System error while submitting course (CODE: CRS-APP-OVR-01)');
+        FatUtility::dieJsonSuccess('');
     }
-}
 
 
     /**
