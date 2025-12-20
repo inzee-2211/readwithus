@@ -1,6 +1,9 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage');
 
+require_once CONF_APPLICATION_PATH . 'library/services/StripeClientFactory.php';
+require_once CONF_APPLICATION_PATH . 'library/services/SubscriptionEnrollment.php';
+require_once CONF_APPLICATION_PATH . 'library/services/SubscriptionTrialService.php';
 class StripeWebhookController extends FatController
 {
     public function index()
