@@ -176,7 +176,11 @@ public function search()
         // 1) Get active user subscriptions with subject IDs (CSV)
         $subscriptionSrch = new SearchBase('tbl_user_subscriptions', 'usubs');
         $subscriptionSrch->addCondition('usubs_user_id', '=', $this->siteUserId);
-        $subscriptionSrch->addCondition('usubs_status', '=', 'active');
+        // $subscriptionSrch->addCondition('usubs_status', '=', 'active');
+$subscriptionSrch->addCondition('usubs_status', 'IN', ['active', 'trialing']);
+$subscriptionSrch->addCondition('usubs_end_date', '>=', date('Y-m-d H:i:s'));
+
+
         $subscriptionSrch->addMultipleFields(['usubs_subject_ids']);
         $subscriptionRs = $subscriptionSrch->getResultSet();
         $subscriptions = $db->fetchAll($subscriptionRs);

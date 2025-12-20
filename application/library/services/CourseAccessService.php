@@ -44,8 +44,8 @@ class CourseAccessService
     $db = FatApp::getDb();
     
     // ADD DEBUG LOGGING
-    $debugLog = "=== hasSubscriptionAccess Debug ===\n";
-    $debugLog .= "User ID: $userId, Course ID: $courseId\n";
+    // $debugLog = "=== hasSubscriptionAccess Debug ===\n";
+    // $debugLog .= "User ID: $userId, Course ID: $courseId\n";
     
     // Method 1: Using SearchBase (most reliable in YoCoach)
     $courseSrch = new SearchBase(Course::DB_TBL, 'c');
