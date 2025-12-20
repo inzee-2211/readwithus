@@ -1091,45 +1091,154 @@ public function feedbackSetup()
 /**
  * Get quiz questions by subtopic ID
  */
+// private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
+// {
+//     $db = FatApp::getDb();
+
+//     // 1) Get subtopic name
+//     $topicSrch = new SearchBase('course_topics', 'ct');
+//     $topicSrch->addCondition('ct.id', '=', (int)$subtopicId);
+//     $topicSrch->addMultipleFields(['topic']);
+//     $topicSrch->doNotCalculateRecords();
+//     $subtopic = $db->fetch($topicSrch->getResultSet());
+//     if (!$subtopic) {
+//         return false;
+//     }
+//     $subtopicName = $subtopic['topic'];
+
+//     // 2) Pull 10 random questions from tbl_quaestion_bank by subtopic_id
+//     //    NOTE: no inline SQL comments; subtopicId is inlined; no question_active filter unless you have that column
+//     $qSql = "
+//         SELECT 
+//             id AS question_id,
+//             question_title,
+//             question_type,
+//             COALESCE(hint, '')         AS question_hint,
+//             COALESCE(explanation, '')  AS question_explanation,
+//             COALESCE(answer_a, '')     AS answer_a,
+//             COALESCE(answer_b, '')     AS answer_b,
+//             COALESCE(answer_c, '')     AS answer_c,
+//             COALESCE(answer_d, '')     AS answer_d,
+//             COALESCE(correct_answer,'')AS question_answers,
+//             COALESCE(image, '')        AS question_image
+//         FROM tbl_quaestion_bank
+//         WHERE subtopic_id = " . (int)$subtopicId . "
+//         ORDER BY RAND()
+//         LIMIT 10
+//     ";
+
+//     $rs = $db->query($qSql);
+//     if ($rs === false) {
+//         // Surface the DB error during dev; swap to a generic message in prod
+//         FatUtility::dieJsonError('DB error loading questions: ' . $db->getError());
+//     }
+
+//     $rows = $db->fetchAll($rs);
+//     if (empty($rows)) {
+//         return false;
+//     }
+
+//     // 3) Normalize types and build randomized_options with letter values
+//     $mapType = function ($raw) {
+//         $s = strtolower(trim((string)$raw));
+//         if ($s === '1' || strpos($s, 'single') !== false || strpos($s, 'mcq') !== false || strpos($s, 'multiple-choice') !== false) return '1';
+//         if ($s === '2' || strpos($s, 'checkbox') !== false || strpos($s, 'multiple select') !== false) return '2';
+//         if ($s === '3' || strpos($s, 'story') !== false || strpos($s, 'text') !== false) return '3';
+//         return '1';
+//     };
+
+//     foreach ($rows as &$q) {
+//         $q['question_type'] = $mapType($q['question_type']);
+
+//         $opts = [];
+//         if (!empty($q['answer_a'])) $opts[] = ['id' => 'A', 'text' => $q['answer_a']];
+//         if (!empty($q['answer_b'])) $opts[] = ['id' => 'B', 'text' => $q['answer_b']];
+//         if (!empty($q['answer_c'])) $opts[] = ['id' => 'C', 'text' => $q['answer_c']];
+//         if (!empty($q['answer_d'])) $opts[] = ['id' => 'D', 'text' => $q['answer_d']];
+
+//         if (in_array($q['question_type'], ['1', '2']) && count($opts) > 0) {
+//             shuffle($opts);
+//             $q['randomized_options'] = $opts;
+//         } else {
+//             $q['randomized_options'] = [];
+//         }
+
+//         if (!isset($q['question_marks']) || (int)$q['question_marks'] <= 0) {
+//             $q['question_marks'] = 2;
+//         }
+//     }
+
+//     return [
+//         'quiz_id'              => (int)$subtopicId,
+//         'quiz_title'       => $subtopicName . ' Quiz',          // <-- THIS
+//     'quiz_description' => 'Quiz for: ' . $subtopicName,      // <-- AND THIS
+//         'quiz_title'           => $subtopicName . ' Quiz',
+//         'quiz_description'     => 'Quiz for: ' . $subtopicName,
+//         'quiz_pass_percentage' => 60,
+//         'quiz_duration'        => 0,
+//         'quiz_user_id'         => 0,
+//         'questions'            => $rows,
+//     ];
+// }
+
+/**
+ * Get quiz questions by subtopic (tbl_quiz_management.id)
+ */
 private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
 {
     $db = FatApp::getDb();
+    $subtopicId = (int)$subtopicId;
 
-    // 1) Get subtopic name
-    $topicSrch = new SearchBase('course_topics', 'ct');
-    $topicSrch->addCondition('ct.id', '=', (int)$subtopicId);
-    $topicSrch->addMultipleFields(['topic']);
-    $topicSrch->doNotCalculateRecords();
-    $subtopic = $db->fetch($topicSrch->getResultSet());
-    if (!$subtopic) {
+    // 1) Fetch subtopic + topic + subject from your NEW tables
+    $qid = $db->quoteVariable($subtopicId);
+
+    $metaSql = "
+        SELECT
+            qm.id,
+            qm.subtopic_name,
+            COALESCE(qs.topic_name, '') AS topic_name,
+            COALESCE(cs.subject, '')    AS subject
+        FROM tbl_quiz_management qm
+        INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+        LEFT JOIN course_subjects cs ON cs.id = qs.subject_id
+        WHERE qm.id = $qid
+        LIMIT 1
+    ";
+
+    $metaRs  = $db->query($metaSql);
+    $metaRow = $metaRs ? $db->fetch($metaRs) : [];
+
+    if (empty($metaRow)) {
         return false;
     }
-    $subtopicName = $subtopic['topic'];
 
-    // 2) Pull 10 random questions from tbl_quaestion_bank by subtopic_id
-    //    NOTE: no inline SQL comments; subtopicId is inlined; no question_active filter unless you have that column
+    $subtopicName = (string)$metaRow['subtopic_name'];
+    $topicName    = (string)$metaRow['topic_name'];
+    $subjectName  = (string)$metaRow['subject'];
+
+    // 2) Pull random questions from tbl_quaestion_bank (linked by subtopic_id = qm.id)
     $qSql = "
         SELECT 
             id AS question_id,
             question_title,
             question_type,
-            COALESCE(hint, '')         AS question_hint,
-            COALESCE(explanation, '')  AS question_explanation,
-            COALESCE(answer_a, '')     AS answer_a,
-            COALESCE(answer_b, '')     AS answer_b,
-            COALESCE(answer_c, '')     AS answer_c,
-            COALESCE(answer_d, '')     AS answer_d,
-            COALESCE(correct_answer,'')AS question_answers,
-            COALESCE(image, '')        AS question_image
+            COALESCE(hint, '')          AS question_hint,
+            COALESCE(explanation, '')   AS question_explanation,
+            COALESCE(answer_a, '')      AS answer_a,
+            COALESCE(answer_b, '')      AS answer_b,
+            COALESCE(answer_c, '')      AS answer_c,
+            COALESCE(answer_d, '')      AS answer_d,
+            COALESCE(correct_answer,'') AS question_answers,
+            COALESCE(image, '')         AS question_image,
+            2 AS question_marks
         FROM tbl_quaestion_bank
-        WHERE subtopic_id = " . (int)$subtopicId . "
+        WHERE subtopic_id = $qid
         ORDER BY RAND()
         LIMIT 10
     ";
 
     $rs = $db->query($qSql);
     if ($rs === false) {
-        // Surface the DB error during dev; swap to a generic message in prod
         FatUtility::dieJsonError('DB error loading questions: ' . $db->getError());
     }
 
@@ -1138,12 +1247,12 @@ private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
         return false;
     }
 
-    // 3) Normalize types and build randomized_options with letter values
+    // 3) Normalize types + build randomized_options
     $mapType = function ($raw) {
         $s = strtolower(trim((string)$raw));
         if ($s === '1' || strpos($s, 'single') !== false || strpos($s, 'mcq') !== false || strpos($s, 'multiple-choice') !== false) return '1';
-        if ($s === '2' || strpos($s, 'checkbox') !== false || strpos($s, 'multiple select') !== false) return '2';
-        if ($s === '3' || strpos($s, 'story') !== false || strpos($s, 'text') !== false) return '3';
+        if ($s === '2' || strpos($s, 'checkbox') !== false || strpos($s, 'multiple') !== false) return '2';
+        if ($s === '3' || strpos($s, 'story') !== false || strpos($s, 'text') !== false || strpos($s, 'short') !== false) return '3';
         return '1';
     };
 
@@ -1151,28 +1260,25 @@ private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
         $q['question_type'] = $mapType($q['question_type']);
 
         $opts = [];
-        if (!empty($q['answer_a'])) $opts[] = ['id' => 'A', 'text' => $q['answer_a']];
-        if (!empty($q['answer_b'])) $opts[] = ['id' => 'B', 'text' => $q['answer_b']];
-        if (!empty($q['answer_c'])) $opts[] = ['id' => 'C', 'text' => $q['answer_c']];
-        if (!empty($q['answer_d'])) $opts[] = ['id' => 'D', 'text' => $q['answer_d']];
+        if ($q['answer_a'] !== '') $opts[] = ['id' => 'A', 'text' => $q['answer_a']];
+        if ($q['answer_b'] !== '') $opts[] = ['id' => 'B', 'text' => $q['answer_b']];
+        if ($q['answer_c'] !== '') $opts[] = ['id' => 'C', 'text' => $q['answer_c']];
+        if ($q['answer_d'] !== '') $opts[] = ['id' => 'D', 'text' => $q['answer_d']];
 
-        if (in_array($q['question_type'], ['1', '2']) && count($opts) > 0) {
+        if (in_array($q['question_type'], ['1','2'], true) && count($opts) > 0) {
             shuffle($opts);
             $q['randomized_options'] = $opts;
         } else {
             $q['randomized_options'] = [];
         }
-
-        if (!isset($q['question_marks']) || (int)$q['question_marks'] <= 0) {
-            $q['question_marks'] = 2;
-        }
     }
 
+    $titleParts = array_filter([$subjectName, $topicName, $subtopicName]);
+    $finalTitle = implode(' - ', $titleParts) . ' Quiz';
+
     return [
-        'quiz_id'              => (int)$subtopicId,
-        'quiz_title'       => $subtopicName . ' Quiz',          // <-- THIS
-    'quiz_description' => 'Quiz for: ' . $subtopicName,      // <-- AND THIS
-        'quiz_title'           => $subtopicName . ' Quiz',
+        'quiz_id'              => $subtopicId, // this is qm.id
+        'quiz_title'           => $finalTitle,
         'quiz_description'     => 'Quiz for: ' . $subtopicName,
         'quiz_pass_percentage' => 60,
         'quiz_duration'        => 0,
@@ -1180,6 +1286,8 @@ private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
         'questions'            => $rows,
     ];
 }
+
+
 /* ============================
  * 1) Render the start screen
  * ============================ */
