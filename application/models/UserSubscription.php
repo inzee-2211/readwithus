@@ -95,6 +95,14 @@ class UserSubscription
      */
     public static function createOrActivate(array $data): bool
     {
+        
+    if (empty($data['usubs_billing_interval'])) {
+        // map possible incoming values
+        $billing = $data['billing'] ?? $data['usubs_billing_interval'] ?? 'monthly';
+        $data['usubs_billing_interval'] = (in_array($billing, ['yearly','year'], true)) ? 'year' : 'month';
+        unset($data['billing']); // optional cleanup
+    }
+
         $rec = new TableRecord(self::DB_TBL);
         foreach ($data as $k => $v) {
             $rec->setFldValue($k, $v);
@@ -186,10 +194,11 @@ class UserSubscription
         } else {
             $endTs = $currentEnd ?: null;
         }
-
+$billingInterval = (in_array($billing, ['yearly', 'year'], true)) ? 'year' : 'month';
         $data = [
             'usubs_user_id'          => $userId,
             'usubs_spackage_id'      => $spackageId,
+            'usubs_billing_interval' => $billingInterval,
             'usubs_subject_ids'      => $subjectIdsCsv,
             'stripe_subscription_id' => $stripeSubId,
             'stripe_customer_id'     => $stripeCustomerId ?: null,
