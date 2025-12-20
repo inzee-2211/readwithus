@@ -56,15 +56,10 @@ class CourseAccessService
     
     $courseData = $db->fetch($courseSrch->getResultSet());
     
-    $debugLog .= "Course Data: " . print_r($courseData, true) . "\n";
     
-    if (!$courseData || empty($courseData['course_subject_id'])) {
-        $debugLog .= "❌ Course not found or no subject_id\n";
-        return false;
-    }
-    
+ 
     $subjectId = (int)$courseData['course_subject_id'];
-    $debugLog .= "Course Subject ID: $subjectId\n";
+    // $debugLog .= "Course Subject ID: $subjectId\n";
     
     // Check if user has active subscription for this subject
     $subSrch = new SearchBase('tbl_user_subscriptions', 'us');
@@ -78,11 +73,11 @@ class CourseAccessService
     $subSrch->doNotCalculateRecords();
     
     $subscriptionData = $db->fetch($subSrch->getResultSet());
-    $debugLog .= "Subscription Data: " . print_r($subscriptionData, true) . "\n";
+    // $debugLog .= "Subscription Data: " . print_r($subscriptionData, true) . "\n";
     
     $result = (bool)$subscriptionData;
-    $debugLog .= "Final Result: " . ($result ? "TRUE" : "FALSE") . "\n";
-    
+    // $debugLog .= "Final Result: " . ($result ? "TRUE" : "FALSE") . "\n";
+
     return $result;
 }
 

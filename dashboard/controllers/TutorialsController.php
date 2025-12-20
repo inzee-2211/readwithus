@@ -1325,13 +1325,23 @@ private function getUserQuizAttempt($userId, $quizId, $lectureId = 0)
 /* ============================
  * In getQuiz(), remove the echo/print_r and keep this flow
  * ============================ */
+
+
+
 public function getQuiz()
 {
     $lectureId  = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
     $courseId   = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
     $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
 
+    $this->appLog('lecture_quiz_debug.log', 'getQuiz() called', [
+        'lectureId' => $lectureId,
+        'courseId' => $courseId,
+        'progressId' => $progressId,
+    ]);
+
     if ($lectureId < 1) {
+        $this->appLog('lecture_quiz_debug.log', 'Invalid lectureId', ['lectureId' => $lectureId]);
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
@@ -1339,55 +1349,173 @@ public function getQuiz()
     $lecture   = new Lecture($lectureId);
     $resources = $lecture->getResources();
 
+    // Log resources summary (don’t dump full)
+    $resSummary = [];
+    foreach ((array)$resources as $r) {
+        $resSummary[] = [
+            'lecsrc_id' => $r['lecsrc_id'] ?? null,
+            'type'      => $r['lecsrc_type'] ?? null,
+            'resrc_id'  => $r['lecsrc_resrc_id'] ?? null,
+            'link'      => $r['lecsrc_link'] ?? null,
+            'has_meta'  => !empty($r['lecsrc_meta']),
+        ];
+        if (count($resSummary) >= 30) break;
+    }
+
+    $this->appLog('lecture_quiz_debug.log', 'Fetched lecture resources', [
+        'resourcesCount' => is_array($resources) ? count($resources) : 0,
+        'summary' => $resSummary,
+    ]);
+
     $quizResource = null;
-    foreach ($resources as $resource) {
-        if ((int)$resource['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+    foreach ((array)$resources as $resource) {
+        if ((int)($resource['lecsrc_type'] ?? 0) === (int)Lecture::TYPE_RESOURCE_QUIZ) {
             $quizResource = $resource;
             break;
         }
     }
 
     if (!$quizResource) {
+        $this->appLog('lecture_quiz_debug.log', 'NO QUIZ resource found in getResources()', [
+            'lectureId' => $lectureId,
+            'note' => 'If DB has quiz row but getResources misses it, Lecture::getResources() is filtering it out.',
+        ]);
+
         $this->set('msg', Label::getLabel('LBL_NO_QUIZ_AVAILABLE_FOR_THIS_LECTURE'));
         $this->_template->render(false, false, 'tutorials/no-quiz.php');
         return;
     }
 
     // Read subtopic id from meta
-    $quizMeta   = @json_decode($quizResource['lecsrc_meta'], true);
-    $subtopicId = (int)($quizMeta['subtopic'] ?? 0);
+    $quizMetaRaw = (string)($quizResource['lecsrc_meta'] ?? '');
+    $quizMeta    = @json_decode($quizMetaRaw, true);
+    $subtopicId  = (int)($quizMeta['subtopic'] ?? 0);
+
+    $this->appLog('lecture_quiz_debug.log', 'Quiz resource found', [
+        'lecsrc_id' => $quizResource['lecsrc_id'] ?? null,
+        'lecsrc_link' => $quizResource['lecsrc_link'] ?? null,
+        'meta_raw' => mb_substr($quizMetaRaw, 0, 500),
+        'subtopicId' => $subtopicId,
+        'meta_decode_ok' => is_array($quizMeta),
+    ]);
+
     if ($subtopicId < 1) {
+        $this->appLog('lecture_quiz_debug.log', 'Quiz meta missing/invalid subtopic', [
+            'lectureId' => $lectureId,
+            'meta_raw' => mb_substr($quizMetaRaw, 0, 500),
+        ]);
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_QUIZ_SUBTOPIC'));
     }
-$previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
-if (!empty($previousAttempt) && (int)$previousAttempt['status'] === 2) {
-    // Already passed -> show a friendly message instead of the quiz UI
-    $this->set('msg', Label::getLabel('LBL_QUIZ_ALREADY_PASSED'));
-    $this->_template->render(false, false, 'tutorials/no-quiz.php');
-    return;
-}
+
+    // check previous attempt
+    $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+
+    $this->appLog('lecture_quiz_debug.log', 'Previous attempt check', [
+        'lectureId' => $lectureId,
+        'subtopicId' => $subtopicId,
+        'previousAttempt' => $previousAttempt ? [
+            'id' => $previousAttempt['id'] ?? null,
+            'status' => $previousAttempt['status'] ?? null,
+            'attempt_no' => $previousAttempt['attempt_no'] ?? null,
+            'percentage' => $previousAttempt['percentage'] ?? null,
+        ] : null,
+    ]);
+
+    if (!empty($previousAttempt) && (int)$previousAttempt['status'] === 2) {
+        $this->set('msg', Label::getLabel('LBL_QUIZ_ALREADY_PASSED'));
+        $this->_template->render(false, false, 'tutorials/no-quiz.php');
+        return;
+    }
 
     // Build quiz payload from tbl_quaestion_bank
     $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
+
+    $this->appLog('lecture_quiz_debug.log', 'Loaded questions by subtopic', [
+        'subtopicId' => $subtopicId,
+        'questionsCount' => !empty($quizDetails['questions']) ? count($quizDetails['questions']) : 0,
+    ]);
+
     if (!$quizDetails || empty($quizDetails['questions'])) {
         FatUtility::dieJsonError(Label::getLabel('LBL_NO_QUESTIONS_FOUND_FOR_THIS_QUIZ'));
     }
 
-    // Has user tried this lecture-quiz?
-    $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
-
     $this->sets([
-        'quizDetails'    => $quizDetails,
-        'quizResource'   => $quizResource,
-        'previousAttempt'=> $previousAttempt,
-        'courseId'       => $courseId,
-        'lectureId'      => $lectureId,
-        'progressId'     => $progressId,
-        'siteLangId'     => $this->siteLangId
+        'quizDetails'     => $quizDetails,
+        'quizResource'    => $quizResource,
+        'previousAttempt' => $previousAttempt,
+        'courseId'        => $courseId,
+        'lectureId'       => $lectureId,
+        'progressId'      => $progressId,
+        'siteLangId'      => $this->siteLangId
     ]);
 
     $this->_template->render(false, false, 'tutorials/get-quiz-new.php');
 }
+
+
+// public function getQuiz()
+// {
+//     $lectureId  = FatApp::getPostedData('lecture_id', FatUtility::VAR_INT, 0);
+//     $courseId   = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
+//     $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
+
+//     if ($lectureId < 1) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+//     }
+
+//     // Lecture + resources
+//     $lecture   = new Lecture($lectureId);
+//     $resources = $lecture->getResources();
+
+//     $quizResource = null;
+//     foreach ($resources as $resource) {
+//         if ((int)$resource['lecsrc_type'] === (int)Lecture::TYPE_RESOURCE_QUIZ) {
+//             $quizResource = $resource;
+//             break;
+//         }
+//     }
+
+//     if (!$quizResource) {
+//         $this->set('msg', Label::getLabel('LBL_NO_QUIZ_AVAILABLE_FOR_THIS_LECTURE'));
+//         $this->_template->render(false, false, 'tutorials/no-quiz.php');
+//         return;
+//     }
+
+//     // Read subtopic id from meta
+//     $quizMeta   = @json_decode($quizResource['lecsrc_meta'], true);
+//     $subtopicId = (int)($quizMeta['subtopic'] ?? 0);
+//     if ($subtopicId < 1) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_QUIZ_SUBTOPIC'));
+//     }
+// $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+// if (!empty($previousAttempt) && (int)$previousAttempt['status'] === 2) {
+//     // Already passed -> show a friendly message instead of the quiz UI
+//     $this->set('msg', Label::getLabel('LBL_QUIZ_ALREADY_PASSED'));
+//     $this->_template->render(false, false, 'tutorials/no-quiz.php');
+//     return;
+// }
+
+//     // Build quiz payload from tbl_quaestion_bank
+//     $quizDetails = $this->getQuizQuestionsBySubtopic($subtopicId, $this->siteLangId);
+//     if (!$quizDetails || empty($quizDetails['questions'])) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_NO_QUESTIONS_FOUND_FOR_THIS_QUIZ'));
+//     }
+
+//     // Has user tried this lecture-quiz?
+//     $previousAttempt = $this->getUserQuizAttemptLecture($this->siteUserId, $subtopicId, $lectureId);
+
+//     $this->sets([
+//         'quizDetails'    => $quizDetails,
+//         'quizResource'   => $quizResource,
+//         'previousAttempt'=> $previousAttempt,
+//         'courseId'       => $courseId,
+//         'lectureId'      => $lectureId,
+//         'progressId'     => $progressId,
+//         'siteLangId'     => $this->siteLangId
+//     ]);
+
+//     $this->_template->render(false, false, 'tutorials/get-quiz-new.php');
+// }
 
 //lines added by rehan for quiz-lecture ends here
 
@@ -2493,76 +2621,38 @@ private function shouldShowCta(string $userMsg, string $interventionStage, array
 
     return $shouldShow;
 }
-
-private function startSubscriptionAccess(int $accessId)
+/**
+ * Write logs to application/logs safely.
+ * Usage: $this->appLog('lecture_quiz_debug.log', 'message', ['any' => 'context']);
+ */
+private function appLog(string $file, string $message, array $context = []): void
 {
-    $debugLog = "=== startSubscriptionAccess Debug ===\n";
-    $debugLog .= "Access ID: $accessId, User: " . $this->siteUserId . "\n";
-    
-    // Extract course ID from access ID
-    $courseId = self::extractCourseIdFromAccessId($accessId, $this->siteUserId);
-    $debugLog .= "Extracted Course ID: $courseId\n";
-    
-    if ($courseId < 1) {
-        $debugLog .= "❌ Invalid course ID extracted\n";
-        $this->writeDebugLog($debugLog);
-        FatUtility::exitWithErrorCode(404);
+    try {
+        // Resolve logs dir
+        $base = defined('CONF_INSTALLATION_PATH') ? rtrim(CONF_INSTALLATION_PATH, "/\\") : dirname(__DIR__, 2);
+        $logDir = $base . '/application/logs';
+
+        // Ensure directory exists
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
+
+        // Build structured line (single-line JSON)
+        $payload = [
+            'ts'      => date('Y-m-d H:i:s'),
+            'msg'     => $message,
+            'userId'  => $this->siteUserId ?? null,
+            'ctx'     => $context,
+        ];
+
+        $line = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL;
+
+        // Write
+        @file_put_contents($logDir . '/' . $file, $line, FILE_APPEND | LOCK_EX);
+    } catch (\Throwable $e) {
+        // fallback to PHP error log (never break app)
+        error_log('appLog failed: ' . $e->getMessage());
     }
-    
-    // Verify subscription access
-    if (!CourseAccessService::hasSubscriptionAccess($this->siteUserId, $courseId)) {
-        $debugLog .= "❌ Subscription access verification failed\n";
-        $this->writeDebugLog($debugLog);
-        FatUtility::exitWithErrorCode(404);
-    }
-    
-    $debugLog .= "✅ Subscription access verified\n";
-    
-    // Get course details
-    $courseObj = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
-    if (!$course = $courseObj->get()) {
-        $debugLog .= "❌ Course not found\n";
-        $this->writeDebugLog($debugLog);
-        FatUtility::exitWithErrorCode(404);
-    }
-    
-    $debugLog .= "✅ Course found: " . $course['course_title'] . "\n";
-    
-    // Get progress data using our access ID
-    $progressData = $this->getSubscriptionProgressData($accessId, $courseId);
-    $debugLog .= "Progress data: " . print_r($progressData, true) . "\n";
-    
-    /* fetch section and lectures list */
-    $srch = new SectionSearch($this->siteLangId, $this->siteUserId, User::LEARNER);
-    $srch->applyPrimaryConditions();
-    $srch->addCondition('section.section_course_id', '=', $courseId);
-    $srch->addSearchListingFields();
-    $srch->addOrder('section.section_order', 'ASC');
-    
-    if (!$sections = $srch->fetchAndFormat()) {
-        $debugLog .= "❌ No sections found\n";
-        $this->writeDebugLog($debugLog);
-        FatUtility::exitWithErrorCode(404);
-    }
-    
-    // Get progress for subscription access
-    $progress = new CourseProgress($accessId);
-    $lectureStats = $progress->getLectureStats($sections);
-    
-    $this->sets([
-        'course' => $course,
-        'sections' => $sections,
-        'progress' => $progressData,
-        'progressId' => $accessId, // Use our access ID as progress ID
-        'lectureStats' => $lectureStats,
-        'isSubscriptionAccess' => true, // Flag to indicate subscription access
-    ]);
-    
-    $debugLog .= "✅ Rendering course view\n";
-    $this->writeDebugLog($debugLog);
-    
-    $this->_template->addJs(['js/jquery.barrating.min.js', 'js/common_ui_functions.js']);
-    $this->_template->render();
 }
 
 /**
