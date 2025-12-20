@@ -69,7 +69,9 @@ class CourseAccessService
     // Check if user has active subscription for this subject
     $subSrch = new SearchBase('tbl_user_subscriptions', 'us');
     $subSrch->addCondition('us.usubs_user_id', '=', $userId);
-    $subSrch->addCondition('us.usubs_status', '=', 'active');
+    // $subSrch->addCondition('us.usubs_status', '=', 'active');
+    $subSrch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
+
     $subSrch->addCondition('us.usubs_end_date', '>=', date('Y-m-d H:i:s'));
     $subSrch->addDirectCondition("FIND_IN_SET('{$subjectId}', us.usubs_subject_ids)");
     $subSrch->setPageSize(1);
