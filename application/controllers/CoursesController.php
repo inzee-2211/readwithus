@@ -84,7 +84,7 @@ class CoursesController extends MyAppController
                 } else {
                     $course['section_count'] = 0; // Default if query fails
                 }
-                  $course['subGate'] = $this->subGateForCourse($courseId); 
+                
             } else {
                 $course['section_count'] = 0; // Default if course ID is missing
             }
