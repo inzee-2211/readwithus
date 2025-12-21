@@ -232,38 +232,70 @@ $priceSorting = AppConstant::getSortbyArr();
 
                                     <div class="course-controls">
 
-  <?php if (!empty($subscriptionMode) && $subscriptionMode === true): ?>
-      <!-- Subscription UI -->
-   
-<div class="course-controls__item">
-  <?php if (empty($hasActiveSub)): ?>
+ <?php if (!empty($subscriptionMode) && $subscriptionMode === true): ?>
     <?php
-      // Build level-aware pricing URL per course
-      $courseLevelId = (int)$course['course_level'];   // this is already available in $course
-      $levelPricingUrl = MyUtility::makeUrl('Pricing', 'index') . '?level_id=' . $courseLevelId;
+    // Level-aware pricing url (match your correct subscription pricing route)
+    $courseLevelId   = (int)($course['course_level'] ?? 0);
+    $levelPricingUrl = MyUtility::makeUrl('Subscription', 'pricing') . ($courseLevelId ? ('?level_id=' . $courseLevelId) : '');
+
+    // Expect controller to provide per-course gate (recommended)
+    $subGate = $course['subGate'] ?? null;
+
+    // Fallback (so UI doesn't break if subGate isn't set yet)
+    if (!is_array($subGate)) {
+        $subGate = [
+            'access'     => false,
+            'reason'     => empty($siteUserId) ? 'GUEST' : (empty($hasActiveSub) ? 'NO_ACTIVE_SUB' : 'COURSE_LOCKED'),
+            'pricingUrl' => $levelPricingUrl,
+            'manageUrl'  => MyUtility::makeUrl('Subscription', 'index'), // change to your subject-selection page if different
+        ];
+    }
     ?>
-    <a href="<?php echo $levelPricingUrl; ?>" class="btn btn--primary">
-      <?php echo Label::getLabel('LBL_SUBSCRIBE_TO_UNLOCK'); ?>
-    </a>
-  <?php else: ?>
- <a href="<?php echo MyUtility::makeUrl(
-                        'Tutorials',
-                        'startByCourse',
-                        [ $course['course_id'] ],   // ← you MUST pass courseId as param
-                        CONF_WEBROOT_DASHBOARD
-                ); ?>" class="btn btn--primary">
-      <?php echo Label::getLabel('LBL_GO_TO_COURSE'); ?>
-    </a>
-  <?php endif; ?>
-</div>
 
-      <div class="course-controls__item">
+    <div class="course-controls__item">
+        <?php if ((int)$course['course_type'] === Course::TYPE_FREE): ?>
+            <a href="javascript:void(0);" onclick="cart.addFreeCourse('<?php echo (int)$course['course_id']; ?>');" class="btn btn--primary">
+                <?php echo Label::getLabel('LBL_ENROLL_NOW'); ?>
+            </a>
+
+        <?php elseif (!empty($subGate['access'])): ?>
+            <a href="<?php echo MyUtility::makeUrl('Tutorials', 'startByCourse', [(int)$course['course_id']], CONF_WEBROOT_DASHBOARD); ?>"
+               class="btn btn--primary">
+                <?php echo Label::getLabel('LBL_GO_TO_COURSE'); ?>
+            </a>
+
+        <?php else: ?>
+            <?php
+            // Decide button label + url based on reason (same idea as details page)
+            $ctaUrl   = $subGate['pricingUrl'] ?? $levelPricingUrl;
+            $ctaLabel = Label::getLabel('LBL_VIEW_PLANS');
+
+            if (($subGate['reason'] ?? '') === 'subject_not_selected') {
+                $ctaUrl   = $subGate['manageUrl'] ?? $ctaUrl;
+                $ctaLabel = Label::getLabel('LBL_SELECT_YOUR_SUBJECTS');
+            } elseif (($subGate['reason'] ?? '') === 'no_active_sub' || ($subGate['reason'] ?? '') === 'guest') {
+                $ctaLabel = Label::getLabel('LBL_SUBSCRIBE_TO_UNLOCK');
+            } else {
+                // COURSE_NOT_INCLUDED / COURSE_LOCKED -> View Plans
+                $ctaLabel = Label::getLabel('LBL_VIEW_PLANS');
+            }
+            ?>
+            <a href="<?php echo $ctaUrl; ?>" class="btn btn--primary">
+                <?php echo $ctaLabel; ?>
+            </a>
+        <?php endif; ?>
+    </div>
+
+    <div class="course-controls__item">
         <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$course['course_slug']]); ?>" class="btn btn--bordered color-gray-500">
-          <span class="color-black"><?php echo Label::getLabel('LBL_VIEW_DETAILS'); ?></span>
+            <span class="color-black"><?php echo Label::getLabel('LBL_VIEW_DETAILS'); ?></span>
         </a>
-      </div>
+    </div>
 
-  <?php else: ?>
+<?php else: ?>
+
+
+     
       <!-- Legacy buy/enroll UI -->
       <div class="course-controls__item">
         <?php if (!$course['is_purchased']): ?>
