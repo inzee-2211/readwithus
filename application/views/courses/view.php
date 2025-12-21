@@ -1555,38 +1555,7 @@ $levels = Course::getCourseLevels();
                             <?php endif; ?>
                         </div>
 
-                        <!-- <div class="rwu-pricing-actions">
-                            <?php if (!$course['is_purchased']): ?>
-                                <div class="rwu-price-display">
-                                    <?php if ($course['course_type'] != Course::TYPE_FREE): ?>
-                                        <span class="rwu-price-label"><?php echo Label::getLabel('LBL_AT_JUST'); ?></span>
-                                        <span class="rwu-price-amount"><?php echo CourseUtility::formatMoney($course['course_price']); ?></span>
-                                    <?php else: ?>
-                                        <span class="rwu-price-free"><?php echo Label::getLabel('LBL_FREE'); ?></span>
-                                    <?php endif; ?>
-                                </div>
-
-                                <?php if ($course['course_type'] != Course::TYPE_FREE): ?>
-                                    <button onclick="cart.addCourse(<?php echo $course['course_id']; ?>)" class="rwu-enroll-btn-modern">
-                                        <?php echo Label::getLabel("LBL_ENROLL_NOW"); ?>
-                                    </button>
-                                <?php else: ?>
-                                    <button onclick="cart.addFreeCourse(<?php echo $course['course_id']; ?>)" class="rwu-enroll-btn-modern">
-                                        <?php echo Label::getLabel("LBL_ENROLL_NOW"); ?>
-                                    </button>
-                                    <?php
-                                    $checkoutForm->setFormTagAttribute('class', 'd-none');
-                                    $checkoutForm->setFormTagAttribute('name', 'frmCheckout');
-                                    $checkoutForm->setFormTagAttribute('id', 'frmCheckout');
-                                    echo $checkoutForm->getFormHtml();
-                                    ?>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <a href="<?php echo MyUtility::makeUrl('Tutorials', 'start', [$course['ordcrs_id']], CONF_WEBROOT_DASHBOARD); ?>" class="rwu-enroll-btn-modern rwu-go-to-course">
-                                    <?php echo Label::getLabel("LBL_GO_TO_COURSE"); ?>
-                                </a>
-                            <?php endif; ?>
-                        </div> -->
+                       
 
       <div class="rwu-pricing-actions">
     <?php if (!empty($subscriptionMode)): ?>
@@ -1595,16 +1564,7 @@ $levels = Course::getCourseLevels();
         $subGate = $subGate ?? ['access' => false, 'reason' => 'GUEST'];
         ?>
 
-        <?php if ($course['course_type'] == Course::TYPE_FREE): ?>
-            <div class="rwu-price-display">
-                <span class="rwu-price-free"><?php echo Label::getLabel('LBL_FREE'); ?></span>
-            </div>
-            <button onclick="cart.addFreeCourse(<?php echo (int)$course['course_id']; ?>)"
-                    class="rwu-enroll-btn-modern">
-                <?php echo Label::getLabel("LBL_ENROLL_NOW"); ?>
-            </button>
-
-        <?php else: ?>
+       
             <div class="rwu-price-display">
                 <span class="rwu-price-label">
                     <?php echo Label::getLabel('LBL_ACCESS_VIA_SUBSCRIPTION'); ?>
@@ -1658,7 +1618,6 @@ $levels = Course::getCourseLevels();
             <?php endif; ?>
         <?php endif; ?>
 
-    <?php else: ?>
         <!-- Your legacy “buy once” flow here -->
         <?php if (empty($course['is_purchased'])): ?>
             <!-- buy/enroll buttons -->
@@ -1671,7 +1630,7 @@ $levels = Course::getCourseLevels();
                 <?php echo Label::getLabel("LBL_GO_TO_COURSE"); ?>
             </a>
         <?php endif; ?>
-    <?php endif; ?>
+
 </div>
 
 
