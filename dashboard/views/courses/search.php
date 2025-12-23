@@ -28,7 +28,7 @@ $requestStatuses = Course::getRefundStatuses();
         <div class="card-course">
             <div class="card-course__colum card-course__colum--first">
                 <div class="ratio ratio--16by9">
-                    <img src="<?php echo MyUtility::makeFullUrll('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL); ?>" alt="">
+                    <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL); ?>" alt="">
                 </div>
             </div>
             <div class="card-course__colum card-course__colum--second">
