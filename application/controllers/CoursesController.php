@@ -184,6 +184,8 @@ $manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
         /* get course details */
         $srch = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
         $srch->addSearchDetailFields();
+        $srch->addFld('course.course_subject_id AS course_subject_id');
+
         $srch->applyPrimaryConditions();
         $srch->addCondition('course_slug', '=', $slug);
         $srch->joinTable(TeacherStat::DB_TBL, 'INNER JOIN', 'testat.testat_user_id = teacher.user_id', 'testat');
@@ -201,6 +203,7 @@ $manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
             FatUtility::exitWithErrorCode(404);
         }
         $course = current($courses);
+
         $teacherCourses = TeacherSearch::getCourses([$course['course_teacher_id']]);
         $course['teacher_courses'] = $teacherCourses[$course['course_teacher_id']] ?? 0;
         /* get more course by the same teacher */
@@ -230,8 +233,25 @@ $manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
          
 
         $db = FatApp::getDb();
+
         
-            $courseId = $course['course_id'] ?? null; // Safely get the course ID
+            $courseId = $course['course_id'] ?? null; 
+            // Active subscriptions count for THIS course subject
+$subjectId = (int)($course['course_subject_id'] ?? 0);
+$course['active_subscriptions'] = 0;
+
+if ($subjectId > 0) {
+    $sql = "
+        SELECT COUNT(*) AS cnt
+        FROM tbl_user_subscriptions
+        WHERE usubs_status IN ('active','trialing')
+          AND (usubs_current_period_end IS NULL OR usubs_current_period_end >= NOW())
+          AND FIND_IN_SET(" . $subjectId . ", REPLACE(usubs_subject_ids,' ',''))
+    ";
+    $row = $db->fetch($db->query($sql));
+    $course['active_subscriptions'] = (int)($row['cnt'] ?? 0);
+}
+// Safely get the course IDss
          
             if (!empty($courseId)) {
               
@@ -252,6 +272,12 @@ $manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
  // inside CoursesController::view($slug) after $course is resolved (and before $this->sets([...]))
 $gate = $this->subGateForCourse($course['course_id']); // uses your helper below
 $subscriptionMode = true; // turn on subscription UI on the detail page
+$gate = $this->subGateForCourse($course['course_id']); // already there
+
+$hasActiveSub = !empty($gate['hasActive']); // true/false
+$pricingUrl = $gate['pricingUrl'] ?? MyUtility::makeUrl('Subscription', 'pricing');
+$manageUrl  = $gate['manageUrl']  ?? MyUtility::makeUrl('Subscription', 'manageSubjects');
+
 
         $this->sets([
             'course' => $course,
@@ -266,6 +292,11 @@ $subscriptionMode = true; // turn on subscription UI on the detail page
             'checkoutForm' => $checkoutForm,
              'subGate'          => $gate,
     'subscriptionMode' => true,
+    
+    'subGate'          => $gate,
+    'hasActiveSub'     => $hasActiveSub,
+    'pricingUrl'       => $pricingUrl,
+    'manageUrl'        => $manageUrl,
         ]);
         $this->_template->render();
     }

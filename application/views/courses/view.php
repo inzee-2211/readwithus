@@ -1204,8 +1204,8 @@ $levels = Course::getCourseLevels();
                                 <svg class="icon"><use xlink:href="<?php echo CONF_WEBROOT_URL ?>images/sprite.svg#icon-students"></use></svg>
                             </div>
                             <div class="rwu-stat-content">
-                                <span class="rwu-stat-value"><?php echo $course['course_students'] *20; ?></span>
-                                <span class="rwu-stat-label"><?php echo Label::getLabel('LBL_STUDENTS_ENROLLED'); ?></span>
+                                <span class="rwu-feature-value"><?php echo (int)($course['active_subscriptions'] ?? 0); ?></span>
+    <span class="rwu-feature-label">Active Students</span>
                             </div>
                         </div>
 
