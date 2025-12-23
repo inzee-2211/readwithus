@@ -5,7 +5,7 @@
     <div>
       <h5 class="aiTutor__title m-0"><?php echo Label::getLabel('LBL_AVA'); ?></h5>
       <small class="aiTutor__subtitle text-muted">
-        <?php echo Label::getLabel('LBL_ASK_ANYTHING_ABOUT_THIS_LECTURE_,_ONLY_100_CHATS_ARE_ALLOWED_YOU_WILL_BE_CHARGED_FOR_MORE'); ?>
+        <?php echo Label::getLabel('LBL_ASK_ANYTHING_ABOUT_THIS_LECTURE_,_ONLY_50_CHATS_ARE_ALLOWED_YOU_WILL_BE_CHARGED_FOR_MORE'); ?>
       </small>
     </div>
        <div class="aiTutor__actions">
@@ -19,7 +19,7 @@
   <!-- Suggestion Pills -->
   <div class="aiTutor__suggestions">
     <span class="ai-pill ai-suggestion"><i class="fa fa-lightbulb"></i> Summarize this lecture</span>
-    <span class="ai-pill ai-suggestion"><i class="fa fa-child"></i> Explain like I’m 12</span>
+    <span class="ai-pill ai-suggestion"><i class="fa fa-child"></i> Simplify This Further</span>
     <span class="ai-pill ai-suggestion"><i class="fa fa-pen"></i> Give 3 practice questions</span>
     <span class="ai-pill ai-suggestion"><i class="fa fa-calculator"></i> Show key formulas</span>
   </div>

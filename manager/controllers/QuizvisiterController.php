@@ -73,64 +73,72 @@ class QuizvisiterController extends AdminBaseController
     // }
 
     public function search()
-    {
-        $frm = $this->getSearchForm();
-        $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['user_id', 'subtopic_id']);
+{
+    $frm  = $this->getSearchForm();
+    $post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['user_id']);
 
-        $srch = new SearchBase('tbl_quiz_attempts', 'qa');
+    $srch = new SearchBase('course_attempt_userdetails', 'u');
 
-        // Join with user details
-        $srch->joinTable('course_attempt_userdetails', 'LEFT OUTER JOIN', 'qa.user_id = u.id', 'u');
+    // IMPORTANT: tbl_quiz_attempts primary key is attempt_id (NOT id)
+    $srch->joinTable('tbl_quiz_attempts', 'LEFT OUTER JOIN', 'qa.user_id = u.id', 'qa');
 
-        // Join with course_topics to get subtopic name
-        $srch->joinTable('course_topics', 'LEFT OUTER JOIN', 'qa.subtopic_id = ct.id', 'ct');
+    $srch->addGroupBy('u.id');
 
-        // Fields to fetch
-        $srch->addMultipleFields([
-            'qa.*',
-            'qa.id as attempt_id',
-            'qa.result',
-            'qa.created_at',
+    $srch->addMultipleFields([
+        'u.id as user_id',
+        'u.name as user_name',
+        'u.email as user_email',
+        'u.parent_email',
+        'u.quiz_attempts_count',
+        'COUNT(qa.id) as real_attempt_count',
 
-            'u.name as user_name',
-            'u.email as user_email',
-            'u.parent_email as parent_email',
-            'u.phone as user_phone',
+    ]);
 
-            'ct.topic as subtopic_name',
-            'ct.subject_id as subject_id'
-        ]);
-
-        // Only fetch attempts where user_id is valid
-        $srch->addCondition('qa.user_id', '!=', 0);
-
-        // Optional filters
-        if (!empty($post['user_id'])) {
-            $srch->addCondition('qa.user_id', '=', (int)$post['user_id']);
-        }
-        if (!empty($post['subtopic_id'])) {
-            $srch->addCondition('qa.subtopic_id', '=', (int)$post['subtopic_id']);
-        }
-
-        $srch->addOrder('qa.id', 'DESC');
-        $srch->setPageSize($post['pagesize'] ?? 10);
-        $srch->setPageNumber($post['page'] ?? 1);
-
-        $rs = $srch->getResultSet();
-        $records = FatApp::getDb()->fetchAll($rs);
-
-        $this->sets([
-            'arrListing' => $records,
-            'page' => $post['page'] ?? 1,
-            'post' => $post,
-            'pageSize' => $post['pagesize'] ?? 10,
-            'pageCount' => $srch->pages(),
-            'recordCount' => $srch->recordCount(),
-            'canEdit' => false
-        ]);
-
-        $this->_template->render(false, false);
+    // Filters
+    if (!empty($post['keyword'])) {
+        $c = $srch->addCondition('u.name', 'LIKE', '%' . $post['keyword'] . '%');
+        $c->attachCondition('u.email', 'LIKE', '%' . $post['keyword'] . '%', 'OR');
+        $c->attachCondition('u.parent_email', 'LIKE', '%' . $post['keyword'] . '%', 'OR');
     }
+
+    // Order by latest user id
+    $srch->addOrder('u.id', 'DESC');
+
+    $srch->setPageSize($post['pagesize'] ?? 10);
+    $srch->setPageNumber($post['page'] ?? 1);
+
+    $db = FatApp::getDb();
+    $rs = $srch->getResultSet();
+
+    // SAFETY: do not call fetchAll(false)
+    if (!$rs) {
+        $this->sets([
+            'arrListing'   => [],
+            'page'         => $post['page'] ?? 1,
+            'post'         => $post,
+            'pageSize'     => $post['pagesize'] ?? 10,
+            'pageCount'    => 0,
+            'recordCount'  => 0,
+            'canEdit'      => false,
+        ]);
+        $this->_template->render(false, false);
+        return;
+    }
+
+    $records = $db->fetchAll($rs);
+
+    $this->sets([
+        'arrListing'   => $records,
+        'page'         => $post['page'] ?? 1,
+        'post'         => $post,
+        'pageSize'     => $post['pagesize'] ?? 10,
+        'pageCount'    => $srch->pages(),
+        'recordCount'  => $srch->recordCount(),
+        'canEdit'      => false
+    ]);
+
+    $this->_template->render(false, false);
+}
 
 
 
@@ -623,8 +631,8 @@ class QuizvisiterController extends AdminBaseController
 
             if (!$levelRow) {
                 $insertData = [
-                    'level_name'  => $post['new_level'],
-                    'created_at'  => date('Y-m-d H:i:s')
+                    'level_name' => $post['new_level'],
+                    'created_at' => date('Y-m-d H:i:s')
                 ];
                 if (!$db->insertFromArray('course_levels', $insertData)) {
                     FatUtility::dieJsonError('❌ Failed to insert new level: ' . $db->getError());
@@ -646,7 +654,7 @@ class QuizvisiterController extends AdminBaseController
             $insertData = [
                 'subject' => $post['new_subject'],
                 'level_id' => $levelId,
-                'created_at'   => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s')
             ];
             if (!$db->insertFromArray('course_subjects', $insertData)) {
                 FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
@@ -663,7 +671,7 @@ class QuizvisiterController extends AdminBaseController
 
             $insertData = [
                 'name' => $post['new_examboard'],
-                'created_at'   => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s')
             ];
             if (!$db->insertFromArray('course_examboards', $insertData)) {
                 FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
@@ -680,7 +688,7 @@ class QuizvisiterController extends AdminBaseController
 
             $insertData = [
                 'name' => $post['new_tier'],
-                'created_at'   => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s')
             ];
             if (!$db->insertFromArray('course_tier', $insertData)) {
                 FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
@@ -697,7 +705,7 @@ class QuizvisiterController extends AdminBaseController
 
             $insertData = [
                 'name' => $post['new_type'],
-                'created_at'   => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s')
             ];
             if (!$db->insertFromArray('course_type', $insertData)) {
                 FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
@@ -715,7 +723,7 @@ class QuizvisiterController extends AdminBaseController
 
             $insertData = [
                 'name' => $post['new_year'],
-                'created_at'   => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s')
             ];
             if (!$db->insertFromArray('course_year', $insertData)) {
                 FatUtility::dieJsonError('❌ Failed to insert new subject: ' . $db->getError());
@@ -745,14 +753,14 @@ class QuizvisiterController extends AdminBaseController
         }
 
         $insertData = [
-            'topic'       => $topicId,
-            'subject'       => $subjectId,
-            'level'       => $levelId,
-            'tier'       => $tierId,
-            'year'       => $yearId,
-            'type'       => $typeId,
-            'examBoards'       => $examboardId,
-            'created_on'         => date('Y-m-d H:i:s')
+            'topic' => $topicId,
+            'subject' => $subjectId,
+            'level' => $levelId,
+            'tier' => $tierId,
+            'year' => $yearId,
+            'type' => $typeId,
+            'examBoards' => $examboardId,
+            'created_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$db->insertFromArray('tbl_course_management', $insertData)) {
@@ -764,7 +772,7 @@ class QuizvisiterController extends AdminBaseController
         $courseId = $db->getInsertId();
 
         if (!empty($post['subtopics']) && is_array($post['subtopics'])) {
-            foreach ($post['subtopics'] as $index =>  $subtopic) {
+            foreach ($post['subtopics'] as $index => $subtopic) {
 
 
                 if ($subtopic == 'add_new') {
@@ -803,11 +811,11 @@ class QuizvisiterController extends AdminBaseController
                 }
 
                 $lessonData = [
-                    'course_id'   => $courseId,
-                    'subtopic'       => $subtopic,
+                    'course_id' => $courseId,
+                    'subtopic' => $subtopic,
                     'video_url' => isset($post['video_urls'][$index]) ? $post['video_urls'][$index] : '',
                     'previous_paper_pdf' => $pdfPath,
-                    'created_at'  => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s')
                 ];
                 if (!$db->insertFromArray('course_subtopics', $lessonData)) {
                     $db->rollbackTransaction();
@@ -824,9 +832,11 @@ class QuizvisiterController extends AdminBaseController
 
                     if (!empty($csvData)) {
                         foreach ($csvData as $rowIndex => $row) {
-                            if ($rowIndex === 0) continue; // Skip header row
+                            if ($rowIndex === 0)
+                                continue; // Skip header row
 
-                            if (count($row) < 12) continue; // Ensure valid row format
+                            if (count($row) < 12)
+                                continue; // Ensure valid row format
 
                             list(
                                 $question_text,
@@ -905,12 +915,26 @@ class QuizvisiterController extends AdminBaseController
      * return html
      */
 
-    public function view(int $courseId)
-    {    
- 
+    public function view(int $userId)
+    {
+        $userId = FatUtility::int($userId);
+        if ($userId < 1) {
+            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+        }
+
+        // Fetch User Details
+        $userSrch = new SearchBase('course_attempt_userdetails', 'u');
+        $userSrch->addCondition('u.id', '=', $userId);
+        $userRow = FatApp::getDb()->fetch($userSrch->getResultSet());
+
+        if (!$userRow) {
+            FatUtility::dieJsonError(Label::getLabel('LBL_USER_NOT_FOUND'));
+        }
+
+        // Fetch ALL Attempts
         $attemptSrch = new SearchBase('tbl_quiz_attempts', 'qa');
-       // $attemptSrch->joinTable('course_subtopics', 'LEFT JOIN', 'qa.subtopic_id = cs.id', 'cs');
-        $attemptSrch->addCondition('qa.id', '=', $courseId);
+        $attemptSrch->joinTable('course_topics', 'LEFT JOIN', 'qa.subtopic_id = ct.id', 'ct');
+        $attemptSrch->addCondition('qa.user_id', '=', $userId);
         $attemptSrch->addMultipleFields([
             'qa.id as attempt_id',
             'qa.user_id',
@@ -920,17 +944,15 @@ class QuizvisiterController extends AdminBaseController
             'qa.total_marks',
             'qa.marks_obtained',
             'qa.result',
-            'qa.created_at'
+            'qa.created_at',
+            'ct.topic as subtopic_name'
         ]);
+        $attemptSrch->addOrder('qa.id', 'DESC');
 
-        $attemptRs = $attemptSrch->getResultSet();
-        $quizAttempts = FatApp::getDb()->fetchAll($attemptRs);
+        $quizAttempts = FatApp::getDb()->fetchAll($attemptSrch->getResultSet());
 
-        
-        // Step 4: For each attempt, fetch the answers and their questions
-        $attemptDetails = [];
-
-        foreach ($quizAttempts as $attempt) {
+        // For each attempt, fetch answers
+        foreach ($quizAttempts as &$attempt) {
             $answerSrch = new SearchBase('tbl_quiz_attempt_answers', 'ans');
             $answerSrch->joinTable('tbl_quaestion_bank', 'LEFT JOIN', 'ans.question_id = qb.id', 'qb');
             $answerSrch->addCondition('ans.attempt_id', '=', $attempt['attempt_id']);
@@ -943,71 +965,47 @@ class QuizvisiterController extends AdminBaseController
                 'qb.answer_d',
                 'qb.correct_answer as actual_correct_answer',
                 'qb.difficult_level',
-                'qb.topic',
-                'qb.subtopic',
                 'qb.question_type'
             ]);
-
-            $answerRs = $answerSrch->getResultSet();
-            $answers = FatApp::getDb()->fetchAll($answerRs);
-
-            $attempt['answers'] = $answers;
-            $attemptDetails[] = $attempt;
+            $attempt['answers'] = FatApp::getDb()->fetchAll($answerSrch->getResultSet());
         }
 
- 
-
-
         $this->sets([
-           // 'courseData' => $course,
-            'attemptData' => $attemptDetails,
-          //  'quizdata' => $result,
-            'canEdit' => $this->objPrivilege->canEditCourses(true),
+            'userData' => $userRow,
+            'attempts' => $quizAttempts
         ]);
         $this->_template->render(false, false);
     }
 
- 
 
-    public function deleted(int $attemptId)
+
+    public function deleted(int $userId)
     {
-        $db = FatApp::getDb();
-
-        // Step 1: Fetch quiz attempt row
-        $attemptRow = $db->fetch(FatApp::getDb()->query(
-            "SELECT * FROM tbl_quiz_attempts WHERE id = " . $db->quoteVariable($attemptId)
-        ));
-
-        if (!$attemptRow) {
+        $userId = FatUtility::int($userId);
+        if ($userId < 1) {
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
 
-        $subtopicId = $attemptRow['subtopic_id'];
-        $userId = $attemptRow['user_id'];
+        $db = FatApp::getDb();
 
-        $sql = "DELETE FROM tbl_quiz_attempts WHERE id = $attemptId";
-        if (!$db->query($sql)) {
-            FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_DELETE_ATTEMPT'));
-        }
-
-
-        if ($userId > 0) {
-            $checkUser = $db->fetch($db->query(
-                "SELECT COUNT(*) as total FROM tbl_quiz_attempts WHERE user_id = " . $db->quoteVariable($userId)
-            ));
-
-            if ((int)$checkUser['total'] === 0) {
-               
-                $sql = "DELETE FROM course_attempt_userdetails WHERE user_id = $user_id";
-                if (!$db->query($sql)) {
-                    FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_DELETE_ATTEMPT'));
-                }
+        // Delete Attempts first (Manual Cascade needed if FKs don't cascade)
+        // Ideally we fetch all attempt IDs to delete answers
+        $attempts = $db->fetchAll($db->query("SELECT id FROM tbl_quiz_attempts WHERE user_id = $userId"));
+        if ($attempts) {
+            foreach ($attempts as $att) {
+                // Delete Answers
+                $db->query("DELETE FROM tbl_quiz_attempt_answers WHERE attempt_id = " . $att['id']);
             }
+            // Delete Attempts
+            $db->query("DELETE FROM tbl_quiz_attempts WHERE user_id = $userId");
         }
 
+        // Delete User
+        if (!$db->query("DELETE FROM course_attempt_userdetails WHERE id = $userId")) {
+            FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_DELETE_USER'));
+        }
 
-
-        FatUtility::dieJsonSuccess(Label::getLabel('LBL_Record_Deleted_Successfully'));
+        FatUtility::dieJsonSuccess(Label::getLabel('LBL_User_Deleted_Successfully'));
     }
 
 
@@ -1019,7 +1017,7 @@ class QuizvisiterController extends AdminBaseController
      * @param int $subCatgId
      * @return html
      */
-   
+
     /**
      * Auto Complete JSON
      */

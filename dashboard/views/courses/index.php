@@ -22,7 +22,7 @@ $btnReset->addFieldTagAttribute('onclick', 'clearSearch()');
     <div class="page__head">
         <div class="row align-items-center justify-content-between">
             <div class="col-sm-7">
-                <h1><?php echo Label::getLabel('LBL_MANAGE_COURSES'); ?></h1>
+                <h1><?php echo Label::getLabel('LBL_COURSES'); ?></h1>
                 <p class="margin-0">
                     <?php echo Label::getLabel('LBL_MANAGE_COURSE_PAGE_SUB_HEADING'); ?>
                 </p>

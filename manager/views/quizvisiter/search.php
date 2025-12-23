@@ -3,25 +3,16 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 
 // Define table headers
 $arr_flds = [
-    // 'attempt_id'      => Label::getLabel('LBL_ID'),
-    'user_name'       => Label::getLabel('LBL_USER_NAME'),
-    'user_email'      => Label::getLabel('LBL_USER_EMAIL'),
-    'user_phone'      => Label::getLabel('LBL_PHONE'),
-    'parent_email'    => Label::getLabel('LBL_PARENT_EMAIL'),
-    'subtopic_name'   => Label::getLabel('LBL_SUBTOPIC'),
-    'total_questions' => Label::getLabel('LBL_TOTAL_QUESTIONS'),
-    'total_correct'   => Label::getLabel('LBL_CORRECT_ANSWERS'),
-    'total_marks'     => Label::getLabel('LBL_TOTAL_MARKS'),
-    'marks_obtained'  => Label::getLabel('LBL_MARKS_OBTAINED'),
-    'result'          => Label::getLabel('LBL_RESULT'),
-    'created_at'      => Label::getLabel('LBL_DATE'),
-    'action'          => Label::getLabel('LBL_ACTION'),
+    'user_name' => Label::getLabel('LBL_USER_NAME'),
+    'user_email' => Label::getLabel('LBL_USER_EMAIL'),
+    'parent_email' => Label::getLabel('LBL_PARENT_EMAIL'),
+    'real_attempt_count' => Label::getLabel('LBL_ATTEMPTS'),
+    // 'user_created_at' => Label::getLabel('LBL_CREATED_ON'),
+    'action' => Label::getLabel('LBL_ACTION'),
 ];
 ?>
 
 <div class="buttons-group" style="padding: 4px; text-align: right;">
-    <!-- Optional: You can remove this if no 'Add' functionality -->
-    <!-- <a href="javascript:void(0);" onclick="categoryForm();" class="btn-primary">Add New</a> -->
 </div>
 
 <?php
@@ -43,38 +34,39 @@ foreach ($arrListing as $row) {
                 $ul = $td->appendElement("ul", ["class" => "actions actions--centered"]);
                 $li = $ul->appendElement("li", ['class' => 'droplink']);
                 $li->appendElement('a', [
-                    'href' => 'javascript:void(0)', 
-                    'class' => 'button small green', 
+                    'href' => 'javascript:void(0)',
+                    'class' => 'button small green',
                     'title' => Label::getLabel('LBL_OPTIONS')
                 ], '<i class="ion-android-more-horizontal icon"></i>', true);
 
                 $innerDiv = $li->appendElement('div', ['class' => 'dropwrap']);
                 $innerUl = $innerDiv->appendElement('ul', ['class' => 'linksvertical']);
 
-                // View action
+                // View action (Pass user_id)
                 $innerLiView = $innerUl->appendElement('li');
                 $innerLiView->appendElement('a', [
                     'href' => 'javascript:void(0);',
-                    'onclick' => 'view("' . $row['attempt_id'] . '")',
+                    'onclick' => 'view("' . $row['user_id'] . '")', // Passing user_id
                     'class' => 'button small green',
                     'title' => Label::getLabel('LBL_VIEW')
                 ], Label::getLabel('LBL_VIEW'), true);
 
-                // Delete action
+                // Delete action (Pass user_id)
                 $innerLiDel = $innerUl->appendElement('li');
                 $innerLiDel->appendElement('a', [
                     'href' => 'javascript:void(0);',
-                    'onclick' => 'deleted("' . $row['attempt_id'] . '")',
+                    'onclick' => 'deleted("' . $row['user_id'] . '")', // Passing user_id
                     'class' => 'button small green',
                     'title' => Label::getLabel('LBL_DELETE')
                 ], Label::getLabel('LBL_DELETE'), true);
                 break;
 
+            // case 'user_created_at':
+            //     $td->appendElement('plaintext', [], date('d M, Y H:i', strtotime($row[$key])), true);
+            //     break;
+
             default:
                 $text = $row[$key] ?? '-';
-                if ($key === 'created_at') {
-                    $text = date('d M, Y H:i', strtotime($row[$key]));
-                }
                 $td->appendElement('plaintext', [], $text, true);
                 break;
         }
@@ -95,10 +87,10 @@ echo $tbl->getHtml();
 echo FatUtility::createHiddenFormFromData($post, ['name' => 'frmPaging']);
 
 $pagingArr = [
-    'pageCount'    => ceil($recordCount / $post['pagesize']),
-    'pageSize'     => $post['pagesize'],
-    'page'         => $post['page'],
-    'recordCount'  => $recordCount
+    'pageCount' => ceil($recordCount / $post['pagesize']),
+    'pageSize' => $post['pagesize'],
+    'page' => $post['page'],
+    'recordCount' => $recordCount
 ];
 $this->includeTemplate('_partial/pagination.php', $pagingArr, false);
 ?>
