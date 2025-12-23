@@ -66,6 +66,7 @@ class CoursesController extends MyAppController
         $srch->addCondition('course.course_active', '=', AppConstant::ACTIVE);
         $srch->addCondition('teacher.user_username', '!=', "");
         //$srch->addCondition('course.course_id', '=', "64");
+        $srch->addFld('course.course_subject_id AS course_subject_id');
         $courses = $srch->fetchAndFormat();
 
         $db = FatApp::getDb();
