@@ -43,17 +43,7 @@ $requestStatuses = Course::getRefundStatuses();
                 </div>
                 <div class="card-course__body">
                     <div class="course-stats">
-                        <span class="course-stats__item">
-                            <strong>
-                                <?php
-                                if ($siteUserType == User::LEARNER) {
-                                    echo CourseUtility::formatMoney($course['course_price']);
-                                } else {
-                                    echo CourseUtility::formatMoney($course['course_price'], $course['course_currency_id']);
-                                }
-                                ?>
-                            </strong>
-                        </span>
+                        
                         <span class="course-stats__item">
                             <?php echo Label::getLabel('LBL_LECTURES') ?>
                             <strong> <?php echo $course['course_lectures'] ?></strong>
@@ -63,23 +53,8 @@ $requestStatuses = Course::getRefundStatuses();
                                 <strong> <?php echo $courseTypes[$course['course_type']] ?></strong>
                             </span>
                         <?php } ?>
-                        <span class="course-stats__item">
-                            <?php echo Label::getLabel('LBL_STUDENTS') ?>
-                            <strong> <?php echo $course['course_students'] ?></strong>
-                        </span>
-                        <div class="course-stats__item">
-                            <div class="ratings">
-                                <svg class="icon icon--rating">
-                                    <use xlink:href="<?php echo CONF_WEBROOT_URL; ?>images/sprite.svg#rating"></use>
-                                </svg>
-                                <span class="value">
-                                    <?php echo $course['course_ratings']; ?>
-                                </span>
-                                <span class="count">
-                                    (<?php echo $course['course_reviews']; ?>)
-                                </span>
-                            </div>
-                        </div>      
+                       
+                         
                         
                         
                         </div>
