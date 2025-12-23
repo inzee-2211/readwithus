@@ -48,11 +48,7 @@ $requestStatuses = Course::getRefundStatuses();
                             <?php echo Label::getLabel('LBL_LECTURES') ?>
                             <strong> <?php echo $course['course_lectures'] ?></strong>
                         </span>
-                        <?php if ($course['course_type'] > 0) { ?>
-                            <span class="course-stats__item">
-                                <strong> <?php echo $courseTypes[$course['course_type']] ?></strong>
-                            </span>
-                        <?php } ?>
+                  
                        
                          
                         
