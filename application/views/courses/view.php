@@ -1225,8 +1225,7 @@ $levels = Course::getCourseLevels();
                             </div>
                             <div class="rwu-stat-content">
                                 <span class="rwu-stat-value"><?php echo $course['course_clang_name']; ?></span>
-                                <span class="rwu-stat-label"><?php echo Label::getLabel('LBL_LANGUAGE'); ?></span>
-                            </div>
+                                <span class="rwu-stat-label"><?php echo Label::getLabel('LBL_TEACHING_LANGUAGE'); ?></span>
                         </div>
                     </div>
 
@@ -1509,7 +1508,7 @@ $levels = Course::getCourseLevels();
                                 </div>
                                 <div class="rwu-feature-content">
                                     <span class="rwu-feature-value"><?php echo $course['section_count']; ?></span>
-                                    <span class="rwu-feature-label"><?php echo Label::getLabel("LBL_QUIZ") ?></span>
+                                   <span class="rwu-feature-label"><?php echo Label::getLabel("LBL_ASSESSMENTS") ?></span>
                                 </div>
                             </div>
 

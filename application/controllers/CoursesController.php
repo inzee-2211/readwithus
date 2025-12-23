@@ -69,6 +69,39 @@ class CoursesController extends MyAppController
         $courses = $srch->fetchAndFormat();
 
         $db = FatApp::getDb();
+        $subjectCounts = [];
+
+  $subSql = "
+    SELECT usubs_subject_ids
+    FROM tbl_user_subscriptions
+    WHERE usubs_status IN ('active', 'trialing')
+      AND (
+            usubs_current_period_end IS NULL
+            OR usubs_current_period_end >= NOW()
+          )
+";
+
+
+$subRs = $db->query($subSql);
+if ($subRs) {
+    while ($row = $db->fetch($subRs)) {
+        $raw = (string)($row['usubs_subject_ids'] ?? '');
+        if ($raw === '') {
+            continue;
+        }
+
+        // remove spaces then split by comma
+        $raw = preg_replace('/\s+/', '', $raw);
+        $ids = array_filter(explode(',', $raw));
+
+        foreach ($ids as $sid) {
+            $sid = (int)$sid;
+            if ($sid > 0) {
+                $subjectCounts[$sid] = ($subjectCounts[$sid] ?? 0) + 1;
+            }
+        }
+    }
+}
         foreach ($courses as &$course) {
             $courseId = $course['course_id'] ?? null; // Safely get the course ID
         
@@ -88,7 +121,9 @@ class CoursesController extends MyAppController
             } else {
                 $course['section_count'] = 0; // Default if course ID is missing
             }
-            
+            $subjectId = (int)($course['course_subject_id'] ?? 0);
+$course['active_subscriptions'] = ($subjectId > 0) ? (int)($subjectCounts[$subjectId] ?? 0) : 0;
+
         }
        
         

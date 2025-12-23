@@ -158,13 +158,13 @@ $priceSorting = AppConstant::getSortbyArr();
                                 </div>
                                 <div class="course-stats__item">
                                     <span>
-                                        <?php echo Label::getLabel('LBL_Students'); ?>:
-                                        <strong><?php echo $course['course_students'] * 20; ?></strong>
+                                        <?php echo Label::getLabel('LBL_ACTIVE_SUBSCRIPTIONS'); ?>:
+                                      <strong><?php echo (int)($course['active_subscriptions'] ?? 0); ?></strong>
                                     </span>
                                 </div>
                                 <div class="course-stats__item">
                                     <span>
-                                        <?php echo Label::getLabel('LBL_QUIZ'); ?>:
+                                       <?php echo Label::getLabel('LBL_ASSESSMENTS'); ?>:
                                         <strong><?php echo $course['section_count']; ?></strong>
                                     </span>
                                 </div> 
