@@ -13,71 +13,37 @@ class QuizizzController extends MyAppController
         parent::__construct($action);
     }
 
-    /**
-     * Course list
-     *
-     * @return void
-     */
-//     public function index()
-//     {
-// $subtopic = isset($_GET['subtopic']) ? (int)$_GET['subtopic'] : 0;
+    public function index()
+    {
+        $db = FatApp::getDb();
 
-//     if ($subtopic <= 0) {
-//         echo "Error: subtopic ID is missing or invalid in URL.";
-//         exit;
-//     }
+        /**
+         * 1) Read setup IDs from querystring
+         *    - preferred: setup_ids=30,31,32
+         *    - fallback:  setup_id=30 (old behaviour)
+         */
+        $setupIdsParam = FatApp::getQueryStringData('setup_ids', FatUtility::VAR_STRING, '');
+        $setupIds = array_filter(array_map('intval', explode(',', (string) $setupIdsParam)));
 
-//         $courseId = $this->getCourseIdBySubtopic($subtopic); 
-//         $this->set('courseId', $courseId);
+        if (empty($setupIds)) {
+            $singleSetupId = FatApp::getQueryStringData('setup_id', FatUtility::VAR_INT, 0);
+            if ($singleSetupId > 0) {
+                $setupIds = [(int) $singleSetupId];
+            }
+        }
 
-//         $subtopicNAme = $this->getSubjectNameById($subtopic);
+        if (empty($setupIds)) {
+            // nothing to resolve → 404
+            FatUtility::exitWithErrorCode(404);
+        }
 
-//         $alltopics = $this->getTopicnames($subtopic);
-//         $previouspapers = $this->getPreviouspapers($subtopic);
+        /**
+         * 2) Fetch ALL matching setup rows (topics)
+         *    We also join levels/subjects/etc to get display names.
+         */
+        $idsSql = implode(',', array_map('intval', $setupIds));
 
-//         $params = FatApp::getQueryStringData();
-//         $data = [];
-//         if (isset($params['catg']) && $params['catg'] > 0) {
-//             $data['course_cate_id'] = [$params['catg']];
-//         }
-//         $searchSession = $_SESSION[AppConstant::SEARCH_SESSION] ?? [];
-//         // $subtopicId = $_SESSION[$subtopicId] ?? [];
-//         $_SESSION['subtopicId'] = $subtopic;
-//         $_SESSION['subtopicName'] = $subtopicNAme;
-
-
-
-//         $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-//         $srchFrm->fill($data + $searchSession);
-//         unset($_SESSION[AppConstant::SEARCH_SESSION]);
-//         $this->set('srchFrm', $srchFrm);
-//         $this->set('subtopicId', $subtopic);
-//         $this->set('alltopics', $alltopics);
-//         $this->set('previouspapers', $previouspapers);
-//         $this->set('filterTypes', Course::getFilterTypes());
-//         $this->_template->render();
-//     }
-
-
-//     private function getCourseIdBySubtopic($subtopicId) {
-//     $db = FatApp::getDb();
-//     $query = "SELECT course_id FROM course_subtopics WHERE id = " . (int)$subtopicId;
-//     $result = $db->fetch($db->query($query));
-//     return $result['course_id'] ?? 0;
-//     }
-
-public function index()
-{
-    // 0) Require setup_id from query string (used to know which path we are on)
-    $setupId = isset($_GET['setup_id']) ? (int)$_GET['setup_id'] : 0;
-    if ($setupId <= 0) {
-        FatUtility::exitWithErrorCode(404);
-    }
-
-    $db = FatApp::getDb();
-
-    // 1) Fetch the selected setup row (to get subject/level/examboard/tier/year + names)
-    $setupSql = "
+        $setupSql = "
         SELECT 
             qs.id,
             qs.topic_name,
@@ -98,128 +64,253 @@ public function index()
         LEFT JOIN course_examboards eb    ON eb.id   = qs.examboard_id
         LEFT JOIN course_tier       tr    ON tr.id   = qs.tier_id
         LEFT JOIN course_year       yr    ON yr.id   = qs.year_id
-        WHERE qs.id = " . (int)$setupId . "
-        LIMIT 1
-    ";
-    $setupRs = $db->query($setupSql);
-    $setup   = $db->fetch($setupRs);
-
-    if (!$setup) {
-        FatUtility::exitWithErrorCode(404);
-    }
-
-    // IDs / names for header
-    $subjectId   = (int)$setup['subject_id'];
-    $examboardId = (int)$setup['examboard_id'];
-    $yearId      = (int)$setup['year_id'];
-
-    $subjectName    = (string)($setup['subject_name']    ?? 'Subject');
-    $levelName      = (string)($setup['level_name']      ?? '');
-    $examboardName  = (string)($setup['examboard_name']  ?? '');
-    $tierName       = (string)($setup['tier_name']       ?? '');
-    $yearName       = (string)($setup['year_name']       ?? '');
-
-    // 2) Session values used by view header
-    $_SESSION['setupId']     = $setupId;
-    $_SESSION['subjectId']   = $subjectId;
-    $_SESSION['subjectName'] = $subjectName;
-
-    // 3) Search form (unchanged)
-    $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
-    $srchFrm->fill([]);
-    unset($_SESSION[AppConstant::SEARCH_SESSION]);
-
-    // 4) Fetch **all topics** (all setup rows) for this path (level+subject+examboard+tier+year)
-    $topicsSqlWhere  = [
-        'qs.level_id    = ' . (int)$setup['level_id'],
-        'qs.subject_id  = ' . (int)$setup['subject_id'],
-        'qs.year_id     = ' . (int)$setup['year_id'],
-    ];
-    if (!empty($setup['examboard_id'])) {
-        $topicsSqlWhere[] = 'qs.examboard_id = ' . (int)$setup['examboard_id'];
-    }
-    if (!empty($setup['tier_id'])) {
-        $topicsSqlWhere[] = 'qs.tier_id      = ' . (int)$setup['tier_id'];
-    }
-
-    $topicsSql = "
-        SELECT qs.id, qs.topic_name
-        FROM tbl_quiz_setup qs
-        WHERE " . implode(' AND ', $topicsSqlWhere) . "
+        WHERE qs.id IN ($idsSql)
         ORDER BY qs.topic_name ASC
     ";
 
-    $topicsRs = $db->query($topicsSql);
-    $allTopics = $db->fetchAll($topicsRs) ?: [];
+        $setupRs = $db->query($setupSql);
+        $setups = $db->fetchAll($setupRs);
 
-    // 5) For each topic, fetch its subtopics from tbl_quiz_management
-    $topics = [];
-    foreach ($allTopics as $tRow) {
-        $tid   = (int)$tRow['id'];
-        $tName = (string)$tRow['topic_name'];
+        if (empty($setups)) {
+            FatUtility::exitWithErrorCode(404);
+        }
 
+        // Use the FIRST setup row as the “anchor” for header + session
+        $firstSetup = reset($setups);
+
+        $subjectId = (int) $firstSetup['subject_id'];
+        $examboardId = (int) $firstSetup['examboard_id'];
+        $yearId = (int) $firstSetup['year_id'];
+
+        $subjectName = (string) ($firstSetup['subject_name'] ?? 'Subject');
+        $levelName = (string) ($firstSetup['level_name'] ?? '');
+        $examboardName = (string) ($firstSetup['examboard_name'] ?? '');
+        $tierName = (string) ($firstSetup['tier_name'] ?? '');
+        $yearName = (string) ($firstSetup['year_name'] ?? '');
+        $topicTitle = (string) ($firstSetup['topic_name'] ?? 'Topic'); // kept for backwards compatibility
+
+        /**
+         * 3) Session values used by the header / other places
+         */
+        $_SESSION['setupId'] = (int) $firstSetup['id'];   // keep old behaviour
+        $_SESSION['subjectId'] = $subjectId;
+        $_SESSION['subjectName'] = $subjectName;
+
+        /**
+         * 4) Search form (unchanged)
+         */
+        $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
+        $srchFrm->fill([]);
+        unset($_SESSION[AppConstant::SEARCH_SESSION]);
+
+        /**
+         * 5) Fetch all subtopics for ALL these setups in one go
+         *    from tbl_quiz_management.
+         */
         $mgmtSql = "
-            SELECT 
-                id,
-                subtopic_name,
-                video_url,
-                pdf_path,
-                answer_pdf_path
-            FROM tbl_quiz_management
-            WHERE quiz_setup_id = " . $tid . "
-            ORDER BY position ASC, id ASC
-        ";
+        SELECT 
+            quiz_setup_id,
+            id,
+            subtopic_name,
+            video_url,
+            pdf_path,
+            answer_pdf_path
+        FROM tbl_quiz_management
+        WHERE quiz_setup_id IN ($idsSql)
+        ORDER BY quiz_setup_id ASC, position ASC, id ASC
+    ";
         $mgmtRs = $db->query($mgmtSql);
+        $mgmtRows = $mgmtRs ? $db->fetchAll($mgmtRs) : [];
 
-        $subtopics = [];
-        if ($mgmtRs) {
-            foreach ($db->fetchAll($mgmtRs) as $r) {
-                $subtopics[] = [
-                    'id'                 => (int)$r['id'],
-                    'name'               => $r['subtopic_name'],
-                    'video_url'          => $r['video_url'],
-                    'previous_paper_pdf' => $r['pdf_path'],
-                    'answer_pdf_path'    => $r['answer_pdf_path'] ?? ''
-                ];
+        // Group subtopics by quiz_setup_id
+        $subtopicsBySetup = [];
+        foreach ($mgmtRows as $row) {
+            $sid = (int) $row['quiz_setup_id'];
+            if (!isset($subtopicsBySetup[$sid])) {
+                $subtopicsBySetup[$sid] = [];
             }
+            $subtopicsBySetup[$sid][] = [
+                'id' => (int) $row['id'],
+                'name' => $row['subtopic_name'],
+                'video_url' => $row['video_url'],
+                'previous_paper_pdf' => $row['pdf_path'],                 // question paper
+                'answer_pdf_path' => $row['answer_pdf_path'] ?? '',    // answer paper
+            ];
         }
 
-        $topics[] = [
-            'setup_id'   => $tid,
-            'topic_name' => $tName,
-            'subtopics'  => $subtopics,
-        ];
-    }
-
-    // Optional: keep subtopics for the currently selected topic if you still need them elsewhere
-    $currentSubtopics = [];
-    foreach ($topics as $t) {
-        if ($t['setup_id'] === $setupId) {
-            $currentSubtopics = $t['subtopics'];
-            break;
+        /**
+         * 6) Build topics array for the view
+         *    Each "topic" = one row in tbl_quiz_setup with its own subtopics.
+         */
+        $topics = [];
+        foreach ($setups as $sRow) {
+            $sid = (int) $sRow['id'];
+            $topics[] = [
+                'setup_id' => $sid,
+                'topic_name' => $sRow['topic_name'],
+                'subtopics' => $subtopicsBySetup[$sid] ?? [],
+            ];
         }
+
+        // For backwards compatibility with your existing view which expects $subtopics:
+        $currentSubtopics = [];
+        if (!empty($topics)) {
+            $currentSubtopics = $topics[0]['subtopics'];  // first topic’s subtopics
+        }
+
+        /**
+         * 7) Pass everything to the template
+         */
+        $this->set('srchFrm', $srchFrm);
+        $this->set('setupId', (int) $firstSetup['id']); // primary id
+        $this->set('topics', $topics);
+        $this->set('setupIdsParam', $setupIdsParam);             // NEW: all topics + subtopics
+        $this->set('subtopics', $currentSubtopics);      // legacy single-topic data
+        $this->set('topicTitle', $topicTitle);
+        $this->set('examboardId', $examboardId);
+        $this->set('yearId', $yearId);
+
+        $this->set('levelName', $levelName);
+        $this->set('examboardName', $examboardName);
+        $this->set('tierName', $tierName);
+        $this->set('yearName', $yearName);
+
+        $this->set('filterTypes', Course::getFilterTypes());
+
+        $this->_template->render();
     }
 
-    // 6) Pass data to view
-    $this->set('srchFrm',        $srchFrm);
-    $this->set('setupId',        $setupId);
-    $this->set('topics',         $topics);          // <- NEW: all topics + subtopics
-    $this->set('subtopics',      $currentSubtopics); // if you still want single-topic data
-    $this->set('examboardId',    $examboardId);
-    $this->set('yearId',         $yearId);
 
-    $this->set('levelName',      $levelName);
-    $this->set('examboardName',  $examboardName);
-    $this->set('tierName',       $tierName);
-    $this->set('yearName',       $yearName);
+    private function getCourseIdBySubtopic($subtopicId)
+    {
+        $db = FatApp::getDb();
+        $query = "SELECT course_id FROM course_subtopics WHERE id = " . (int) $subtopicId;
+        $result = $db->fetch($db->query($query));
+        return $result['course_id'] ?? 0;
+    }
 
-    $this->set('filterTypes',    Course::getFilterTypes());
 
-    $this->_template->render();
+    public function checkQuota()
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    $userId = $_SESSION['quiz_user']['id'] ?? 0;
+    if ($userId < 1) {
+        echo json_encode(['status' => 0, 'msg' => 'Session expired']);
+        exit;
+    }
+
+    $db = FatApp::getDb();
+    $row = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int)$userId));
+
+    $attempts = (int)($row['quiz_attempts_count'] ?? 0);
+    if ($attempts >= 10) {
+        echo json_encode([
+            'status' => 0,
+            'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
+            'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
+        ]);
+        exit;
+    }
+
+    echo json_encode(['status' => 1, 'allowed' => true]);
+    exit;
 }
 
+
     public function submitSignup()
+{
+    header('Content-Type: application/json; charset=utf-8');
+    ini_set('display_errors', 0);
+    error_reporting(0);
+
+    $post = FatApp::getPostedData();
+
+    $name       = trim($post['full_name'] ?? '');
+    $email      = trim($post['email'] ?? '');
+    $parentEmail= trim($post['parent_email'] ?? '');
+    $phone      = trim($post['phone'] ?? '');
+    $subtopicId = trim($post['subtopic_id'] ?? '');
+
+    if ($name === '' || $email === '' || $parentEmail === '' || $phone === '') {
+        FatUtility::dieJsonError('All fields are required.');
+    }
+
+    $db = FatApp::getDb();
+
+    // ✅ Same uniqueness logic: email OR parent_email OR phone
+    $srch = new SearchBase('course_attempt_userdetails', 'u');
+    $cnd  = $srch->addCondition('u.email', '=', $email);
+    $cnd->attachCondition('u.parent_email', '=', $parentEmail, 'OR');
+    $cnd->attachCondition('u.phone', '=', $phone, 'OR');
+    $srch->addMultipleFields(['u.id', 'u.quiz_attempts_count', 'u.name', 'u.email', 'u.parent_email', 'u.phone']);
+    $row = $db->fetch($srch->getResultSet());
+
+    if (!empty($row)) {
+        // Quota check
+        $attempts = (int)($row['quiz_attempts_count'] ?? 0);
+        if ($attempts >= 10) {
+            echo json_encode([
+                "status" => 0,
+                "msg" => "Your free quiz quota is expired. Please subscribe to continue.",
+                "redirect_url" => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
+            ]);
+            exit;
+        }
+
+        // Keep session (use DB row so it’s consistent)
+        $_SESSION['quiz_user'] = [
+            'id'          => (int)$row['id'],
+            'name'        => (string)$row['name'],
+            'email'       => (string)$row['email'],
+            'parent_email'=> (string)$row['parent_email'],
+            'phone'       => (string)$row['phone'],
+        ];
+
+        echo json_encode(['status' => 1, 'subtopicid' => $subtopicId, 'msg' => 'Success']);
+        exit;
+    }
+
+    // ✅ Real insert (fail loudly if insert fails)
+    $dataToInsert = [
+        'name'        => $name,
+        'email'       => $email,
+        'parent_email'=> $parentEmail,
+        'phone'       => $phone,
+        'created_at'  => date('Y-m-d H:i:s'),
+    ];
+
+    $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
+
+    if (!$success) {
+        // This is what you were missing: show the REAL DB reason.
+        FatUtility::dieJsonError('Insert failed: ' . $db->getError());
+    }
+
+    $newId = (int)$db->getInsertId();
+    if ($newId < 1) {
+        FatUtility::dieJsonError('Insert failed: No insert id returned.');
+    }
+
+    $_SESSION['quiz_user'] = [
+        'id'          => $newId,
+        'name'        => $name,
+        'email'       => $email,
+        'parent_email'=> $parentEmail,
+        'phone'       => $phone
+    ];
+
+    echo json_encode(['status' => 1, 'subtopicid' => $subtopicId, 'msg' => 'Success']);
+    exit;
+}
+
+
+
+    public function submitfindatutor()
     {
+        // Disable error display so notices/warnings don't break JSON
+        ini_set('display_errors', 0);
+        error_reporting(0);
 
         $post = FatApp::getPostedData();
 
@@ -227,117 +318,41 @@ public function index()
         $email = trim($post['email'] ?? '');
         $parentEmail = trim($post['parent_email'] ?? '');
         $phone = trim($post['phone'] ?? '');
+        $subject = trim($post['subject'] ?? '');
+        $preferred_time = trim($post['preferred_time'] ?? '');
         $subtopic_id = trim($post['subtopic_id'] ?? '');
-        if (!$name || !$email || !$parentEmail || !$phone) {
+
+        if (!$name || !$email || !$parentEmail || !$phone || !$subject || !$preferred_time) {
             FatUtility::dieJsonError('All fields are required.');
         }
 
-        
-
-
         $db = FatApp::getDb();
 
-        // Check if email OR parent_email OR phone already exists
-        $srch = new SearchBase('course_attempt_userdetails');
-        $cnd = $srch->addCondition('email', '=', $email);
-        $cnd->attachCondition('parent_email', '=', $parentEmail, 'OR');
-        $cnd->attachCondition('phone', '=', $phone, 'OR');
-        $srch->addFld('id'); // Or any existing field
-        $rs = $srch->getResultSet();
-
-        if ($row = FatApp::getDb()->fetch($rs)) {
-
-
-            $_SESSION['quiz_user'] = [
-                'id' => $row['id'],
-                'name' => $name,
-                'email' => $email,
-                'parent_email' => $parentEmail,
-                'phone' => $phone
-            ];
-
-            //FatUtility::dieJsonError('A user with the same email, parent email, or phone already exists.');
-            echo json_encode(['status' => 1, 'subtopicid' => $subtopic_id, 'msg' => 'Success']);
-            exit;
-        }
-
-
-
-        // Insert new record
         $dataToInsert = [
-            'name'    => $name,
-            'email'        => $email,
-            'parent_email' => $parentEmail,
-            'phone'        => $phone,
-            'created_at'     => date('Y-m-d H:i:s')
-        ];
-
-        $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
-
-        $newId = $db->getInsertId();
-
-        // Store in session
-        $_SESSION['quiz_user'] = [
-            'id' => $newId,
             'name' => $name,
             'email' => $email,
             'parent_email' => $parentEmail,
-            'phone' => $phone
+            'phone' => $phone,
+            'subject' => $subject,
+            'preferred_time' => $preferred_time,
+            'created_at' => date('Y-m-d H:i:s'),
         ];
 
-        echo json_encode(['status' => 1, 'subtopicid' => $subtopic_id, 'msg' => 'Success']);
+        $success = $db->insertFromArray('course_findatutor', $dataToInsert);
+
+        $newId = $db->getInsertId();
+
+        // Set proper JSON header
+        header('Content-Type: application/json');
+
+        echo json_encode([
+            'status' => 1,
+            'insertedid' => $newId,
+            'msg' => 'Thank you! We’ve received your form and will get back to you shortly.',
+            'subtopicid' => $subtopic_id, // if needed
+        ]);
         exit;
-        // FatUtility::dieJsonSuccess('Form submitted successfully.');
     }
-
-
-public function submitfindatutor()
-{
-    // Disable error display so notices/warnings don't break JSON
-    ini_set('display_errors', 0);
-    error_reporting(0);
-
-    $post = FatApp::getPostedData();
-
-    $name = trim($post['full_name'] ?? '');
-    $email = trim($post['email'] ?? '');
-    $parentEmail = trim($post['parent_email'] ?? '');
-    $phone = trim($post['phone'] ?? '');
-    $subject = trim($post['subject'] ?? '');
-    $preferred_time = trim($post['preferred_time'] ?? '');
-    $subtopic_id = trim($post['subtopic_id'] ?? '');
-
-    if (!$name || !$email || !$parentEmail || !$phone || !$subject || !$preferred_time) {
-        FatUtility::dieJsonError('All fields are required.');
-    }
-
-    $db = FatApp::getDb();
-
-    $dataToInsert = [
-        'name'           => $name,
-        'email'          => $email,
-        'parent_email'   => $parentEmail,
-        'phone'          => $phone,
-        'subject'        => $subject,
-        'preferred_time' => $preferred_time,
-        'created_at'     => date('Y-m-d H:i:s'),
-    ];
-
-    $success = $db->insertFromArray('course_findatutor', $dataToInsert);
-
-    $newId = $db->getInsertId();
-
-    // Set proper JSON header
-    header('Content-Type: application/json');
-
-    echo json_encode([
-        'status'     => 1,
-        'insertedid' => $newId,
-        'msg'        => 'Thank you! We’ve received your form and will get back to you shortly.',
-        'subtopicid' => $subtopic_id, // if needed
-    ]);
-    exit;
-}
 
     public function getSubtopicIdByName($subtopicName)
     {
@@ -352,8 +367,8 @@ public function submitfindatutor()
 
         $result = $db->query($query);
 
-	if (!$result) {
-		echo "Query failed in getSubjectNameById(), possible invalid ID = " . $subtopicId;
+        if (!$result) {
+            echo "Error executing query: " . $db->errorInfo();
             die();
         }
         $subtopic = [];
@@ -369,8 +384,8 @@ public function submitfindatutor()
         $db = FatApp::getDb();
         $subjectId = 0;
 
-        $subtopicId = trim($subtopicId);  // Trim any extra spaces
-        $subtopicId = addslashes($subtopicId);  // Escape special characters (optional)
+        $subtopicId = trim($subtopicId);
+        $subtopicId = addslashes($subtopicId);
 
 
         $query = "SELECT id,subject FROM course_subjects WHERE   id = $subtopicId LIMIT 1";
@@ -378,62 +393,72 @@ public function submitfindatutor()
         $result = $db->query($query);
 
         if (!$result) {
-            echo "Error executing query: " . $db->errorInfo();
+            echo "Query failed in getSubjectNameById(), possible invalid ID = " . $subtopicId;
             die();
         }
         $subtopic = [];
         if ($result) {
-            $subtopic = $db->fetch($result);  // Assuming fetch returns a single row
+            $subtopic = $db->fetch($result);
         }
         return !empty($subtopic) ? $subtopic['subject'] : null;
     }
 
 
-    public function getTopicnames($subjectid)
+    private function getTopicnames($examboardId = 0, $yearId = 0)
     {
         $db = FatApp::getDb();
-        $subjectId = 0;
+
+        if ($examboardId <= 0 && $yearId <= 0)
+            return [];
+
+        $params = [];
+        $sql = "SELECT id, topic FROM course_topics WHERE 1=1";
+        if ($examboardId > 0) {
+            $sql .= " AND examboard_id = ?";
+            $params[] = $examboardId;
+        } elseif ($yearId > 0) {
+            $sql .= " AND year_id = ?";
+            $params[] = $yearId;
+        }
+
+        $sql .= " ORDER BY topic ASC";
+
+        $res = $db->query($sql, $params);
+        if (!$res)
+            return [];
+
+        $topics = [];
+        foreach ($db->fetchAll($res) as $row) {
+            $topics[(int) $row['id']] = $row['topic'];
+        }
+        return $topics;
+    }
 
 
-        $query = "SELECT id,topic FROM course_topics WHERE   subject_id = $subjectid";
+
+
+    public function getPreviouspapers($courseId)
+    {
+        $db = FatApp::getDb();
+        // echo "Running getPreviouspapers for courseId: " . $courseId . "<br>";
+
+        $query = "SELECT id, previous_paper_pdf FROM course_subtopics WHERE course_id = " . (int) $courseId;
+        // echo "Query: $query <br>";
 
         $result = $db->query($query);
 
         if (!$result) {
-            echo "Error executing query: " . $db->errorInfo();
-            die();
-        }
-        $subtopic = [];
-        if ($result) {
-            $subtopic = $db->fetchAll($result);  // Assuming fetch returns a single row
-        }
-
-        return $subtopic;
-    }
-
-
-    public function getPreviouspapers($subjectid)
-    {
-        $db = FatApp::getDb();
-        $subjectId = 0;
-
-
-        $query = "SELECT id,previous_paper_pdf FROM course_subtopics WHERE   course_id = $subjectid";
-
-        $result = $db->query($query);
-
-        if (!$result) {
-            echo "Error executing query: " . $db->errorInfo();
+            echo "Query execution failed.<br>";
             die();
         }
 
-        $subtopic = [];
-        if ($result) {
-            $subtopic = $db->fetchAll($result);  // Assuming fetch returns a single row
-        }
-
-        return $subtopic;
+        $papers = $db->fetchAll($result);
+        // echo "<pre>";
+        // print_r($papers);
+        // echo "</pre>";
+        return $papers;
     }
+
 
 
 
@@ -507,49 +532,26 @@ public function submitfindatutor()
             FatUtility::dieJsonError("Invalid answer data.");
         }
 
-        // foreach ($answers as $item) {
-        //     $questionId = $item['questionId'];
-        //     $userAnswer = $item['answer'];
+        // --- Quota Check (Server Side) ---
+        $quizUserId = $_SESSION['quiz_user']['id'] ?? 0;
+        if ($quizUserId < 1) {
+            FatUtility::dieJsonError("Session expired or invalid user.");
+        }
 
-        //     // Fetch correct answer from DB
-        //     $srch = new SearchBase('tbl_quaestion_bank');
-        //     $srch->addCondition('id', '=', $questionId);
-        //     $srch->addMultipleFields(['correct_answer']);
-        //     $rs = $srch->getResultSet();
-        //     $question = FatApp::getDb()->fetch($rs);
+        $db = FatApp::getDb();
+        $row = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int) $quizUserId));
+        $attempts = (int) ($row['quiz_attempts_count'] ?? 0);
 
+        if ($attempts >= 10) {
+            FatUtility::dieJsonError([
+                'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
+                'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
+            ]);
+        }
+        // --------------------------------
 
-        //     if (!$question) continue;
-
-        //     $correctAnswer = $question['correct_answer'];
-
-        //     // Format answers
-        //     $correctArray = explode(',', $correctAnswer);
-        //     $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-
-        //     // Sort for order-independent comparison
-        //     sort($correctArray);
-        //     sort($userArray);
-
-        //     $isCorrect = ($correctArray === $userArray);
-
-        //     if ($isCorrect) $score++;
-
-        //     $results[] = [
-        //         'questionId' => $questionId,
-        //         'userAnswer' => $userAnswer,
-        //         'correctAnswer' => $correctArray,
-        //         'isCorrect' => $isCorrect,
-        //     ];
-
-        // }
-        // echo '<pre>';print_r($results);die;
-        // ✅ Return proper JSON
-
-
-
-
-        $api_key = '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';
+        $api_key = FatApp::getConfig('CONF_OPENAI_KEY', FatUtility::VAR_STRING, '');
+        $results = []; // Initialize results array
 
 
         foreach ($answers as $item) {
@@ -563,7 +565,8 @@ public function submitfindatutor()
             $rs = $srch->getResultSet();
             $question = FatApp::getDb()->fetch($rs);
 
-            if (!$question) continue;
+            if (!$question)
+                continue;
 
             $questionType = $question['question_type'];
             // $questionMarks = (float) $question['marks'];
@@ -680,7 +683,7 @@ public function submitfindatutor()
         $db = FatApp::getDb();
 
         $quizAttemptData = [
-            'user_id' => $this->siteUserId,
+            'user_id' => $quizUserId, // Use the guest user ID from session
             'subtopic_id' => $subtopicId,
             'total_questions' => $totalQuestions,
             'total_correct' => $totalCorrect,
@@ -700,7 +703,7 @@ public function submitfindatutor()
                 'attempt_id' => $attemptId,
                 'question_id' => $res['questionId'],
                 'user_answer' => is_array($res['userAnswer']) ? implode(',', $res['userAnswer']) : $res['userAnswer'],
-                'correct_answer' => is_array($res['correctAnswer']) ? implode(',', $res['correctAnswer']) : (string)$res['correctAnswer'],
+                'correct_answer' => is_array($res['correctAnswer']) ? implode(',', $res['correctAnswer']) : (string) $res['correctAnswer'],
                 'marks_obtained' => $res['marksObtained'],
                 'is_correct' => $res['isCorrect'] ? 1 : 0,
             ];
@@ -708,6 +711,15 @@ public function submitfindatutor()
             if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
                 dieWithError('Failed to insert answer for question ID: ' . $res['questionId']);
             }
+        }
+
+        // Increment attempt count for the user
+        $quizUserId = $_SESSION['quiz_user']['id'] ?? 0;
+        if ($quizUserId > 0) {
+            $db->query("UPDATE course_attempt_userdetails 
+                        SET quiz_attempts_count = quiz_attempts_count + 1, 
+                            quiz_attempts_updated_at = NOW() 
+                        WHERE id = " . (int) $quizUserId);
         }
 
 
@@ -725,11 +737,11 @@ public function submitfindatutor()
         $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
         $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
 
-        $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
+        $subtopicId = isset($posts['subtopicid']) ? (int) $posts['subtopicid'] : 0;
 
         $db = FatApp::getDb();
         $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = " . $subtopicId . " ORDER BY RAND() LIMIT 15";
-        echo $query;
+        // echo $query;
 
         //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
 
@@ -1253,4 +1265,7 @@ public function submitfindatutor()
         }
         return [];
     }
+
+
 }
+

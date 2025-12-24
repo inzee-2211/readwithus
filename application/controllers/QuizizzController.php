@@ -218,89 +218,117 @@ class QuizizzController extends MyAppController
 }
 
 
-    public function submitSignup()
-    {
-        header('Content-Type: application/json; charset=utf-8');
+public function submitSignup()
+{
+    header('Content-Type: application/json; charset=utf-8');
 
-        $post = FatApp::getPostedData();
+    $post = FatApp::getPostedData();
 
-        $name = trim($post['full_name'] ?? '');
-        $email = trim($post['email'] ?? '');
-        $parentEmail = trim($post['parent_email'] ?? '');
-        $phone = trim($post['phone'] ?? '');
-        $subtopic_id = trim($post['subtopic_id'] ?? '');
-        if (!$name || !$email || !$parentEmail || !$phone) {
-            FatUtility::dieJsonError('All fields are required.');
-        }
+    $name        = trim($post['full_name'] ?? '');
+    $email       = trim($post['email'] ?? '');
+    $parentEmail = trim($post['parent_email'] ?? '');
+    $phone       = trim($post['phone'] ?? '');
+    $subtopicId  = trim($post['subtopic_id'] ?? '');
 
+    if ($name === '' || $email === '' || $parentEmail === '' || $phone === '') {
+        FatUtility::dieJsonError('All fields are required.');
+    }
 
+    $db = FatApp::getDb();
 
+    // Uniqueness check (email OR parent_email OR phone)
+    $srch = new SearchBase('course_attempt_userdetails', 'u');
+    $cnd  = $srch->addCondition('u.email', '=', $email);
+    $cnd->attachCondition('u.parent_email', '=', $parentEmail, 'OR');
+    $cnd->attachCondition('u.phone', '=', $phone, 'OR');
+    $srch->addMultipleFields(['u.id', 'u.name', 'u.email', 'u.parent_email', 'u.phone', 'u.quiz_attempts_count']);
+    $row = $db->fetch($srch->getResultSet());
 
-        $db = FatApp::getDb();
+    // Existing user
+    if (!empty($row)) {
+        $attempts = (int)($row['quiz_attempts_count'] ?? 0);
 
-        // Check if email OR parent_email OR phone already exists
-        $srch = new SearchBase('course_attempt_userdetails');
-        $cnd = $srch->addCondition('email', '=', $email);
-        $cnd->attachCondition('parent_email', '=', $parentEmail, 'OR');
-        $cnd->attachCondition('phone', '=', $phone, 'OR');
-        $srch->addMultipleFields(['id', 'quiz_attempts_count']);
-        $rs = $srch->getResultSet();
-
-        if ($row = $db->fetch($rs)) {
-
-            // Quota Check
-            $attempts = (int) ($row['quiz_attempts_count'] ?? 0);
-            if ($attempts >= 10) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    "status" => 0,
-                    "msg" => "Your free quiz quota is expired. Please subscribe to continue.",
-                    "redirect_url" => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
-                ]);
-                exit;
-            }
-
-            $_SESSION['quiz_user'] = [
-                'id' => $row['id'],
-                'name' => $name,
-                'email' => $email,
-                'parent_email' => $parentEmail,
-                'phone' => $phone
-            ];
-
-            //FatUtility::dieJsonError('A user with the same email, parent email, or phone already exists.');
-            echo json_encode(['status' => 1, 'subtopicid' => $subtopic_id, 'msg' => 'Success']);
+        if ($attempts >= 10) {
+            echo json_encode([
+                "status" => 0,
+                "msg" => "Your free quiz quota is expired. Please subscribe to continue.",
+                "redirect_url" => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
+                "attempts_used" => $attempts,
+                "attempts_left" => 0,
+                "quota" => 10
+            ]);
             exit;
         }
 
+        // UPDATE: Increment the attempt count immediately when returning user signs up for a new quiz
+        $db->query("UPDATE course_attempt_userdetails 
+                    SET quiz_attempts_count = quiz_attempts_count + 1, 
+                        quiz_attempts_updated_at = NOW() 
+                    WHERE id = " . (int)$row['id']);
+        
+        // Fetch updated count
+        $updatedRow = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int)$row['id']));
+        $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? $attempts + 1);
 
-
-        // Insert new record
-        $dataToInsert = [
-            'name' => $name,
-            'email' => $email,
-            'parent_email' => $parentEmail,
-            'phone' => $phone,
-            'created_at' => date('Y-m-d H:i:s')
-        ];
-
-        $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
-
-        $newId = $db->getInsertId();
-
-        // Store in session
         $_SESSION['quiz_user'] = [
-            'id' => $newId,
-            'name' => $name,
-            'email' => $email,
-            'parent_email' => $parentEmail,
-            'phone' => $phone
+            'id'          => (int)$row['id'],
+            'name'        => (string)$row['name'],
+            'email'       => (string)$row['email'],
+            'parent_email'=> (string)$row['parent_email'],
+            'phone'       => (string)$row['phone'],
         ];
 
-        echo json_encode(['status' => 1, 'subtopicid' => $subtopic_id, 'msg' => 'Success']);
+        echo json_encode([
+            'status' => 1,
+            'msg' => 'Success',
+            'subtopicid' => $subtopicId,
+            'attempts_used' => $newAttempts,
+            'attempts_left' => max(0, 10 - $newAttempts),
+            'quota' => 10
+        ]);
         exit;
-        // FatUtility::dieJsonSuccess('Form submitted successfully.');
     }
+
+    // New user insert
+    $dataToInsert = [
+        'name'        => $name,
+        'email'       => $email,
+        'parent_email'=> $parentEmail,
+        'phone'       => $phone,
+        'created_at'  => date('Y-m-d H:i:s'),
+        // IMPORTANT: Set quiz_attempts_count to 1 for new user (since they're starting their first quiz)
+        'quiz_attempts_count' => 1,
+        'quiz_attempts_updated_at' => date('Y-m-d H:i:s'),
+    ];
+
+    $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
+    if (!$success) {
+        FatUtility::dieJsonError('Insert failed: ' . $db->getError());
+    }
+
+    $newId = (int)$db->getInsertId();
+    if ($newId < 1) {
+        FatUtility::dieJsonError('Insert failed: No insert id returned.');
+    }
+
+    $_SESSION['quiz_user'] = [
+        'id'          => $newId,
+        'name'        => $name,
+        'email'       => $email,
+        'parent_email'=> $parentEmail,
+        'phone'       => $phone,
+    ];
+
+    echo json_encode([
+        'status' => 1,
+        'msg' => 'Success',
+        'subtopicid' => $subtopicId,
+        'attempts_used' => 1,
+        'attempts_left' => 9,
+        'quota' => 10
+    ]);
+    exit;
+}
 
 
     public function submitfindatutor()

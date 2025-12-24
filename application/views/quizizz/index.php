@@ -488,23 +488,35 @@ $yearName = $yearName ?? '';
             }
 
             // ---- AJAX SUBMIT (same as before) ----
-            fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
-                try {
-                    if (typeof response === 'string') {
-                        response = JSON.parse(response);
-                    }
+           // In the AJAX success callback in your view file:
+fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
+    try {
+        if (typeof response === 'string') {
+            response = JSON.parse(response);
+        }
 
-                    if (response.status == 1 && response.subtopicid) {
-                        window.location.href =
-                            'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
-                    } else {
-                        alert(response.msg || "Something went wrong.");
-                    }
-                } catch (e) {
-                    console.error("Invalid JSON:", e);
-                    alert("Failed to parse server response.");
-                }
-            });
+        if (response.status == 1 && response.subtopicid) {
+            // Show attempt count info
+            if (response.attempts_left <= 0) {
+                alert('You have used all your free quizzes. Please subscribe for more.');
+                window.location.href = response.redirect_url || '/pricing';
+            } else {
+                alert('You have ' + response.attempts_left + ' free quizzes left out of ' + response.quota);
+                window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
+            }
+        } else if (response.status == 0) {
+            alert(response.msg || "Something went wrong.");
+            if (response.redirect_url) {
+                window.location.href = response.redirect_url;
+            }
+        } else {
+            alert(response.msg || "Something went wrong.");
+        }
+    } catch (e) {
+        console.error("Invalid JSON:", e);
+        alert("Failed to parse server response.");
+    }
+});
         });
     }
 
