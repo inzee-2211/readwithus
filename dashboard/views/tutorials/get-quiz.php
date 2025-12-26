@@ -131,9 +131,215 @@ if ($quizDetails) {
 }
 .avtar1 img{ width:100%; max-height:200px; border-radius:6px; object-fit:cover; }
 </style>
+<style>
+/* ====== Result Modal (EXAM) - Production grade ====== */
+.qz-modal{
+  position:fixed; inset:0; z-index:10000;
+  display:none; align-items:center; justify-content:center;
+  padding:14px;
+}
+.qz-modal__backdrop{
+  position:absolute; inset:0;
+  background:rgba(15,23,42,.55);
+  backdrop-filter: blur(6px);
+}
+.qz-modal__panel{
+  position:relative; z-index:1;
+  width:min(1100px, 96vw);
+  max-height:90vh;
+  background:#fff;
+  border-radius:18px;
+  border:1px solid rgba(226,232,240,.9);
+  box-shadow:0 30px 80px rgba(0,0,0,.35);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.qz-modal__header{
+  padding:18px 20px;
+  background:linear-gradient(90deg, rgba(20,160,163,.10), rgba(14,165,233,.10));
+  border-bottom:1px solid #eef2f7;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.qz-modal__eyebrow{ font-size:12px; color:#64748b; font-weight:700; letter-spacing:.02em; text-transform:uppercase; }
+.qz-modal__title{ margin:2px 0 0; font-size:20px; color:#0f172a; font-weight:900; }
+.qz-modal__x{
+  border:1px solid #e2e8f0; background:#fff; border-radius:12px;
+  width:40px; height:40px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.qz-modal__x:hover{ background:#f8fafc; }
+
+.qz-modal__summary{
+  padding:16px 20px;
+  display:grid;
+  grid-template-columns: 220px 1fr;
+  gap:14px;
+  border-bottom:1px solid #eef2f7;
+}
+@media (max-width: 820px){
+  .qz-modal__summary{ grid-template-columns:1fr; }
+}
+
+.qz-scoreCard{
+  border:1px solid #e8edf3; background:#fff;
+  border-radius:16px; padding:14px;
+  box-shadow:0 10px 24px rgba(17,24,39,.04);
+  display:flex; align-items:center; gap:14px;
+}
+.qz-ring{
+  --p: 0;
+  width:74px; height:74px; border-radius:999px;
+  background:
+    conic-gradient(#14A0A3 calc(var(--p) * 1%), #e2e8f0 0);
+  display:grid; place-items:center;
+}
+.qz-ring__inner{
+  width:60px; height:60px; border-radius:999px;
+  background:#fff; border:1px solid #eef2f7;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-weight:900; color:#0f172a;
+}
+.qz-ring__inner small{ font-weight:800; color:#64748b; font-size:10px; margin-top:-2px; }
+
+.qz-summaryGrid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:10px;
+}
+@media (max-width: 820px){
+  .qz-summaryGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.qz-kpi{
+  border:1px solid #e8edf3; background:#fafafa;
+  border-radius:14px; padding:12px;
+}
+.qz-kpi .t{ font-size:12px; color:#64748b; font-weight:800; }
+.qz-kpi .v{ font-size:16px; color:#0f172a; font-weight:900; margin-top:4px; }
+
+.qz-status{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 10px; border-radius:999px;
+  border:1px solid #e2e8f0;
+  font-weight:900; font-size:12px;
+  width:max-content;
+}
+.qz-status.pass{ background:#dcfce7; border-color:#bbf7d0; color:#166534; }
+.qz-status.fail{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+
+.qz-modal__tools{
+  padding:12px 20px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border-bottom:1px solid #eef2f7;
+  flex-wrap:wrap;
+}
+.qz-modal__filters{ display:flex; gap:8px; align-items:center; }
+.qz-chip{
+  padding:8px 10px; border-radius:999px;
+  border:1px solid #e2e8f0; background:#fff;
+  font-weight:900; font-size:12px; cursor:pointer; color:#0f172a;
+}
+.qz-chip:hover{ background:#f8fafc; }
+.qz-chip.is-active{
+  background:#14A0A3; border-color:#14A0A3; color:#fff;
+  box-shadow:0 10px 20px rgba(20,160,163,.18);
+}
+
+.qz-modal__search{
+  display:flex; align-items:center; gap:8px;
+  border:1px solid #e2e8f0; background:#fff;
+  border-radius:12px; padding:8px 10px;
+}
+.qz-modal__search input{
+  border:none; outline:none; min-width:240px;
+}
+@media (max-width: 520px){ .qz-modal__search input{ min-width:160px; } }
+
+.qz-modal__list{
+  padding:10px 20px 18px;
+  overflow:auto;
+  max-height:55vh;
+  background:linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+.qz-qa{
+  border:1px solid #e8edf3;
+  border-radius:16px;
+  background:#fff;
+  overflow:hidden;
+  margin:10px 0;
+  box-shadow:0 10px 24px rgba(17,24,39,.03);
+}
+.qz-qa__head{
+  width:100%;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 14px;
+  background:#fff;
+  cursor:pointer;
+  border:none;
+}
+.qz-qa__left{ display:flex; gap:12px; align-items:flex-start; }
+.qz-qa__num{
+  width:34px; height:34px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900;
+  background:rgba(20,160,163,.10);
+  color:#0f6c6e;
+  flex-shrink:0;
+}
+.qz-qa__title{ font-weight:900; color:#0f172a; }
+.qz-qa__meta{ font-size:12px; color:#64748b; margin-top:3px; }
+.qz-badge{
+  font-size:12px; font-weight:900;
+  padding:6px 10px; border-radius:999px;
+  color:#fff; flex-shrink:0;
+}
+.qz-badge.correct{ background:#16a34a; }
+.qz-badge.incorrect{ background:#F5411F; }
+.qz-qa__body{
+  display:none;
+  border-top:1px solid #eef2f7;
+  padding:14px 14px;
+  background:#fcfdff;
+}
+.qz-cols{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+}
+@media (max-width: 820px){ .qz-cols{ grid-template-columns:1fr; } }
+.qz-box{
+  border:1px solid #e8edf3; border-radius:14px;
+  background:#fff; padding:12px;
+}
+.qz-box h6{ margin:0 0 8px; font-size:12px; color:#64748b; font-weight:900; text-transform:uppercase; letter-spacing:.02em; }
+.qz-mono{
+  font-family:ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12.5px;
+  white-space:pre-wrap;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  padding:10px;
+}
+
+.qz-modal__footer{
+  padding:14px 20px;
+  border-top:1px solid #eef2f7;
+  background:#fff;
+  display:flex; justify-content:flex-end; gap:10px;
+}
+.qz-btn{
+  border-radius:12px; font-weight:900;
+  padding:10px 16px; border:1px solid transparent;
+  cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
+}
+.qz-btn--primary{ background:#F5411F; color:#fff; box-shadow:0 10px 22px rgba(245,65,31,.22); }
+.qz-btn--primary:hover{ background:#d73d1c; }
+.qz-btn--ghost{ background:#fff; border-color:#e2e8f0; color:#0f172a; }
+.qz-btn--ghost:hover{ background:#f8fafc; }
+</style>
+
 
 <!-- ====== Popup Summary (existing evaluation view preserved) ====== -->
-<div id="quizPopup" style="display: none;">
+<!-- <div id="quizPopup" style="display: none;">
   <div class="quiz-popup-overlay" onclick="closePopup()"></div>
   <div class="quiz-popup-content">
     <h3>Exam Evaluation Summary</h3>
@@ -143,7 +349,49 @@ if ($quizDetails) {
     </a>
     <button class="btn-close-popup" onclick="closePopup()">Close</button>
   </div>
+</div> -->
+<!-- ====== Result Modal (EXAM) ====== -->
+<div id="quizPopup" class="qz-modal" aria-hidden="true" style="display:none;">
+  <div class="qz-modal__backdrop" onclick="closePopup()"></div>
+
+  <div class="qz-modal__panel" role="dialog" aria-modal="true" aria-labelledby="qzModalTitle">
+    <div class="qz-modal__header">
+      <div>
+        <div class="qz-modal__eyebrow">Exam Results</div>
+        <h3 id="qzModalTitle" class="qz-modal__title">Evaluation Summary</h3>
+      </div>
+
+      <button type="button" class="qz-modal__x" onclick="closePopup()" aria-label="Close">
+        ✕
+      </button>
+    </div>
+
+    <div class="qz-modal__summary" id="qzExamSummaryTop"></div>
+
+    <div class="qz-modal__tools">
+      <div class="qz-modal__filters">
+        <button type="button" class="qz-chip is-active" data-filter="all">All</button>
+        <button type="button" class="qz-chip" data-filter="correct">Correct</button>
+        <button type="button" class="qz-chip" data-filter="incorrect">Incorrect</button>
+      </div>
+
+      <div class="qz-modal__search">
+        <span class="qz-modal__searchIcon">🔎</span>
+        <input type="text" id="qzExamSearch" placeholder="Search questions…" />
+      </div>
+    </div>
+
+    <div id="quizSummary" class="qz-modal__list"></div>
+
+    <div class="qz-modal__footer">
+      <a class="qz-btn qz-btn--primary" href="<?php echo MyUtility::makeUrl('teachers', '', [], CONF_WEBROOT_FRONT_URL); ?>">
+        Find a Tutor
+      </a>
+      <button class="qz-btn qz-btn--ghost" type="button" onclick="closePopup()">Close</button>
+    </div>
+  </div>
 </div>
+
 
 <?php
   if(isset($quizDetails['quiz_duration']) && $quizDetails['quiz_duration']>0){
@@ -385,32 +633,162 @@ function closePopup() {
   location.reload();
   document.getElementById('quizPopup').style.display = 'none';
 }
-function showQuizPopup(response) {
-  if (response.Quizdata && response.Quizdata.autoCheckedQuestions) {
-    const autoCheckedQuestions = response.Quizdata.autoCheckedQuestions;
+// function showQuizPopup(response) {
+//   if (response.Quizdata && response.Quizdata.autoCheckedQuestions) {
+//     const autoCheckedQuestions = response.Quizdata.autoCheckedQuestions;
 
-    let popupContent = `
-      <p><strong>Score:</strong> ${response.Quizdata.score} / ${response.Quizdata.totalMarks}</p>
-      <hr>
-    `;
-    for (const questionId in autoCheckedQuestions) {
-      const question = autoCheckedQuestions[questionId];
-      popupContent += `
-        <div class="quizcontent">
-          <p><strong>Question:</strong> ${question.question_title || "N/A"}</p>
-          <p><strong>Status:</strong> ${question.status}</p>
-          <p><strong>Marks Awarded:</strong> ${question.marks}</p>
-          <p><strong>Submitted Answer:</strong> ${question.submitted_answer}</p>
-          <p><strong>Explanations / Correct Option:</strong></p>
-          <pre>${question.correctanswer}</pre>
-          <hr>
+//     let popupContent = `
+//       <p><strong>Score:</strong> ${response.Quizdata.score} / ${response.Quizdata.totalMarks}</p>
+//       <hr>
+//     `;
+//     for (const questionId in autoCheckedQuestions) {
+//       const question = autoCheckedQuestions[questionId];
+//       popupContent += `
+//         <div class="quizcontent">
+//           <p><strong>Question:</strong> ${question.question_title || "N/A"}</p>
+//           <p><strong>Status:</strong> ${question.status}</p>
+//           <p><strong>Marks Awarded:</strong> ${question.marks}</p>
+//           <p><strong>Submitted Answer:</strong> ${question.submitted_answer}</p>
+//           <p><strong>Explanations / Correct Option:</strong></p>
+//           <pre>${question.correctanswer}</pre>
+//           <hr>
+//         </div>
+//       `;
+//     }
+//     document.getElementById('quizSummary').innerHTML = popupContent;
+//     document.getElementById('quizPopup').style.display = 'flex';
+//   }
+// }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function showQuizPopup(response) {
+  const data = response && response.Quizdata ? response.Quizdata : null;
+  const items = data && data.autoCheckedQuestions ? data.autoCheckedQuestions : null;
+  if (!items) return;
+
+  // Compute stats
+  const score = Number(data.score || 0);
+  const total = Number(data.totalMarks || 0) || 0;
+  const pct = total ? Math.round((score / total) * 100) : 0;
+
+  // pass percentage from hidden input if present
+  const passPct = Number(document.getElementById('quiz_pass_percentage')?.value || 0);
+  const isPass = passPct ? (pct >= passPct) : (pct >= 50);
+
+  // Top summary (ring + KPIs)
+  const top = document.getElementById('qzExamSummaryTop');
+  top.innerHTML = `
+    <div class="qz-scoreCard">
+      <div class="qz-ring" style="--p:${pct}">
+        <div class="qz-ring__inner">
+          ${pct}%
+          <small>score</small>
         </div>
-      `;
+      </div>
+      <div>
+        <div style="font-weight:900;color:#0f172a;font-size:16px;">${score} / ${total}</div>
+       
+      </div>
+    </div>
+
+    <div class="qz-summaryGrid">
+      <div class="qz-kpi"><div class="t">Score</div><div class="v">${score} / ${total}</div></div>
+      <div class="qz-kpi"><div class="t">Percentage</div><div class="v">${pct}%</div></div>
+      <div class="qz-kpi"><div class="t">Correct</div><div class="v" id="qzCorrectKpi">–</div></div>
+      <div class="qz-kpi"><div class="t">Incorrect</div><div class="v" id="qzIncorrectKpi">–</div></div>
+    </div>
+  `;
+
+  // Build list (accordion)
+  let correctCount = 0;
+  let incorrectCount = 0;
+
+  const list = document.getElementById('quizSummary');
+  const keys = Object.keys(items);
+
+  list.innerHTML = keys.map((qid, idx) => {
+    const it = items[qid] || {};
+    const status = (it.status || '').toLowerCase(); // "correct" / "incorrect"
+    const isCorrect = status === 'correct';
+    if (isCorrect) correctCount++; else incorrectCount++;
+
+    const submitted = Array.isArray(it.submitted_answer) ? it.submitted_answer.join(', ') : (it.submitted_answer ?? '');
+    const correctAns = it.correctanswer ?? '';
+
+    return `
+      <div class="qz-qa" data-status="${isCorrect ? 'correct' : 'incorrect'}" data-text="${esc(it.question_title || '')}">
+        <button type="button" class="qz-qa__head" aria-expanded="false">
+          <div class="qz-qa__left">
+            <div class="qz-qa__num">${idx + 1}</div>
+            <div>
+              <div class="qz-qa__title">${esc(it.question_title || 'Question')}</div>
+              <div class="qz-qa__meta">Marks awarded: <strong>${Number(it.marks || 0)}</strong></div>
+            </div>
+          </div>
+          <div class="qz-badge ${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'Correct' : 'Incorrect'}</div>
+        </button>
+
+        <div class="qz-qa__body">
+          <div class="qz-cols">
+            <div class="qz-box">
+              <h6>Submitted Answer</h6>
+              <div class="qz-mono">${esc(submitted)}</div>
+            </div>
+            <div class="qz-box">
+              <h6>Correct Answer</h6>
+              <div class="qz-mono">${esc(correctAns)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('qzCorrectKpi').textContent = String(correctCount);
+  document.getElementById('qzIncorrectKpi').textContent = String(incorrectCount);
+
+  // Interactions: accordion toggle
+  $('#quizSummary').off('click').on('click', '.qz-qa__head', function(){
+    const $wrap = $(this).closest('.qz-qa');
+    const $body = $wrap.find('.qz-qa__body');
+    const expanded = $(this).attr('aria-expanded') === 'true';
+    $(this).attr('aria-expanded', expanded ? 'false' : 'true');
+    $body.slideToggle(160);
+  });
+
+  // Filters
+  $('.qz-chip').off('click').on('click', function(){
+    $('.qz-chip').removeClass('is-active'); $(this).addClass('is-active');
+    const f = $(this).data('filter');
+    $('#quizSummary .qz-qa').each(function(){
+      const s = $(this).data('status');
+      $(this).toggle(f === 'all' || s === f);
+    });
+  });
+
+  // Search
+  $('#qzExamSearch').off('input').on('input', function(){
+    const q = (this.value || '').toLowerCase().trim();
+    $('#quizSummary .qz-qa').each(function(){
+      const txt = ($(this).data('text') || '').toLowerCase();
+      $(this).toggle(!q || txt.includes(q));
+    });
+  });
+
+  // Open modal
+  const popup = document.getElementById('quizPopup');
+  popup.style.display = 'flex';
+  popup.setAttribute('aria-hidden', 'false');
+
+  // ESC closes
+  document.addEventListener('keydown', function onEsc(e){
+    if (e.key === 'Escape'){
+      document.removeEventListener('keydown', onEsc);
+      closePopup();
     }
-    document.getElementById('quizSummary').innerHTML = popupContent;
-    document.getElementById('quizPopup').style.display = 'flex';
-  }
+  });
 }
+
 
 // ====== Init ======
 $(document).ready(function(){

@@ -29,7 +29,7 @@ $jslabels = json_encode([
     <div class="section-filters">
         <?php echo $srchFrm->getFormTag(); ?>
         <div class="container container--narrow">
-            <h1 class="page-title margin-bottom-8"><?php echo Label::getLabel('LBL_TEACHER_SEARCH_HEADLINE'); ?></h1>
+            <h1 class="page-title margin-bottom-8"><?php echo Label::getLabel('LBL_STUCK_ON_A_TOPIC?_FIX_IT_IN_ONE_SESSION_WITH_OUR_EXPERIENCED_TUTORS'); ?></h1>
             <div id="filter-panel" class="filter-panel">
                 <div class="filter-panel__head">
                     <h4><?php echo Label::getLabel('LBL_FILTERS'); ?></h4>

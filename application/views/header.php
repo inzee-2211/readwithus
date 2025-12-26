@@ -16,6 +16,41 @@ $mathEditorEnabled = defined('CONF_ENABLE_MATH_EDITOR') && CONF_ENABLE_MATH_EDIT
         <meta charset="utf-8">
         <meta name="author" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0,user-scalable=0" />
+        <?php
+// =========================
+// Dynamic SEO defaults
+// =========================
+$metaTitle = $pageTitle ?? (FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility::VAR_STRING, '') ?: 'Read With Us');
+$metaDesc  = $pageDescription ?? FatApp::getConfig('CONF_META_DESCRIPTION', FatUtility::VAR_STRING, '');
+$canonical = $canonicalUrl ?? MyUtility::makeFullUrl();
+$robots    = $metaRobots ?? 'index,follow';
+$ogImg     = $ogImage ?? (CONF_WEBROOT_FRONT_URL . 'images/logo.png');
+$twSite    = $twitterSite ?? '@read_withus';
+?>
+
+<title><?php echo htmlspecialchars($metaTitle); ?></title>
+<meta name="description" content="<?php echo htmlspecialchars($metaDesc); ?>">
+<meta name="robots" content="<?php echo htmlspecialchars($robots); ?>">
+<link rel="canonical" href="<?php echo htmlspecialchars($canonical); ?>">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="<?php echo htmlspecialchars($metaTitle); ?>">
+<meta property="og:description" content="<?php echo htmlspecialchars($metaDesc); ?>">
+<meta property="og:url" content="<?php echo htmlspecialchars($canonical); ?>">
+<meta property="og:image" content="<?php echo htmlspecialchars($ogImg); ?>">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="<?php echo htmlspecialchars($twSite); ?>">
+<meta name="twitter:title" content="<?php echo htmlspecialchars($metaTitle); ?>">
+<meta name="twitter:description" content="<?php echo htmlspecialchars($metaDesc); ?>">
+<meta name="twitter:image" content="<?php echo htmlspecialchars($ogImg); ?>">
+
+<?php if (!empty($structuredData)) { ?>
+<script type="application/ld+json"><?php echo $structuredData; ?></script>
+<?php } ?>
+
         <?php if ($mathEditorEnabled): ?>
             <!-- Math Editor System -->
 <link rel="stylesheet"
@@ -139,7 +174,13 @@ window.MathJax = {
 }
 </style>
 <?php endif; ?>
-        <?php echo $this->writeMetaTags(); ?>
+        <?php
+// Keep YoCoach meta tags only if controller didn't provide custom SEO
+if (empty($pageTitle) && empty($pageDescription)) {
+    echo $this->writeMetaTags();
+}
+?>
+
         <link rel="shortcut icon" href="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_FAVICON, 0, Afile::SIZE_ORIGINAL]); ?>">
         <link rel="apple-touch-icon" href="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_APPLE_TOUCH_ICON, 0, Afile::SIZE_LARGE]); ?>">
         <?php if (!empty($canonicalUrl)) { ?>

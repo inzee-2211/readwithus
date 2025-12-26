@@ -133,6 +133,55 @@ class HomeController extends MyAppController
     $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
     $this->set('classes', $class->getUpcomingClasses());
     $this->set('courses', $course->getPopularCourses());
+    /* =========================
+     * HOME PAGE SEO (Title/Desc/OG/Twitter/Schema)
+     * ========================= */
+    $pageTitle = 'GCSE Online Tutors & Courses | ReadWithUs';
+    $pageDescription = 'GCSE online learning platform with expert tutors, interactive video lessons and AI-powered quizzes. Study Maths, English & Science anywhere in the UK.';
+
+    // Canonical: homepage absolute URL
+    $canonicalUrl = MyUtility::makeFullUrl();
+
+    // OG/Twitter image (absolute)
+    $ogImage = CONF_WEBROOT_URL . 'images/hero/hero.png';
+
+    // Robots
+    $metaRobots = 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
+
+    // Basic Schema (Organization + WebSite SearchAction)
+    $schema = [
+        [
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            'name' => 'Read With Us',
+            'url' => $canonicalUrl,
+            'logo' => CONF_WEBROOT_FRONT_URL . 'images/logo.png',
+            'sameAs' => [
+                'https://www.facebook.com/readwithusofficial',
+                'https://www.instagram.com/readwithusuk',
+                'https://www.linkedin.com/company/read-with-us-uk'
+            ],
+        ],
+        [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => 'Read With Us',
+            'url' => $canonicalUrl,
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => MyUtility::makeFullUrl('Courses') . '?keyword={search_term_string}',
+                'query-input' => 'required name=search_term_string',
+            ],
+        ],
+    ];
+
+    $this->set('pageTitle', $pageTitle);
+    $this->set('pageDescription', $pageDescription);
+    $this->set('canonicalUrl', $canonicalUrl);
+    $this->set('ogImage', $ogImage);
+    $this->set('metaRobots', $metaRobots);
+    $this->set('twitterSite', '@read_withus');
+    $this->set('structuredData', json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
     $this->_template->render();
 }

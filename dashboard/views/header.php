@@ -8,7 +8,13 @@ $stickyDemoHeader = MyUtility::isDemoUrl() ? 'sticky-demo-header' : '';
 <head>
     <!-- Basic Page Needs ======================== -->
     <meta charset="utf-8">
-    <?php echo $this->writeMetaTags(); ?>
+  <?php
+// Keep YoCoach meta tags only if controller didn't provide custom SEO
+if (empty($pageTitle) && empty($pageDescription)) {
+    echo $this->writeMetaTags();
+}
+?>
+
     <!-- MOBILE SPECIFIC METAS ===================== -->
     <!-- <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> -->
     <meta name="viewport"
@@ -29,6 +35,8 @@ $stickyDemoHeader = MyUtility::isDemoUrl() ? 'sticky-demo-header' : '';
     <link rel="apple-touch-icon" sizes="114x114"
         href="<?php echo CONF_WEBROOT_FRONTEND; ?>images/apple-touch-icon-114x114.png">
     <!-- CSS/JS ================================================== -->
+
+
     <?php
     $jsVariables = CommonHelper::htmlEntitiesDecode($jsVariables);
     $sslUsed = (FatApp::getConfig('CONF_USE_SSL', FatUtility::VAR_BOOLEAN, false)) ? 1 : 0;

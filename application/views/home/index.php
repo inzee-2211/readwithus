@@ -80,7 +80,12 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
     <!-- RIGHT: Art -->
     <div class="rw-hero__art">
       <div class="rw-hero__art-inner">
-        <img class="rw-hero__img" src="<?= $heroBase ?>hero.png" alt="Student with laptop">
+<img class="rw-hero__img"
+     src="<?= $heroBase ?>hero.png"
+     alt="Student studying online with a laptop"
+     loading="eager"
+     fetchpriority="high"
+     decoding="async">
 
       </div>
     </div>
@@ -108,9 +113,10 @@ $heroBase = CONF_WEBROOT_URL . 'images/hero/';
     <div>
       <div class="rw-chip">About Us</div>
       <h2>Empowering Minds Through Technology, Innovation &amp; Learning with Human Tutoring</h2>
-      <p class="rw-sublead">
-        Empowering Minds Through Technology, Innovation &amp; Learning with Human Tutoring
-      </p>
+     <p class="rw-sublead">
+  Personalised learning with expert tutors, interactive lessons and measurable progress.
+</p>
+
 
       <div class="rw-quote">
         <p class="mb-0">
@@ -290,17 +296,17 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
 
 <section class="rwu-request-tutor">
   <div class="rwu-request-bg">
-     <img src="<?= $heroBase ?>Section2.jpg"  alt="Background" />
+<img src="<?= $heroBase ?>Section2.jpg" alt="" role="presentation" loading="lazy" decoding="async" />
   </div>
 
   <div class="rwu-request-content">
     <!-- LEFT: Text block -->
     <div class="rwu-request-left">
       <div class="pill">Tutor Request</div>
-      <h1 class="title">
+      <h2 class="title">
         Request Your Tutor ...<br />
         Get Matched with Qualified & Experienced Teachers
-      </h1>
+      </h2>
       <p class="desc">
         • Learn Smarter. Get Personalized Tutoring Tailored to Your Goals.<br />
         • Experience personalised lessons supported by smart learning insights.<br />

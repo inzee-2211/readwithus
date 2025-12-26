@@ -3,165 +3,169 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 $priceSorting = AppConstant::getSortbyArr();
 ?>
 <style>
-   .hidden {
-    display: none;
-}
+    .hidden {
+        display: none;
+    }
 
-.quiz-container {
-    width: 900px;
-    margin: auto;
-    /* background: #fff; */
-    padding: 20px;
-    border-radius: 10px;
-    /* box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); */
-    text-align: center;
-}
+    .quiz-container {
+        width: 900px;
+        margin: auto;
+        /* background: #fff; */
+        padding: 20px;
+        border-radius: 10px;
+        /* box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); */
+        text-align: center;
+    }
 
-.quiz-question h3 {
-    font-size: 20px;
-    color: #333;
-    margin-bottom: 15px;
-}
+    .quiz-question h3 {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 15px;
+    }
 
-.quiz-hint {
-    color: #007bff;
-    font-style: italic;
-    margin-top: 10px;
-}
+    .quiz-hint {
+        color: #007bff;
+        font-style: italic;
+        margin-top: 10px;
+    }
 
-.quiz-explanation {
-    color: #28a745;
-    font-weight: bold;
-    margin-top: 10px;
-}
+    .quiz-explanation {
+        color: #28a745;
+        font-weight: bold;
+        margin-top: 10px;
+    }
 
-.quiz-options {
-    text-align: left;
-}
+    .quiz-options {
+        text-align: left;
+    }
 
-.quiz-option {
-    display: block;
-    background: #f5f5f5;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 5px;
-    cursor: pointer;
-}
+    .quiz-option {
+        display: block;
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 5px;
+        cursor: pointer;
+    }
 
-.quiz-option input {
-    margin-right: 8px;
-}
+    .quiz-option input {
+        margin-right: 8px;
+    }
 
-.quiz-navigation {
-    margin-top: 20px;
-}
+    .quiz-navigation {
+        margin-top: 20px;
+    }
 
-.btn {
-    padding: 10px 20px;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: 0.2s;
-}
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: 0.2s;
+    }
 
-.btn--primary {
-    background: #4CAF50;
-    color: white;
-}
+    .btn--primary {
+        background: #4CAF50;
+        color: white;
+    }
 
-.btn--primary:hover {
-    background: #45a049;
-}
+    .btn--primary:hover {
+        background: #45a049;
+    }
 
-.btn--secondary {
-    background: #ccc;
-    color: black;
-}
+    .btn--secondary {
+        background: #ccc;
+        color: black;
+    }
 
-.btn--secondary:hover {
-    background: #bbb;
-}
+    .btn--secondary:hover {
+        background: #bbb;
+    }
 
-.btn--info {
-    background: #007bff;
-    color: white;
-    margin-bottom: 10px;
-}
+    .btn--info {
+        background: #007bff;
+        color: white;
+        margin-bottom: 10px;
+    }
 
-.btn--info:hover {
-    background: #0056b3;
-}
+    .btn--info:hover {
+        background: #0056b3;
+    }
 
-.quiz-header {
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    color: red;
-}
+    .quiz-header {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: red;
+    }
+</style>
 
-    </style>
- 
 <div class="page-listing__body">
     <div class="course-results">
         <?php
-        
-        if (count($courses)) { 
-?>               
-                <div class="course-card">
-                    <div class="course-grid">
-                        
+
+        if (count($courses)) {
+            ?>
+            <div class="course-card">
+                <div class="course-grid">
+
                     <div class="quiz-container">
 
-                    <div class="quiz-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <p id="subtopic" style="font-weight: bold;"> <?php echo $_SESSION['subtopicName']; ?></p>
-    <p id="timer" style="color:red;">Time Left: 10:00</p>
-</div>
-   
-    <div class="quiz-question">
-        <h3 id="question-text"></h3>
-    </div>
- 
-    <button id="hint-btn" class="btn btn--info">Show Hint</button>
-    <p id="hint-text" class="quiz-hint hidden">Hint: It's a city of love!</p>
+                        <div class="quiz-header"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <p id="subtopic" style="font-weight: bold;"> <?php echo $_SESSION['subtopicName']; ?></p>
+                            <p id="timer" style="color:red;">Time Left: 10:00</p>
+                        </div>
 
-    <!-- Answer Options -->
-    <div id="quiz-options" class="quiz-options">
-        <label class="quiz-option">
-            <input type="radio" name="answer" value="A"> A) London
-        </label>
-        <label class="quiz-option">
-            <input type="radio" name="answer" value="B"> B) Berlin
-        </label>
-        <label class="quiz-option">
-            <input type="radio" name="answer" value="C"> C) Paris
-        </label>
-        <label class="quiz-option">
-            <input type="radio" name="answer" value="D"> D) Madrid
-        </label>
-    </div>
+                        <div class="quiz-question">
+                            <h3 id="question-text"></h3>
+                        </div>
 
-    <!-- Explanation -->
-    <p id="explanation-text" class="quiz-explanation hidden">Explanation: Paris is the capital of France.</p>
+                        <button id="hint-btn" class="btn btn--info">Show Hint</button>
+                        <p id="hint-text" class="quiz-hint hidden">Hint: It's a city of love!</p>
 
-    <!-- Navigation Buttons -->
-    <div class="quiz-navigation">
-        <button id="prev-btn" style="display:none;" class="btn btn--secondary" disabled>Previous</button>
-        <button id="next-btn" class="btn btn--primary">Next</button>
-    </div>
-</div>
+                        <!-- Answer Options -->
+                        <div id="quiz-options" class="quiz-options">
+                            <label class="quiz-option">
+                                <input type="radio" name="answer" value="A"> A) London
+                            </label>
+                            <label class="quiz-option">
+                                <input type="radio" name="answer" value="B"> B) Berlin
+                            </label>
+                            <label class="quiz-option">
+                                <input type="radio" name="answer" value="C"> C) Paris
+                            </label>
+                            <label class="quiz-option">
+                                <input type="radio" name="answer" value="D"> D) Madrid
+                            </label>
+                        </div>
 
-                    
+                        <!-- Explanation -->
+                        <p id="explanation-text" class="quiz-explanation hidden">Explanation: Paris is the capital of
+                            France.</p>
+
+                        <!-- Navigation Buttons -->
+                        <div class="quiz-navigation">
+                            <button id="prev-btn" style="display:none;" class="btn btn--secondary"
+                                disabled>Previous</button>
+                            <button id="next-btn" class="btn btn--primary">Next</button>
+                        </div>
                     </div>
+
+
                 </div>
-           
+            </div>
+
         <?php } else { ?>
             <div class="page-listing__body">
                 <div class="box -padding-30" style="margin-bottom: 30px;">
                     <div class="message-display">
                         <div class="message-display__icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 408">
-                                <path d="M488.468,408H23.532A23.565,23.565,0,0,1,0,384.455v-16.04a15.537,15.537,0,0,1,15.517-15.524h8.532V31.566A31.592,31.592,0,0,1,55.6,0H456.4a31.592,31.592,0,0,1,31.548,31.565V352.89h8.532A15.539,15.539,0,0,1,512,368.415v16.04A23.565,23.565,0,0,1,488.468,408ZM472.952,31.566A16.571,16.571,0,0,0,456.4,15.008H55.6A16.571,16.571,0,0,0,39.049,31.566V352.891h433.9V31.566ZM497,368.415a0.517,0.517,0,0,0-.517-0.517H287.524c0.012,0.172.026,0.343,0.026,0.517a7.5,7.5,0,0,1-7.5,7.5h-48.1a7.5,7.5,0,0,1-7.5-7.5c0-.175.014-0.346,0.026-0.517H15.517a0.517,0.517,0,0,0-.517.517v16.04a8.543,8.543,0,0,0,8.532,8.537H488.468A8.543,8.543,0,0,0,497,384.455h0v-16.04ZM63.613,32.081H448.387a7.5,7.5,0,0,1,0,15.008H63.613A7.5,7.5,0,0,1,63.613,32.081ZM305.938,216.138l43.334,43.331a16.121,16.121,0,0,1-22.8,22.8l-43.335-43.318a16.186,16.186,0,0,1-4.359-8.086,76.3,76.3,0,1,1,19.079-19.071A16,16,0,0,1,305.938,216.138Zm-30.4-88.16a56.971,56.971,0,1,0,0,80.565A57.044,57.044,0,0,0,275.535,127.978ZM63.613,320.81H448.387a7.5,7.5,0,0,1,0,15.007H63.613A7.5,7.5,0,0,1,63.613,320.81Z"></path>
+                                <path
+                                    d="M488.468,408H23.532A23.565,23.565,0,0,1,0,384.455v-16.04a15.537,15.537,0,0,1,15.517-15.524h8.532V31.566A31.592,31.592,0,0,1,55.6,0H456.4a31.592,31.592,0,0,1,31.548,31.565V352.89h8.532A15.539,15.539,0,0,1,512,368.415v16.04A23.565,23.565,0,0,1,488.468,408ZM472.952,31.566A16.571,16.571,0,0,0,456.4,15.008H55.6A16.571,16.571,0,0,0,39.049,31.566V352.891h433.9V31.566ZM497,368.415a0.517,0.517,0,0,0-.517-0.517H287.524c0.012,0.172.026,0.343,0.026,0.517a7.5,7.5,0,0,1-7.5,7.5h-48.1a7.5,7.5,0,0,1-7.5-7.5c0-.175.014-0.346,0.026-0.517H15.517a0.517,0.517,0,0,0-.517.517v16.04a8.543,8.543,0,0,0,8.532,8.537H488.468A8.543,8.543,0,0,0,497,384.455h0v-16.04ZM63.613,32.081H448.387a7.5,7.5,0,0,1,0,15.008H63.613A7.5,7.5,0,0,1,63.613,32.081ZM305.938,216.138l43.334,43.331a16.121,16.121,0,0,1-22.8,22.8l-43.335-43.318a16.186,16.186,0,0,1-4.359-8.086,76.3,76.3,0,1,1,19.079-19.071A16,16,0,0,1,305.938,216.138Zm-30.4-88.16a56.971,56.971,0,1,0,0,80.565A57.044,57.044,0,0,0,275.535,127.978ZM63.613,320.81H448.387a7.5,7.5,0,0,1,0,15.007H63.613A7.5,7.5,0,0,1,63.613,320.81Z">
+                                </path>
                             </svg>
                         </div>
                         <h5><?php echo Label::getLabel('LBL_NO_QUIZ_FOUND!'); ?></h5>
@@ -172,7 +176,7 @@ $priceSorting = AppConstant::getSortbyArr();
     </div>
     <!-- <div class="pagination pagination--centered margin-top-10">
         <?php
-        
+
         echo FatUtility::createHiddenFormFromData($post, ['name' => 'frmSearchPaging']);
         $pagingArr = ['page' => $post['pageno'], 'pageCount' => $pageCount, 'recordCount' => $recordCount, 'callBackJsFunc' => 'gotoPage'];
         $this->includeTemplate('_partial/pagination.php', $pagingArr, false);
@@ -193,72 +197,182 @@ $priceSorting = AppConstant::getSortbyArr();
 <script>
     var _body = $('body');
     var _toggle = $('.js-filter-toggle');
-    _toggle.each(function() {
+    _toggle.each(function () {
         var _this = $(this),
             _target = $(_this.attr('href'));
 
-        _this.on('click', function(e) {
+        _this.on('click', function (e) {
             e.preventDefault();
             _target.toggleClass('is-filter-visible');
             _this.toggleClass('is-active');
             _body.toggleClass('is-filter-show');
         });
-    }); 
+    });
 
 
 
 
-  
-let currentQuestion = 0;
-let timerDuration = 10 * 60; 
-let timerInterval = null;
-let userAnswers = {};
+
+    let currentQuestion = 0;
+    let timerDuration = 10 * 60;
+    let timerInterval = null;
+    let userAnswers = {};
 
 
-var userSessionId = "<?php echo $_SESSION['subtopicId']; ?>";
+    var userSessionId = "<?php echo $_SESSION['subtopicId']; ?>";
+    // function fetchQuestions() {
+    //     $.ajax({
+    //         url: fcom.makeUrl('Quizattempt', 'getQuestions'),
+    //         type: "POST",
+    //         data: { pageno: 1, subtopicid: userSessionId },
+    //         dataType: "json",
+    //         success: function (response) {
+    //             if (response.success) {
+    //                 questions = response.data;
+    //                 loadQuestion(0);
+    //                 startTimer();
+    //             } else {
+    //                 alert("No questions found.");
+    //             }
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.error("Error fetching questions:", error);
+    //         }
+    //     });
+    // }
 function fetchQuestions() {
     $.ajax({
-        url: fcom.makeUrl('Quizattempt', 'getQuestions'),  
+        url: fcom.makeUrl('Quizizz', 'getQuestions'), // keep this controller
         type: "POST",
-        data: { pageno: 1 , subtopicid:userSessionId},  
+        data: { pageno: 1, subtopicid: userSessionId },
         dataType: "json",
         success: function (response) {
             if (response.success) {
-                  questions = response.data;  
-                  loadQuestion(0);  
-                  startTimer();  
+                questions = response.data || [];
+
+                // set global math flag
+                window.RWU_IS_MATH_SUBJECT = !!(response.meta && response.meta.isMathSubject);
+
+                console.log("✅ Subject:", response.meta?.subjectName);
+                console.log("✅ isMathSubject:", window.RWU_IS_MATH_SUBJECT);
+                console.log("✅ Math-field registered:", !!customElements?.get('math-field'));
+
+                loadQuestion(0);
+                startTimer();
             } else {
-                alert("No questions found.");
+                alert(response.msg || "No questions found.");
             }
         },
         error: function (xhr, status, error) {
             console.error("Error fetching questions:", error);
+            console.warn(xhr.responseText);
         }
     });
 }
 
-// Function to start the timer (ensuring only one instance runs)
-function startTimer() {
-    if (timerInterval !== null) return;  
+    // Function to start the timer (ensuring only one instance runs)
+    function startTimer() {
+        if (timerInterval !== null) return;
 
-    timerInterval = setInterval(() => {
-        if (timerDuration <= 0) {
-            clearInterval(timerInterval);
-            alert("Time is up! Submitting quiz...");
-            submitQuiz();
-        }
+        timerInterval = setInterval(() => {
+            if (timerDuration <= 0) {
+                clearInterval(timerInterval);
+                alert("Time is up! Submitting quiz...");
+                submitQuiz();
+            }
 
-        let minutes = Math.floor(timerDuration / 60);
-        let seconds = timerDuration % 60;
-        document.getElementById("timer").innerText = `Time Left: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+            let minutes = Math.floor(timerDuration / 60);
+            let seconds = timerDuration % 60;
+            document.getElementById("timer").innerText = `Time Left: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 
-        timerDuration--;
-    }, 1000);
-}
+            timerDuration--;
+        }, 1000);
+    }
 
 
- 
 
+
+    // function loadQuestion(index) {
+    //     if (!questions || !questions[index]) {
+    //         console.error("❌ Invalid question index:", index);
+    //         return;
+    //     }
+
+    //     const questionData = questions[index];
+    //     const optionsContainer = document.getElementById("quiz-options");
+    //     optionsContainer.innerHTML = "";
+
+    //     document.getElementById("question-text").innerText = `Question ${index + 1}: ${questionData.text}`;
+
+    //     // === SINGLE & MULTI CHOICE ===
+    //     if (questionData.type === "Single-Choice" || questionData.type === "Multiple-Choice") {
+    //         questionData.options.forEach((option, i) => {
+    //             const optionId = `q${index}_opt${i}`;
+    //             const wrapper = document.createElement("div");
+    //             wrapper.className = "quiz-option";
+
+    //             const input = document.createElement("input");
+    //             input.type = questionData.type === "Single-Choice" ? "radio" : "checkbox";
+    //             input.name = `question-${index}`;
+    //             input.id = optionId;
+    //             input.value = String.fromCharCode(65 + i); // A, B, C...
+
+    //             const savedAnswer = userAnswers[index];
+
+    //             // restore answer
+    //             if (questionData.type === "Single-Choice" && savedAnswer === input.value) {
+    //                 input.checked = true;
+    //             }
+    //             if (questionData.type === "Multiple-Choice" && Array.isArray(savedAnswer) && savedAnswer.includes(input.value)) {
+    //                 input.checked = true;
+    //             }
+
+    //             input.addEventListener("change", () => {
+    //                 if (questionData.type === "Single-Choice") {
+    //                     userAnswers[index] = input.value;
+    //                 } else {
+    //                     const selected = Array.from(optionsContainer.querySelectorAll("input[type='checkbox']:checked"))
+    //                         .map(el => el.value);
+    //                     userAnswers[index] = selected;
+    //                 }
+    //                 console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
+    //             });
+
+    //             const label = document.createElement("label");
+    //             label.setAttribute("for", optionId);
+    //             label.textContent = `${input.value}) ${option}`;
+
+    //             wrapper.appendChild(input);
+    //             wrapper.appendChild(label);
+    //             optionsContainer.appendChild(wrapper);
+    //         });
+    //     }
+
+    //     // === STORY-BASED / TEXT ===
+    //     if (questionData.type === "Story-Based") {
+    //         const input = document.createElement("input");
+    //         input.type = "text";
+    //         input.id = "text-answer";
+    //         input.placeholder = "Type your answer here...";
+    //         input.value = userAnswers[index] || "";
+
+    //         input.addEventListener("input", function () {
+    //             userAnswers[index] = this.value;
+    //             console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
+    //         });
+
+    //         optionsContainer.appendChild(input);
+    //     }
+
+    //     // Hint & Explanation UI
+    //     document.getElementById("hint-text").innerText = questionData.hint || "";
+    //     document.getElementById("explanation-text").innerText = questionData.explanation || "";
+    //     document.getElementById("hint-btn").classList.toggle("hidden", !questionData.hint);
+
+    //     // Buttons
+    //     document.getElementById("prev-btn").disabled = index === 0;
+    //     document.getElementById("next-btn").innerText = index === questions.length - 1 ? "Submit" : "Next";
+    // }
 function loadQuestion(index) {
     if (!questions || !questions[index]) {
         console.error("❌ Invalid question index:", index);
@@ -270,37 +384,40 @@ function loadQuestion(index) {
     optionsContainer.innerHTML = "";
 
     document.getElementById("question-text").innerText = `Question ${index + 1}: ${questionData.text}`;
-    
-    // === SINGLE & MULTI CHOICE ===
-    if (questionData.type === "Single-Choice" || questionData.type === "Multiple-Choice") {
-        questionData.options.forEach((option, i) => {
+
+    // ==============================
+    // SINGLE / MULTIPLE CHOICE
+    // ==============================
+    if (isSingleChoice(questionData) || isMultipleChoice(questionData)) {
+        const isSingle = isSingleChoice(questionData);
+
+        (questionData.options || []).forEach((option, i) => {
             const optionId = `q${index}_opt${i}`;
             const wrapper = document.createElement("div");
             wrapper.className = "quiz-option";
 
             const input = document.createElement("input");
-            input.type = questionData.type === "Single-Choice" ? "radio" : "checkbox";
+            input.type = isSingle ? "radio" : "checkbox";
             input.name = `question-${index}`;
             input.id = optionId;
             input.value = String.fromCharCode(65 + i); // A, B, C...
 
-            const savedAnswer = userAnswers[index];
-
-            // restore answer
-            if (questionData.type === "Single-Choice" && savedAnswer === input.value) {
-                input.checked = true;
-            }
-            if (questionData.type === "Multiple-Choice" && Array.isArray(savedAnswer) && savedAnswer.includes(input.value)) {
-                input.checked = true;
+            // restore saved answer
+            const saved = userAnswers[index];
+            if (saved && saved.answer) {
+                if (isSingle && saved.answer === input.value) input.checked = true;
+                if (!isSingle && Array.isArray(saved.answer) && saved.answer.includes(input.value)) input.checked = true;
             }
 
             input.addEventListener("change", () => {
-                if (questionData.type === "Single-Choice") {
-                    userAnswers[index] = input.value;
+                if (isSingle) {
+                    userAnswers[index] = { questionId: questionData.id, answer: input.value };
                 } else {
-                    const selected = Array.from(optionsContainer.querySelectorAll("input[type='checkbox']:checked"))
-                        .map(el => el.value);
-                    userAnswers[index] = selected;
+                    const selected = Array.from(
+                        optionsContainer.querySelectorAll(`input[name="question-${index}"]:checked`)
+                    ).map(el => el.value);
+
+                    userAnswers[index] = { questionId: questionData.id, answer: selected };
                 }
                 console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
             });
@@ -315,20 +432,100 @@ function loadQuestion(index) {
         });
     }
 
-    // === STORY-BASED / TEXT ===
-    if (questionData.type === "Story-Based") {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.id = "text-answer";
-        input.placeholder = "Type your answer here...";
-        input.value = userAnswers[index] || "";
+    // ==============================
+    // TEXT / STORY / SHORT ANSWER
+    // ==============================
+    if (isTextType(questionData)) {
 
-        input.addEventListener("input", function () {
-            userAnswers[index] = this.value;
-            console.log("✅ Updated userAnswers:", JSON.parse(JSON.stringify(userAnswers)));
-        });
+        // If math subject AND math-field exists, use RWUMath wrapper
+        const canUseMath = window.RWU_IS_MATH_SUBJECT && !!customElements?.get('math-field');
 
-        optionsContainer.appendChild(input);
+        if (canUseMath) {
+            const wrapId = `math-wrap-${index}`;
+
+            const wrapper = document.createElement("div");
+            wrapper.id = wrapId;
+            wrapper.setAttribute("data-math-field", "true");
+            wrapper.setAttribute("data-keyboard", "basic");
+            wrapper.setAttribute("data-keyboard-mode", "onfocus");
+
+            // Add a hidden input that RWUMath syncs to
+            const hidden = document.createElement("input");
+            hidden.type = "hidden";
+            hidden.id = `math-hidden-${index}`;
+
+            // restore previous latex if exists
+            const saved = userAnswers[index];
+            if (saved && saved.answer) {
+                hidden.value = saved.answer;
+            }
+
+            wrapper.appendChild(hidden);
+
+            // Optional clear button (RWUMath supports it)
+            const clearBtn = document.createElement("button");
+            clearBtn.type = "button";
+            clearBtn.className = "rwu-math-clear";
+            clearBtn.innerText = "Clear";
+            clearBtn.style.marginTop = "8px";
+
+            wrapper.appendChild(clearBtn);
+
+            // Optional raw preview
+            const raw = document.createElement("div");
+            raw.className = "rwu-math-raw";
+            raw.style.fontSize = "12px";
+            raw.style.color = "#666";
+            raw.style.marginTop = "6px";
+            wrapper.appendChild(raw);
+
+            optionsContainer.appendChild(wrapper);
+
+            // Listen to RWUMath sync event so userAnswers stays updated
+            wrapper.addEventListener("math:change", (e) => {
+                const latex = e.detail?.latex || hidden.value || '';
+                userAnswers[index] = { questionId: questionData.id, answer: latex };
+                console.log("✅ Math answer updated:", latex);
+            });
+
+            // If RWUMath is already loaded, force init/set value safely
+            setTimeout(() => {
+                if (window.RWUMath) {
+                    // RWUMath will auto-init via MutationObserver anyway,
+                    // but this makes it immediate/reliable.
+                    try {
+                        window.RWUMath.initFields();
+                        if (hidden.value) {
+                            window.RWUMath.setLatex(wrapId, hidden.value);
+                        }
+                    } catch (err) {
+                        console.warn("RWUMath initFields/setLatex failed:", err);
+                    }
+                }
+            }, 0);
+
+        } else {
+            // fallback: normal text input
+            const input = document.createElement("input");
+            input.type = "text";
+            input.id = `text-input-${index}`;
+            input.className = "text-input";
+            input.placeholder = "Type your answer here...";
+            input.style.width = "100%";
+            input.style.padding = "10px";
+            input.style.border = "1px solid #ccc";
+            input.style.borderRadius = "4px";
+            input.style.fontSize = "16px";
+
+            const saved = userAnswers[index];
+            if (saved && saved.answer) input.value = saved.answer;
+
+            input.addEventListener("input", function () {
+                userAnswers[index] = { questionId: questionData.id, answer: this.value };
+            });
+
+            optionsContainer.appendChild(input);
+        }
     }
 
     // Hint & Explanation UI
@@ -340,245 +537,306 @@ function loadQuestion(index) {
     document.getElementById("prev-btn").disabled = index === 0;
     document.getElementById("next-btn").innerText = index === questions.length - 1 ? "Submit" : "Next";
 }
- 
 
-document.addEventListener("DOMContentLoaded", function () {
-    const quizOptions = document.getElementById("quiz-options");
-    if (quizOptions) {
-        quizOptions.addEventListener("change", function (event) {
-            const answer = event.target.value;
-            const questionIndex = parseInt(event.target.getAttribute("data-index"));
 
-            if (questionData.type === "Multiple-Choice") {
-                if (!userAnswers[questionIndex]) {
-                    userAnswers[questionIndex] = [];
+    document.addEventListener("DOMContentLoaded", function () {
+        const quizOptions = document.getElementById("quiz-options");
+        if (quizOptions) {
+            quizOptions.addEventListener("change", function (event) {
+                const answer = event.target.value;
+                const questionIndex = parseInt(event.target.getAttribute("data-index"));
+
+                if (questionData.type === "Multiple-Choice") {
+                    if (!userAnswers[questionIndex]) {
+                        userAnswers[questionIndex] = [];
+                    }
+                    if (!userAnswers[questionIndex].includes(answer)) {
+                        userAnswers[questionIndex].push(answer);
+                    }
+                } else {
+                    userAnswers[questionIndex] = answer;
                 }
-                if (!userAnswers[questionIndex].includes(answer)) {
-                    userAnswers[questionIndex].push(answer);
+            });
+        } else {
+            console.warn("Element with ID 'quiz-options' not found.");
+        }
+    });
+
+
+
+    // document.getElementById(`text-answer-${index}`).addEventListener("input", function () {
+    //     userAnswers[index] = this.value.trim();
+    // });
+
+
+
+    // Show Hint
+    document.getElementById("hint-btn").addEventListener("click", function () {
+        document.getElementById("hint-text").classList.toggle("hidden");
+    });
+
+    // Show Explanation when an answer is selected
+    document.getElementById("quiz-options").addEventListener("change", function () {
+        document.getElementById("explanation-text").classList.remove("hidden");
+    });
+
+    // Submit Quiz Function
+    // function submitQuiz() {
+    //     clearInterval(timerInterval); // Stop timer on submit
+    //     alert("Quiz Submitted!");
+    //     window.location.href = "quizresults"; // Redirect to results page
+    // }
+
+
+    function submitQuiz() {
+
+        clearInterval(timerInterval);
+        // document.getElementById("submit-btn").disabled = true;
+        saveAnswer(currentQuestion);
+        console.log("User Answers:", userAnswers);
+
+        $.ajax({
+            url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
+            type: "POST",
+            data: {
+                answers: JSON.stringify(userAnswers),
+                subtopicid: userSessionId
+            },
+            dataType: "json",
+            success: function (response) {
+                console.log("✅ Server Response:", response);
+
+                if (response.success) {
+
+                    const resultStatus = response.status;
+                    const attemptid = response.attemptid;
+                    const marks = response.marksObtained; // assuming `marks` is returned
+                    const userName = response.userName || 'User';
+                    var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
+                    window.location.href = url;
+
+                    if (resultStatus === 'pass') {
+
+
+
+                        //var subtopic=selectedValues.subjectId;
+                        var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
+                        window.location.href = url;
+
+                        // Swal.fire({
+                        //     icon: 'success',
+                        //     title: '🎉 Yay! You Passed!',
+                        //     html: `
+                        //         <p style="font-size: 16px;">You scored <strong style="color: green;">${marks}</strong> points!</p>
+                        //         <img src="https://media.giphy.com/media/111ebonMs90YLu/giphy.gif" alt="Congrats" style="margin:auto;max-width:200px;" />
+                        //         <p style="font-size: 14px;">Ready for a <strong>Certification Exam (£10)</strong> or want to <strong>explore more fun topics</strong>? 🤓</p>
+                        //     `,
+                        //     showCancelButton: true,
+                        //     confirmButtonText: '🎖️ Take Exam',
+                        //     cancelButtonText: '🧠 Explore More',
+                        //     background: '#e6fffa',
+                        //     confirmButtonColor: '#4caf50',
+                        //     cancelButtonColor: '#03a9f4',
+                        // }).then((result) => {
+                        //     if (result.isConfirmed) {
+                        //         window.location.href = '/certification-exam'; // ✅ Update to your actual exam route
+                        //     } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        //         window.location.href = '/courses'; // ✅ Update to your advanced courses page
+                        //     }
+                        // });
+
+
+                    } else {
+
+                        // Swal.fire({
+                        //     icon: 'error',
+                        //     title: '😢 Oops! You didn\'t pass!',
+                        //     html: `
+                        //         <p style="font-size: 16px;">You scored <strong style="color: red;">${marks}</strong> points.</p>
+                        //          <img src="https://media.giphy.com/media/3og0IPxMM0erATueVW/giphy.gif" alt="Try Again" style="margin:auto;max-width:200px; " />
+                        //         <p style="font-size: 14px;">Would you like help from a tutor or try some videos? 📚</p>
+                        //     `,
+                        //     showCancelButton: true,
+                        //     confirmButtonText: '👨‍🏫 Get Tutor Help',
+                        //     cancelButtonText: '🎬 Watch Videos',
+                        //     background: '#fff3f3',
+                        //     confirmButtonColor: '#f44336',
+                        //     cancelButtonColor: '#ff9800',
+                        // }).then((result) => {
+                        //     if (result.isConfirmed) {
+                        //         window.location.href = '/teachers'; // ✅ Update to your tutor list page
+                        //     } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        //         window.location.href = '/struggle-topics-videos'; // ✅ Update to your video suggestions page
+                        //     }
+                        // });
+
+
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Submission Failed',
+                        text: '❌ Failed to submit quiz. Try again.',
+                    });
                 }
-            } else {
-                userAnswers[questionIndex] = answer;
+
+            },
+            error: function (xhr, status, error) {
+                console.error("🚨 Error submitting quiz:", error);
+                console.warn("📦 Raw Response:", xhr.responseText);
+                alert("An error occurred while submitting the quiz.");
             }
         });
-    } else {
-        console.warn("Element with ID 'quiz-options' not found.");
     }
-});
 
 
-
-// document.getElementById(`text-answer-${index}`).addEventListener("input", function () {
-//     userAnswers[index] = this.value.trim();
-// });
-
-
-
-// Show Hint
-document.getElementById("hint-btn").addEventListener("click", function () {
-    document.getElementById("hint-text").classList.toggle("hidden");
-});
-
-// Show Explanation when an answer is selected
-document.getElementById("quiz-options").addEventListener("change", function () {
-    document.getElementById("explanation-text").classList.remove("hidden");
-});
-
-// Submit Quiz Function
-// function submitQuiz() {
-//     clearInterval(timerInterval); // Stop timer on submit
-//     alert("Quiz Submitted!");
-//     window.location.href = "quizresults"; // Redirect to results page
-// }
-
-
-function submitQuiz() {
-
-    clearInterval(timerInterval);
-   // document.getElementById("submit-btn").disabled = true;
-    saveAnswer(currentQuestion);  
-    console.log("User Answers:", userAnswers); 
-    
-    $.ajax({
-        url: fcom.makeUrl('Quizattempt', 'submitAnswers'),
-        type: "POST",
-        data: {
-            answers: JSON.stringify(userAnswers),
-            subtopicid: userSessionId
-        },
-        dataType: "json",
-        success: function (response) {
-            console.log("✅ Server Response:", response);
-
-            if (response.success) {
-                
-    const resultStatus = response.status;  
-     const attemptid = response.attemptid;  
-    const marks = response.marksObtained; // assuming `marks` is returned
-    const userName = response.userName || 'User';
-     var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
-        window.location.href = url;
-
-    if (resultStatus === 'pass') {
-
-
-
-        //var subtopic=selectedValues.subjectId;
-        var url = fcom.makeUrl('quizr') + '?attempt=' + attemptid;
-        window.location.href = url;
- 
-        // Swal.fire({
-        //     icon: 'success',
-        //     title: '🎉 Yay! You Passed!',
-        //     html: `
-        //         <p style="font-size: 16px;">You scored <strong style="color: green;">${marks}</strong> points!</p>
-        //         <img src="https://media.giphy.com/media/111ebonMs90YLu/giphy.gif" alt="Congrats" style="margin:auto;max-width:200px;" />
-        //         <p style="font-size: 14px;">Ready for a <strong>Certification Exam (£10)</strong> or want to <strong>explore more fun topics</strong>? 🤓</p>
-        //     `,
-        //     showCancelButton: true,
-        //     confirmButtonText: '🎖️ Take Exam',
-        //     cancelButtonText: '🧠 Explore More',
-        //     background: '#e6fffa',
-        //     confirmButtonColor: '#4caf50',
-        //     cancelButtonColor: '#03a9f4',
-        // }).then((result) => {
-        //     if (result.isConfirmed) {
-        //         window.location.href = '/certification-exam'; // ✅ Update to your actual exam route
-        //     } else if (result.dismiss === Swal.DismissReason.cancel) {
-        //         window.location.href = '/courses'; // ✅ Update to your advanced courses page
-        //     }
-        // });
-
-
-    } else {
-
-        // Swal.fire({
-        //     icon: 'error',
-        //     title: '😢 Oops! You didn\'t pass!',
-        //     html: `
-        //         <p style="font-size: 16px;">You scored <strong style="color: red;">${marks}</strong> points.</p>
-        //          <img src="https://media.giphy.com/media/3og0IPxMM0erATueVW/giphy.gif" alt="Try Again" style="margin:auto;max-width:200px; " />
-        //         <p style="font-size: 14px;">Would you like help from a tutor or try some videos? 📚</p>
-        //     `,
-        //     showCancelButton: true,
-        //     confirmButtonText: '👨‍🏫 Get Tutor Help',
-        //     cancelButtonText: '🎬 Watch Videos',
-        //     background: '#fff3f3',
-        //     confirmButtonColor: '#f44336',
-        //     cancelButtonColor: '#ff9800',
-        // }).then((result) => {
-        //     if (result.isConfirmed) {
-        //         window.location.href = '/teachers'; // ✅ Update to your tutor list page
-        //     } else if (result.dismiss === Swal.DismissReason.cancel) {
-        //         window.location.href = '/struggle-topics-videos'; // ✅ Update to your video suggestions page
-        //     }
-        // });
-
-
+    function calculateGrade(score) {
+        const percentage = (score / questions.length) * 100;
+        if (percentage >= 90) return "A";
+        if (percentage >= 80) return "B";
+        if (percentage >= 70) return "C";
+        if (percentage >= 60) return "D";
+        return "F";
     }
-} else {
-    Swal.fire({
-        icon: 'error',
-        title: 'Submission Failed',
-        text: '❌ Failed to submit quiz. Try again.',
-    });
-}
-
-        },
-        error: function (xhr, status, error) {
-            console.error("🚨 Error submitting quiz:", error);
-            console.warn("📦 Raw Response:", xhr.responseText);
-            alert("An error occurred while submitting the quiz.");
-        }
-    });
-}
 
 
-function calculateGrade(score) {
-    const percentage = (score / questions.length) * 100;
-    if (percentage >= 90) return "A";
-    if (percentage >= 80) return "B";
-    if (percentage >= 70) return "C";
-    if (percentage >= 60) return "D";
-    return "F";
-}
 
- 
+    // function saveAnswer(index) {
+    //     const question = questions[index];
+    //     let answer = null;
 
+    //     if (question.type === "Single-Choice") {
+    //         const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
+    //         if (selectedOption) {
+    //             answer = selectedOption.value;
+    //         }
+    //     }
+
+    //     if (question.type === "Multiple-Choice") {
+    //         const selectedOptions = document.querySelectorAll(`input[name="question-${index}"]:checked`);
+    //         answer = Array.from(selectedOptions).map(opt => opt.value);
+    //     }
+
+    //     if (question.type === "Story-Based") {
+    //         const textInput = document.getElementById("text-answer");
+    //         if (textInput) {
+    //             answer = textInput.value.trim();
+    //         }
+    //     }
+
+    //     // Save as object: questionId + answer
+    //     userAnswers[index] = {
+    //         questionId: question.id,
+    //         answer: answer
+    //     };
+
+    //     console.log("✅ Updated userAnswers:", userAnswers);
+    // }
 function saveAnswer(index) {
     const question = questions[index];
+    if (!question) return;
+
     let answer = null;
 
-    if (question.type === "Single-Choice") {
-        const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
-        if (selectedOption) {
-            answer = selectedOption.value;
+    if (isSingleChoice(question)) {
+        const selected = document.querySelector(`input[name="question-${index}"]:checked`);
+        if (selected) answer = selected.value;
+    }
+
+    if (isMultipleChoice(question)) {
+        const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
+        answer = Array.from(selected).map(opt => opt.value);
+    }
+
+    if (isTextType(question)) {
+        const canUseMath = window.RWU_IS_MATH_SUBJECT && !!customElements?.get('math-field');
+
+        if (canUseMath) {
+            const wrap = document.getElementById(`math-wrap-${index}`);
+            const hidden = wrap ? wrap.querySelector('input[type="hidden"]') : null;
+            answer = hidden ? (hidden.value || '').trim() : '';
+        } else {
+            const input = document.getElementById(`text-input-${index}`);
+            answer = input ? input.value.trim() : '';
         }
     }
 
-    if (question.type === "Multiple-Choice") {
-        const selectedOptions = document.querySelectorAll(`input[name="question-${index}"]:checked`);
-        answer = Array.from(selectedOptions).map(opt => opt.value);
+    if (answer !== null) {
+        userAnswers[index] = { questionId: question.id, answer: answer };
     }
-
-    if (question.type === "Story-Based") {
-        const textInput = document.getElementById("text-answer");
-        if (textInput) {
-            answer = textInput.value.trim();
-        }
-    }
-
-    // Save as object: questionId + answer
-    userAnswers[index] = {
-        questionId: question.id,
-        answer: answer
-    };
-
-    console.log("✅ Updated userAnswers:", userAnswers);
 }
 
 
 
- 
-
-document.getElementById("next-btn").addEventListener("click", function () {
-    const isValid = validateAnswer(currentQuestion);
-    if (!isValid) {
-        alert("Please answer the question before proceeding.");
-        return;
-    }
-
-    saveAnswer(currentQuestion);
-
-    if (currentQuestion < questions.length - 1) {
-        currentQuestion++;  // 👈 increment it here!
-        loadQuestion(currentQuestion);
-    } else {
-        submitQuiz();
-    }
-});
 
 
+    document.getElementById("next-btn").addEventListener("click", function () {
+        const isValid = validateAnswer(currentQuestion);
+        if (!isValid) {
+            alert("Please answer the question before proceeding.");
+            return;
+        }
+
+        saveAnswer(currentQuestion);
+
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;  // 👈 increment it here!
+            loadQuestion(currentQuestion);
+        } else {
+            submitQuiz();
+        }
+    });
+
+
+
+    // function validateAnswer(index) {
+    //     const question = questions[index];
+    //     console.log("🔍 Validating Q#", index, "Type:", question.type);
+
+    //     if (question.type === "Single-Choice") {
+    //         const selected = document.querySelector(`input[name="question-${index}"]:checked`);
+    //         console.log("Selected single option:", selected);
+    //         return !!selected;
+    //     }
+
+    //     if (question.type === "Multiple-Choice") {
+    //         const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
+    //         console.log("Selected multiple options:", selected.length);
+    //         return selected.length > 0;
+    //     }
+
+    //     if (question.type === "Story-Based") {
+    //         const input = document.getElementById("text-answer");
+    //         console.log("Story input value:", input?.value);
+    //         return input && input.value.trim().length > 0;
+    //     }
+
+    //     return false;
+    // }
 
 function validateAnswer(index) {
     const question = questions[index];
-    console.log("🔍 Validating Q#", index, "Type:", question.type);
+    if (!question) return false;
 
-    if (question.type === "Single-Choice") {
-        const selected = document.querySelector(`input[name="question-${index}"]:checked`);
-        console.log("Selected single option:", selected);
-        return !!selected;
+    if (isSingleChoice(question)) {
+        return !!document.querySelector(`input[name="question-${index}"]:checked`);
     }
 
-    if (question.type === "Multiple-Choice") {
-        const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
-        console.log("Selected multiple options:", selected.length);
-        return selected.length > 0;
+    if (isMultipleChoice(question)) {
+        return document.querySelectorAll(`input[name="question-${index}"]:checked`).length > 0;
     }
 
-    if (question.type === "Story-Based") {
-        const input = document.getElementById("text-answer");
-        console.log("Story input value:", input?.value);
-        return input && input.value.trim().length > 0;
+    if (isTextType(question)) {
+        const canUseMath = window.RWU_IS_MATH_SUBJECT && !!customElements?.get('math-field');
+
+        if (canUseMath) {
+            const wrap = document.getElementById(`math-wrap-${index}`);
+            const hidden = wrap ? wrap.querySelector('input[type="hidden"]') : null;
+            return !!(hidden && hidden.value && hidden.value.trim().length > 0);
+        } else {
+            const input = document.getElementById(`text-input-${index}`);
+            return !!(input && input.value.trim().length > 0);
+        }
     }
 
     return false;
@@ -586,25 +844,49 @@ function validateAnswer(index) {
 
 
 
-
-document.getElementById("prev-btn").addEventListener("click", function () {
-    saveAnswer(currentQuestion);
-    if (currentQuestion > 0) {
-        currentQuestion--;
-        loadQuestion(currentQuestion);
-    }
-});
-
+    document.getElementById("prev-btn").addEventListener("click", function () {
+        saveAnswer(currentQuestion);
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            loadQuestion(currentQuestion);
+        }
+    });
 
 
 
 
-// Load the first question and start the timer (only once)
-window.onload = function () {
-    loadQuestion(0);
-};
-startTimer();
-fetchQuestions();
+
+    // Load the first question and start the timer (only once)
+    window.onload = function () {
+        loadQuestion(0);
+    };
+    startTimer();
+    fetchQuestions();
+// Global flag (will be set by backend meta)
+window.RWU_IS_MATH_SUBJECT = false;
+
+// Normalize question types safely
+function qType(q) {
+  return (q?.type || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')   // "Short Answer" -> "short-answer"
+    .replace(/_/g, '-');    // if underscores exist
+}
+
+function isTextType(q) {
+  const t = qType(q);
+  return (t === 'story-based' || t === 'text' || t === 'short-answer');
+}
+
+function isSingleChoice(q) {
+  return qType(q) === 'single-choice';
+}
+
+function isMultipleChoice(q) {
+  return qType(q) === 'multiple-choice';
+}
 
 
 </script>
+<script src="<?php echo CONF_WEBROOT_FRONTEND; ?>js/math-editor.js"></script>

@@ -48,7 +48,7 @@ echo $frm->getFormTag(); ?>
                                     <!-- [ UPLOADED MEDIA ========= -->
                                     <?php if ($image) { ?>
                                         <div class="media-placeholder__preview">
-                                            <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $courseId, 'LARGE'], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?> alt="">
+                                            <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $courseId, 'LARGE'], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?> alt="">
                                             <a href=" javascript:void(0)" class="close" onclick="removeMedia('<?php echo Afile::TYPE_COURSE_IMAGE ?>');"></a>
                                         </div>
                                     <?php } else { ?>
@@ -114,7 +114,7 @@ echo $frm->getFormTag(); ?>
                                         <div class="media-placeholder ratio ratio--16by9">
                                             <div class="media-placeholder__preview">
                                                 <video width="100%" height="100%" controls>
-                                                    <source src="<?php echo MyUtility::makeUrl('Image', 'showVideo', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL) . '?t=' . time(); ?>" type="video/mp4">
+                                                    <source src="<?php echo MyUtility::makeFullUrl('Image', 'showVideo', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL) . '?t=' . time(); ?>" type="video/mp4">
                                                     Your browser does not support the video tag.
                                                 </video>
                                                 <a href=" javascript:void(0)" class="close" onclick="removeMedia('<?php echo Afile::TYPE_COURSE_PREVIEW_VIDEO ?>');"></a>

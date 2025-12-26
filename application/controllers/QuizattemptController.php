@@ -19,27 +19,27 @@ class QuizattemptController extends MyAppController
      * @return void
      */
     public function index()
-    {  
-        
+    {
+
         if (isset($_GET['subtopic'])) {
             $subtopic = $_GET['subtopic'];
         } else {
             $subtopic = null; // Set default if 'subtopic' is not in the query string
         }
- 
+
         $subtopicNAme = $this->getSubjectNameById($subtopic);
-        $alltopics=$this->getTopicnames($subtopic);
+        $alltopics = $this->getTopicnames($subtopic);
         $params = FatApp::getQueryStringData();
         $data = [];
         if (isset($params['catg']) && $params['catg'] > 0) {
             $data['course_cate_id'] = [$params['catg']];
         }
         $searchSession = $_SESSION[AppConstant::SEARCH_SESSION] ?? [];
-       // $subtopicId = $_SESSION[$subtopicId] ?? [];
-        $_SESSION['subtopicId']=$subtopic;
-        $_SESSION['subtopicName']=$subtopicNAme;
+        // $subtopicId = $_SESSION[$subtopicId] ?? [];
+        $_SESSION['subtopicId'] = $subtopic;
+        $_SESSION['subtopicName'] = $subtopicNAme;
 
- 
+
 
         $srchFrm = CourseSearch::getSearchForm($this->siteLangId);
         $srchFrm->fill($data + $searchSession);
@@ -50,7 +50,7 @@ class QuizattemptController extends MyAppController
         $this->set('filterTypes', Course::getFilterTypes());
 
 
-                $posts = FatApp::getPostedData();
+        $posts = FatApp::getPostedData();
         $posts['pageno'] = $posts['pageno'] ?? 1;
         $posts['pagesize'] = AppConstant::PAGESIZE;
         $posts['price_sorting'] = FatApp::getPostedData('price_sorting', FatUtility::VAR_INT, AppConstant::SORT_PRICE_ASC);
@@ -58,22 +58,22 @@ class QuizattemptController extends MyAppController
         if (!$post = $frm->getFormDataFromArray($posts, ['course_cate_id'])) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
-      
+
         $post['course_status'] = Course::PUBLISHED;
-      
-        $offset = ($posts['pageno'] - 1) * $posts['pagesize']; 
+
+        $offset = ($posts['pageno'] - 1) * $posts['pagesize'];
         $db = FatApp::getDb();
         $query = "SELECT q.video_url, q.previous_paper_pdf,t.tier,t.type,t.examBoards
                   FROM course_subtopics q 
                   INNER JOIN tbl_course_management t ON t.id = q.course_id ";
-         
-    
+
+
         $query .= " LIMIT $offset, {$posts['pagesize']}";
         $result = $db->query($query, [AppConstant::ACTIVE]);
         $quizzes = [];
         if ($result) {
             $quizzes = $db->fetchAll($result); // Get quizzes as an array
-         }
+        }
         $countQuery = "SELECT COUNT(*) AS total FROM course_subtopics";
         $countResult = $db->query($countQuery, [AppConstant::ACTIVE]);
         $totalCount = 0;
@@ -81,11 +81,11 @@ class QuizattemptController extends MyAppController
             $countRow = $db->fetch($countResult);
             $totalCount = $countRow['total'] ?? 0;
         }
-   
+
         $cart = new Cart($this->siteUserId, $this->siteLangId);
         $checkoutForm = $cart->getCheckoutForm([0 => Label::getLabel('LBL_NA')]);
         $checkoutForm->fill(['order_type' => Order::TYPE_COURSE]);
- 
+
 
         $this->sets([
             'post' => $post,
@@ -101,84 +101,87 @@ class QuizattemptController extends MyAppController
         $this->_template->render();
     }
 
-    public function getSubtopicIdByName($subtopicName) {
+    public function getSubtopicIdByName($subtopicName)
+    {
         $db = FatApp::getDb();
         $subjectId = 0;
-    
+
         $subtopicName = trim($subtopicName);  // Trim any extra spaces
         $subtopicName = addslashes($subtopicName);  // Escape special characters (optional)
-    
-       
-         $query = "SELECT id FROM course_topics WHERE topic = '$subtopicName' AND subject_id = $subjectId LIMIT 1";
-    
-         $result = $db->query($query);
-    
+
+
+        $query = "SELECT id FROM course_topics WHERE topic = '$subtopicName' AND subject_id = $subjectId LIMIT 1";
+
+        $result = $db->query($query);
+
         if (!$result) {
             echo "Error executing query: " . $db->errorInfo();
             die();
         }
-    
+
         $subtopic = [];
         if ($result) {
             $subtopic = $db->fetch($result);  // Assuming fetch returns a single row
         }
-    
+
         return !empty($subtopic) ? $subtopic['id'] : null;
     }
 
-       public function getSubjectNameById($subtopicId) {
+    public function getSubjectNameById($subtopicId)
+    {
         $db = FatApp::getDb();
         $subjectId = 0;
-    
+
         $subtopicId = trim($subtopicId);  // Trim any extra spaces
         $subtopicId = addslashes($subtopicId);  // Escape special characters (optional)
-    
-       
-         $query = "SELECT id,subject FROM course_subjects WHERE   id = $subtopicId LIMIT 1";
-    
-         $result = $db->query($query);
-    
+
+
+        $query = "SELECT id,subject FROM course_subjects WHERE   id = $subtopicId LIMIT 1";
+
+        $result = $db->query($query);
+
         if (!$result) {
             echo "Error executing query: " . $db->errorInfo();
             die();
         }
-    
+
         $subtopic = [];
         if ($result) {
             $subtopic = $db->fetch($result);  // Assuming fetch returns a single row
         }
-    
+
         return !empty($subtopic) ? $subtopic['subject'] : null;
     }
 
 
-      public function getTopicnames($subjectid) {
+    public function getTopicnames($subjectid)
+    {
         $db = FatApp::getDb();
         $subjectId = 0;
-     
-       
-         $query = "SELECT id,topic FROM course_topics WHERE   subject_id = $subjectid";
-    
-         $result = $db->query($query);
-    
+
+
+        $query = "SELECT id,topic FROM course_topics WHERE   subject_id = $subjectid";
+
+        $result = $db->query($query);
+
         if (!$result) {
             echo "Error executing query: " . $db->errorInfo();
             die();
         }
-    
+
         $subtopic = [];
         if ($result) {
             $subtopic = $db->fetchAll($result);  // Assuming fetch returns a single row
         }
-    
+
         return $subtopic;
     }
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
 
     /**
      * Find Teachers
@@ -186,7 +189,7 @@ class QuizattemptController extends MyAppController
     public function search()
     {
 
- 
+
         $posts = FatApp::getPostedData();
         $posts['pageno'] = $posts['pageno'] ?? 1;
         $posts['pagesize'] = AppConstant::PAGESIZE;
@@ -195,22 +198,22 @@ class QuizattemptController extends MyAppController
         if (!$post = $frm->getFormDataFromArray($posts, ['course_cate_id'])) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
-      
+
         $post['course_status'] = Course::PUBLISHED;
-      
-        $offset = ($posts['pageno'] - 1) * $posts['pagesize']; 
+
+        $offset = ($posts['pageno'] - 1) * $posts['pagesize'];
         $db = FatApp::getDb();
         $query = "SELECT q.video_url, q.previous_paper_pdf,t.tier,t.type,t.examBoards
                   FROM course_subtopics q 
                   INNER JOIN tbl_course_management t ON t.id = q.course_id ";
-         
-    
+
+
         $query .= " LIMIT $offset, {$posts['pagesize']}";
         $result = $db->query($query, [AppConstant::ACTIVE]);
         $quizzes = [];
         if ($result) {
             $quizzes = $db->fetchAll($result); // Get quizzes as an array
-         }
+        }
         $countQuery = "SELECT COUNT(*) AS total FROM course_subtopics";
         $countResult = $db->query($countQuery, [AppConstant::ACTIVE]);
         $totalCount = 0;
@@ -218,12 +221,12 @@ class QuizattemptController extends MyAppController
             $countRow = $db->fetch($countResult);
             $totalCount = $countRow['total'] ?? 0;
         }
-   
+
         $cart = new Cart($this->siteUserId, $this->siteLangId);
         $checkoutForm = $cart->getCheckoutForm([0 => Label::getLabel('LBL_NA')]);
         $checkoutForm->fill(['order_type' => Order::TYPE_COURSE]);
 
- 
+
         $this->sets([
             'post' => $post,
             'courses' => $quizzes,
@@ -238,216 +241,216 @@ class QuizattemptController extends MyAppController
     }
 
     public function submitAnswers()
-{
-    $answersJson = FatApp::getPostedData('answers');
-    $subtopicId = FatApp::getPostedData('subtopicid');
+    {
+        $answersJson = FatApp::getPostedData('answers');
+        $subtopicId = FatApp::getPostedData('subtopicid');
 
-    // Convert JSON string to PHP array
-    $answers = json_decode($answersJson, true);
+        // Convert JSON string to PHP array
+        $answers = json_decode($answersJson, true);
 
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        FatUtility::dieJsonError("Invalid answer data.");
-    }
-  
-
-
- $api_key = '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';  
-           
-
-foreach ($answers as $item) {
-    $questionId = $item['questionId'];
-    $userAnswer = $item['answer'];
-
-    // Fetch question data including type and marks
-    $srch = new SearchBase('tbl_quaestion_bank');
-    $srch->addCondition('id', '=', $questionId);
-    $srch->addMultipleFields(['question_title', 'correct_answer', 'question_type']);
-    $rs = $srch->getResultSet();
-    $question = FatApp::getDb()->fetch($rs);
-
-    if (!$question) continue;
-
-    $questionType = $question['question_type'];
-   // $questionMarks = (float) $question['marks'];
-    $questionMarks = 2;
-    $questionTitle = $question['question_title'];
-    $correctAnswer = $question['correct_answer'];
-
-    if ($questionType === 'Story-Based') {
-        // === ChatGPT Grading ===
-        $prompt = "You are a teacher grading a student's answer. ...";  
-        $prompt = str_replace(
-            ['{question}', '{student_answer}', '{marks}'],
-            [$questionTitle, $userAnswer, $questionMarks],
-            $prompt
-        );
-
-        $data = [
-            "model" => "gpt-3.5-turbo",
-            "messages" => [
-                ["role" => "system", "content" => "You are a helpful assistant and an expert teacher."],
-                ["role" => "user", "content" => $prompt]
-            ],
-            "temperature" => 0.0,
-            "max_tokens" => 300
-        ];
-
-        $ch = curl_init('https://api.openai.com/v1/chat/completions');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $api_key
-            ],
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        $responseData = json_decode($response, true);
-
-        $obtainedMarks = 0;
-        $explanation = 'No explanation provided';
-        $isCorrect = false;
-
-        if (isset($responseData['choices'][0]['message']['content'])) {
-            $gptResponse = $responseData['choices'][0]['message']['content'];
-
-            // Extract marks
-            preg_match('/\b([\d\.]+)\s*\/\s*' . preg_quote($questionMarks, '/') . '\b/', $gptResponse, $matches);
-            $obtainedMarks = isset($matches[1]) ? floatval($matches[1]) : 0;
-
-            // Explanation
-            preg_match('/Explanation:\s*(.*)/s', $gptResponse, $explanationMatches);
-            $explanation = isset($explanationMatches[1]) ? trim($explanationMatches[1]) : $explanation;
-
-            $isCorrect = $obtainedMarks > 0;
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            FatUtility::dieJsonError("Invalid answer data.");
         }
 
-        $results[] = [
-            'questionId' => $questionId,
-            'userAnswer' => $userAnswer,
-            'correctAnswer' => null,
-            'isCorrect' => $isCorrect,
-            'marksObtained' => $obtainedMarks,
-            'explanation' => $explanation,
+
+
+        $api_key = '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';
+
+
+        foreach ($answers as $item) {
+            $questionId = $item['questionId'];
+            $userAnswer = $item['answer'];
+
+            // Fetch question data including type and marks
+            $srch = new SearchBase('tbl_quaestion_bank');
+            $srch->addCondition('id', '=', $questionId);
+            $srch->addMultipleFields(['question_title', 'correct_answer', 'question_type']);
+            $rs = $srch->getResultSet();
+            $question = FatApp::getDb()->fetch($rs);
+
+            if (!$question)
+                continue;
+
+            $questionType = $question['question_type'];
+            // $questionMarks = (float) $question['marks'];
+            $questionMarks = 2;
+            $questionTitle = $question['question_title'];
+            $correctAnswer = $question['correct_answer'];
+
+            if ($questionType === 'Story-Based') {
+                // === ChatGPT Grading ===
+                $prompt = "You are a teacher grading a student's answer. ...";
+                $prompt = str_replace(
+                    ['{question}', '{student_answer}', '{marks}'],
+                    [$questionTitle, $userAnswer, $questionMarks],
+                    $prompt
+                );
+
+                $data = [
+                    "model" => "gpt-3.5-turbo",
+                    "messages" => [
+                        ["role" => "system", "content" => "You are a helpful assistant and an expert teacher."],
+                        ["role" => "user", "content" => $prompt]
+                    ],
+                    "temperature" => 0.0,
+                    "max_tokens" => 300
+                ];
+
+                $ch = curl_init('https://api.openai.com/v1/chat/completions');
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($data),
+                    CURLOPT_HTTPHEADER => [
+                        'Content-Type: application/json',
+                        'Authorization: Bearer ' . $api_key
+                    ],
+                ]);
+
+                $response = curl_exec($ch);
+                curl_close($ch);
+
+                $responseData = json_decode($response, true);
+
+                $obtainedMarks = 0;
+                $explanation = 'No explanation provided';
+                $isCorrect = false;
+
+                if (isset($responseData['choices'][0]['message']['content'])) {
+                    $gptResponse = $responseData['choices'][0]['message']['content'];
+
+                    // Extract marks
+                    preg_match('/\b([\d\.]+)\s*\/\s*' . preg_quote($questionMarks, '/') . '\b/', $gptResponse, $matches);
+                    $obtainedMarks = isset($matches[1]) ? floatval($matches[1]) : 0;
+
+                    // Explanation
+                    preg_match('/Explanation:\s*(.*)/s', $gptResponse, $explanationMatches);
+                    $explanation = isset($explanationMatches[1]) ? trim($explanationMatches[1]) : $explanation;
+
+                    $isCorrect = $obtainedMarks > 0;
+                }
+
+                $results[] = [
+                    'questionId' => $questionId,
+                    'userAnswer' => $userAnswer,
+                    'correctAnswer' => null,
+                    'isCorrect' => $isCorrect,
+                    'marksObtained' => $obtainedMarks,
+                    'explanation' => $explanation,
+                ];
+            } else {
+                // === MCQ Logic ===
+                $correctArray = explode(',', $correctAnswer);
+                $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+
+                sort($correctArray);
+                sort($userArray);
+
+                $isCorrect = ($correctArray === $userArray);
+                $marksObtained = $isCorrect ? $questionMarks : 0;
+
+                $results[] = [
+                    'questionId' => $questionId,
+                    'userAnswer' => $userArray,
+                    'correctAnswer' => $correctArray,
+                    'isCorrect' => $isCorrect,
+                    'marksObtained' => $marksObtained,
+                    'explanation' => '',
+                ];
+            }
+        }
+
+
+        $totalCorrect = 0;
+        $totalMarks = 0;
+        $marksObtained = 0;
+
+        // Store results after loop
+
+
+        if (is_array($results) && count($results) > 0) {
+            foreach ($results as $res) {
+                $totalMarks += isset($res['marksObtained']) ? $res['marksObtained'] : 0;
+                if ($res['isCorrect']) {
+                    $totalCorrect++;
+                }
+            }
+        }
+        $totalQuestions = count($results);
+
+        $passingPercentage = 80;
+        $tm = $totalQuestions * $questionMarks;
+        $percentage = ($totalMarks / $tm) * 100;
+
+        $resultStatus = $percentage >= $passingPercentage ? 'pass' : 'fail';
+        $db = FatApp::getDb();
+
+        $userid = '';
+        if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) {
+            $userid = $_SESSION['quiz_user']['id'];
+        }
+
+        $quizAttemptData = [
+            'user_id' => $userid,
+            'subtopic_id' => $subtopicId,
+            'total_questions' => $totalQuestions,
+            'total_correct' => $totalCorrect,
+            'total_marks' => $totalQuestions * $questionMarks, // if uniform
+            'marks_obtained' => $totalMarks,
+            'result' => $resultStatus
         ];
-    } else {
-        // === MCQ Logic ===
-        $correctArray = explode(',', $correctAnswer);
-        $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
 
-        sort($correctArray);
-        sort($userArray);
+        if (!$db->insertFromArray('tbl_quiz_attempts', $quizAttemptData)) {
+            FatUtility::dieJsonError('Failed to insert quiz attempt');
+        }
 
-        $isCorrect = ($correctArray === $userArray);
-        $marksObtained = $isCorrect ? $questionMarks : 0;
+        $attemptId = $db->getInsertId(); // You’ll need this to link answers
 
-        $results[] = [
-            'questionId' => $questionId,
-            'userAnswer' => $userArray,
-            'correctAnswer' => $correctArray,
-            'isCorrect' => $isCorrect,
-            'marksObtained' => $marksObtained,
-            'explanation' => '',
-        ];
+        foreach ($results as $res) {
+            $answerData = [
+                'attempt_id' => $attemptId,
+                'question_id' => $res['questionId'],
+                'user_answer' => is_array($res['userAnswer']) ? implode(',', $res['userAnswer']) : $res['userAnswer'],
+                'correct_answer' => is_array($res['correctAnswer']) ? implode(',', $res['correctAnswer']) : (string) $res['correctAnswer'],
+                'marks_obtained' => $res['marksObtained'],
+                'is_correct' => $res['isCorrect'] ? 1 : 0,
+            ];
+
+            if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
+                FatUtility::dieJsonError('Failed to insert answer for question ID: ' . $res['questionId']);
+            }
+        }
+
+
+        FatUtility::dieJsonSuccess([
+            'message' => 'Quiz submitted successfully!',
+            'success' => 123, // if you have results to show
+            'attemptid' => $attemptId,
+            'status' => $resultStatus,
+            'marksObtained' => $totalMarks,
+            'totalMarks' => $totalQuestions * $questionMarks,
+        ]);
     }
-}
-
-
-$totalCorrect = 0;
-$totalMarks = 0;
-$marksObtained = 0;
-
-// Store results after loop
-
- 
-if (is_array($results) && count($results) > 0) {
-foreach ($results as $res) {
-    $totalMarks += isset($res['marksObtained']) ? $res['marksObtained'] : 0;
-    if ($res['isCorrect']) {
-        $totalCorrect++;
-    }
-}
-}
-$totalQuestions = count($results);
-
-$passingPercentage = 80;
-$tm= $totalQuestions * $questionMarks;
-$percentage = ($totalMarks / $tm) * 100;
-
-$resultStatus = $percentage >= $passingPercentage ? 'pass' : 'fail';
-$db = FatApp::getDb();
-
-$userid='';
-if(isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id']))
-{
-    $userid=$_SESSION['quiz_user']['id'];
-}
-
-$quizAttemptData = [
-    'user_id' => $userid,
-    'subtopic_id' => $subtopicId,
-    'total_questions' => $totalQuestions,
-    'total_correct' => $totalCorrect,
-    'total_marks' => $totalQuestions * $questionMarks, // if uniform
-    'marks_obtained' => $totalMarks,
-    'result'=>$resultStatus
-];
-
-if (!$db->insertFromArray('tbl_quiz_attempts', $quizAttemptData)) {
-    FatUtility::dieJsonError('Failed to insert quiz attempt');
-}
-
-$attemptId = $db->getInsertId(); // You’ll need this to link answers
-
-foreach ($results as $res) {
-    $answerData = [
-        'attempt_id' => $attemptId,
-        'question_id' => $res['questionId'],
-        'user_answer' => is_array($res['userAnswer']) ? implode(',', $res['userAnswer']) : $res['userAnswer'],
-       'correct_answer' => is_array($res['correctAnswer']) ? implode(',', $res['correctAnswer']) : (string)$res['correctAnswer'],
-        'marks_obtained' => $res['marksObtained'],
-        'is_correct' => $res['isCorrect'] ? 1 : 0,
-    ];
-
-    if (!$db->insertFromArray('tbl_quiz_attempt_answers', $answerData)) {
-        FatUtility::dieJsonError('Failed to insert answer for question ID: ' . $res['questionId']);
-    }
-}
-
-
-    FatUtility::dieJsonSuccess([
-        'message' => 'Quiz submitted successfully!',
-        'success' => 123, // if you have results to show
-        'attemptid'=>$attemptId,
-        'status'=>$resultStatus,
-        'marksObtained'=>$totalMarks,
-        'totalMarks'=>$totalQuestions * $questionMarks,
-    ]);
-}
 
     public function getQuestions()
     {
         $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
         $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
-      
-        $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
+
+        $subtopicId = isset($posts['subtopicid']) ? (int) $posts['subtopicid'] : 0;
         //echo $subtopicId;die;
         $db = FatApp::getDb();
-        $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = ".$subtopicId." ORDER BY RAND() LIMIT 10";
- 
+        $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = " . $subtopicId . " ORDER BY RAND() LIMIT 10";
 
-      //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
-    
+
+        //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
+
         $result = $db->query($query);
-    
+
         if ($result) {
             $quizzes = $db->fetchAll($result);
-    
-            
+
+
             $formattedQuestions = [];
             foreach ($quizzes as $quiz) {
                 $formattedQuestions[] = [
@@ -455,18 +458,18 @@ foreach ($results as $res) {
                     "text" => $quiz['question_title'],
                     "type" => $quiz['question_type'],
                     "options" => array_values(array_filter([
-                        $quiz['answer_a'], 
-                        $quiz['answer_b'], 
-                        $quiz['answer_c'], 
+                        $quiz['answer_a'],
+                        $quiz['answer_b'],
+                        $quiz['answer_c'],
                         $quiz['answer_d']
-                    ])),  
+                    ])),
                     "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
                     "hint" => $quiz['hint'],
                     "explanation" => $quiz['explanation'],
                     "image" => $quiz['image'] ?? '' //$quiz['image_path'] if that’s your column
                 ];
             }
-     
+
             FatUtility::dieJsonSuccess([
                 'success' => true,
                 'data' => $formattedQuestions
@@ -475,85 +478,85 @@ foreach ($results as $res) {
             FatUtility::dieJsonError("No questions found.");
         }
     }
-    
-    public function getQuizizzList()
-{
-    // Fetch posted data
-    $posts = FatApp::getPostedData();
-    $posts['pageno'] = $posts['pageno'] ?? 1; // Default to page 1 if not provided
-    $posts['pagesize'] = AppConstant::PAGESIZE; // Default page size from constant
-    $posts['price_sorting'] = FatApp::getPostedData('price_sorting', FatUtility::VAR_INT, AppConstant::SORT_PRICE_ASC);
-    
-    // Set default condition for quiz status
-    $post['quiz_status'] = Quiz::PUBLISHED; 
 
-    // Prepare pagination variables
-    $offset = ($posts['pageno'] - 1) * $posts['pagesize']; 
- 
-    $db = FatApp::getDb();
-    $query = "SELECT q.quiz_id, q.quiz_name, q.quiz_price, q.quiz_level, q.quiz_type, t.user_username 
+    public function getQuizizzList()
+    {
+        // Fetch posted data
+        $posts = FatApp::getPostedData();
+        $posts['pageno'] = $posts['pageno'] ?? 1; // Default to page 1 if not provided
+        $posts['pagesize'] = AppConstant::PAGESIZE; // Default page size from constant
+        $posts['price_sorting'] = FatApp::getPostedData('price_sorting', FatUtility::VAR_INT, AppConstant::SORT_PRICE_ASC);
+
+        // Set default condition for quiz status
+        $post['quiz_status'] = Quiz::PUBLISHED;
+
+        // Prepare pagination variables
+        $offset = ($posts['pageno'] - 1) * $posts['pagesize'];
+
+        $db = FatApp::getDb();
+        $query = "SELECT q.quiz_id, q.quiz_name, q.quiz_price, q.quiz_level, q.quiz_type, t.user_username 
               FROM tbl_quizzes q 
               LEFT JOIN tbl_teachers t ON t.user_id = q.quiz_teacher_id 
               WHERE q.quiz_status = ?";
 
-    // Add price sorting if provided
-    if ($posts['price_sorting'] == AppConstant::SORT_PRICE_DESC) {
-        $query .= " ORDER BY q.quiz_price DESC";
-    } else {
-        $query .= " ORDER BY q.quiz_price ASC";
-    }
+        // Add price sorting if provided
+        if ($posts['price_sorting'] == AppConstant::SORT_PRICE_DESC) {
+            $query .= " ORDER BY q.quiz_price DESC";
+        } else {
+            $query .= " ORDER BY q.quiz_price ASC";
+        }
 
-    // Add pagination
-    $query .= " LIMIT $offset, {$posts['pagesize']}";
+        // Add pagination
+        $query .= " LIMIT $offset, {$posts['pagesize']}";
 
-    // Prepare and execute the query
-    $result = $db->query($query, [AppConstant::ACTIVE]);
+        // Prepare and execute the query
+        $result = $db->query($query, [AppConstant::ACTIVE]);
 
-    // Fetch quizzes and process them
-    $quizzes = [];
-    if ($result) {
-        $quizzes = $db->fetchAll($result); // Get quizzes as an array
+        // Fetch quizzes and process them
+        $quizzes = [];
+        if ($result) {
+            $quizzes = $db->fetchAll($result); // Get quizzes as an array
 
-        // Now, for each quiz, get the count of associated questions
-        foreach ($quizzes as &$quiz) {
-            $quizId = $quiz['quiz_id'] ?? null;
+            // Now, for each quiz, get the count of associated questions
+            foreach ($quizzes as &$quiz) {
+                $quizId = $quiz['quiz_id'] ?? null;
 
-            if (!empty($quizId)) {
-                // Query to count questions for each quiz
-                $questionQuery = "SELECT COUNT(*) AS question_count FROM tbl_questions WHERE question_quiz_id = ?";
-                $questionResult = $db->query($questionQuery, [$quizId]);
+                if (!empty($quizId)) {
+                    // Query to count questions for each quiz
+                    $questionQuery = "SELECT COUNT(*) AS question_count FROM tbl_questions WHERE question_quiz_id = ?";
+                    $questionResult = $db->query($questionQuery, [$quizId]);
 
-                if ($questionResult) {
-                    $questionRow = $db->fetch($questionResult);
-                    $quiz['question_count'] = $questionRow['question_count'] ?? 0;
+                    if ($questionResult) {
+                        $questionRow = $db->fetch($questionResult);
+                        $quiz['question_count'] = $questionRow['question_count'] ?? 0;
+                    } else {
+                        $quiz['question_count'] = 0;
+                    }
                 } else {
                     $quiz['question_count'] = 0;
                 }
-            } else {
-                $quiz['question_count'] = 0;
             }
         }
+
+        // Get the total record count (for pagination)
+        $countQuery = "SELECT COUNT(*) AS total FROM tbl_quizzes WHERE quiz_status = ?";
+        $countResult = $db->query($countQuery, [AppConstant::ACTIVE]);
+        $totalCount = 0;
+        if ($countResult) {
+            $countRow = $db->fetch($countResult);
+            $totalCount = $countRow['total'] ?? 0;
+        }
+
+        // Return the response in the required format
+        $this->sets([
+            'quizzes' => $quizzes,
+            'recordCount' => $totalCount,
+            'pageCount' => ceil($totalCount / $posts['pagesize']),
+        ]);
+
+        // Render the response without using a specific template
+        $this->_template->render(false, false);
     }
-
-    // Get the total record count (for pagination)
-    $countQuery = "SELECT COUNT(*) AS total FROM tbl_quizzes WHERE quiz_status = ?";
-    $countResult = $db->query($countQuery, [AppConstant::ACTIVE]);
-    $totalCount = 0;
-    if ($countResult) {
-        $countRow = $db->fetch($countResult);
-        $totalCount = $countRow['total'] ?? 0;
-    }
-
-    // Return the response in the required format
-    $this->sets([
-        'quizzes' => $quizzes,
-        'recordCount' => $totalCount,
-        'pageCount' => ceil($totalCount / $posts['pagesize']),
-    ]);
-
-    // Render the response without using a specific template
-    $this->_template->render(false, false);
-}
 
 
     /**
@@ -574,10 +577,10 @@ foreach ($results as $res) {
         $srch->addCondition('course_slug', '=', $slug);
         $srch->joinTable(TeacherStat::DB_TBL, 'INNER JOIN', 'testat.testat_user_id = teacher.user_id', 'testat');
         $srch->joinTable(
-                User::DB_TBL_LANG,
-                'LEFT JOIN',
-                'userlang.userlang_user_id = teacher.user_id AND userlang.userlang_lang_id = ' . $this->siteLangId,
-                'userlang'
+            User::DB_TBL_LANG,
+            'LEFT JOIN',
+            'userlang.userlang_user_id = teacher.user_id AND userlang.userlang_lang_id = ' . $this->siteLangId,
+            'userlang'
         );
         $srch->addCondition('course.course_active', '=', AppConstant::ACTIVE);
         $srch->addCondition('teacher.user_username', '!=', "");
@@ -613,29 +616,29 @@ foreach ($results as $res) {
         $cart = new Cart($this->siteUserId, $this->siteLangId);
         $checkoutForm = $cart->getCheckoutForm([0 => Label::getLabel('LBL_NA')]);
         $checkoutForm->fill(['order_type' => Order::TYPE_COURSE]);
-         
+
 
         $db = FatApp::getDb();
-        
-            $courseId = $course['course_id'] ?? null; // Safely get the course ID
-         
-            if (!empty($courseId)) {
-              
-                $query = "SELECT COUNT(*) AS section_count FROM tbl_sections WHERE section_course_id = ".$courseId." AND section_quiz_id != 0";
-              
-                $result = $db->query($query); // Pass courseId as parameter
-         
-                if ($result) {
-                    $row = $db->fetch($result); // Fetch the result as an associative array
-                    $course['section_count'] = $row['section_count'] ?? 0;
-                } else {
-                    $course['section_count'] = 0; // Default if query fails
-                }
+
+        $courseId = $course['course_id'] ?? null; // Safely get the course ID
+
+        if (!empty($courseId)) {
+
+            $query = "SELECT COUNT(*) AS section_count FROM tbl_sections WHERE section_course_id = " . $courseId . " AND section_quiz_id != 0";
+
+            $result = $db->query($query); // Pass courseId as parameter
+
+            if ($result) {
+                $row = $db->fetch($result); // Fetch the result as an associative array
+                $course['section_count'] = $row['section_count'] ?? 0;
             } else {
-                $course['section_count'] = 0; // Default if course ID is missing
+                $course['section_count'] = 0; // Default if query fails
             }
-      
- 
+        } else {
+            $course['section_count'] = 0; // Default if course ID is missing
+        }
+
+
         $this->sets([
             'course' => $course,
             'moreCourses' => $moreCourses,
@@ -667,10 +670,10 @@ foreach ($results as $res) {
         /* get course details */
         $srch = new SearchBase(Course::DB_TBL, 'course');
         $srch->joinTable(
-                Course::DB_TBL_LANG,
-                'LEFT JOIN',
-                'crsdetail.course_id = course.course_id',
-                'crsdetail'
+            Course::DB_TBL_LANG,
+            'LEFT JOIN',
+            'crsdetail.course_id = course.course_id',
+            'crsdetail'
         );
         $srch->addFld('crsdetail.course_title');
         $srch->addCondition('course.course_id', '=', $courseId);
@@ -719,8 +722,15 @@ foreach ($results as $res) {
         $srch->addCondition('ratrev.ratrev_type', '=', AppConstant::COURSE);
         $srch->addCondition('ratrev.ratrev_type_id', '=', $post['course_id']);
         $srch->addMultipleFields([
-            'user_first_name', 'user_last_name', 'ratrev_id', 'ratrev_user_id',
-            'ratrev_title', 'ratrev_detail', 'ratrev_overall', 'ratrev_created', 'course_reviews'
+            'user_first_name',
+            'user_last_name',
+            'ratrev_id',
+            'ratrev_user_id',
+            'ratrev_title',
+            'ratrev_detail',
+            'ratrev_overall',
+            'ratrev_created',
+            'course_reviews'
         ]);
         $srch->addOrder('ratrev.ratrev_id', $post['sorting']);
         $pagesize = AppConstant::PAGESIZE;
@@ -766,10 +776,10 @@ foreach ($results as $res) {
         }
         $srch = new SearchBase(Lecture::DB_TBL_LECTURE_RESOURCE, 'lecsrc');
         $srch->joinTable(
-                Lecture::DB_TBL,
-                'INNER JOIN',
-                'lecture.lecture_id = lecsrc.lecsrc_lecture_id',
-                'lecture'
+            Lecture::DB_TBL,
+            'INNER JOIN',
+            'lecture.lecture_id = lecsrc.lecsrc_lecture_id',
+            'lecture'
         );
         $srch->addCondition('lecsrc.lecsrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
         $srch->addCondition('lecture_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
@@ -783,10 +793,10 @@ foreach ($results as $res) {
         $this->set('resource', $resource);
         /* get free lectures */
         $srch1->joinTable(
-                Lecture::DB_TBL,
-                'INNER JOIN',
-                'lecture.lecture_id = lecsrc.lecsrc_lecture_id',
-                'lecture'
+            Lecture::DB_TBL,
+            'INNER JOIN',
+            'lecture.lecture_id = lecsrc.lecsrc_lecture_id',
+            'lecture'
         );
         $srch1->addFld('lecture_duration');
         $srch1->addCondition('lecsrc.lecsrc_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
@@ -939,10 +949,10 @@ foreach ($results as $res) {
     {
         $srch = new SearchBase(Course::DB_TBL_LANG, 'crsdetail');
         $srch->joinTable(
-                Course::DB_TBL,
-                'INNER JOIN',
-                'crsdetail.course_id = course.course_id',
-                'course'
+            Course::DB_TBL,
+            'INNER JOIN',
+            'crsdetail.course_id = course.course_id',
+            'course'
         );
         $srch->doNotCalculateRecords();
         $srch->setPageSize(5);

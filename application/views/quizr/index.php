@@ -1511,15 +1511,25 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                                         $isActive   = ($index === 0);
                                         $title      = $course['course_title'] ?? '';
                                         $slug       = $course['course_slug'] ?? '';
-                                        $price      = $course['course_price'] ?? 0;
+                                        // $price      = $course['course_price'] ?? 0;
                                         $rating     = (float)($course['course_ratings'] ?? 0);
                                         $reviews    = (int)($course['course_reviews'] ?? 0);
                                         $subcat     = $course['subcate_name'] ?? '';
-                                        $detailsRaw = $course['course_details'] ?? '';
-                                        $detailsStr = trim(strip_tags($detailsRaw));
-                                        if (strlen($detailsStr) > 180) {
-                                            $detailsStr = mb_substr($detailsStr, 0, 180) . '…';
-                                        }
+                                       $detailsRaw = (string)($course['course_details'] ?? '');
+
+// 1) convert &lt;p&gt; back into <p>
+$detailsDecoded = html_entity_decode($detailsRaw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+// 2) strip any real HTML tags
+$detailsStr = trim(strip_tags($detailsDecoded));
+
+// 3) normalize whitespace (optional but makes it look nice)
+$detailsStr = preg_replace('/\s+/', ' ', $detailsStr);
+
+if (mb_strlen($detailsStr) > 180) {
+    $detailsStr = mb_substr($detailsStr, 0, 180) . '…';
+}
+
             
                                         $fullStars   = floor($rating);
                                         $hasHalfStar = ($rating - $fullStars) >= 0.5;
@@ -1600,9 +1610,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                                                             </a>
             
                                                             <div class="course-slide-price-wrap">
-                                                                <div class="course-slide-price">
-                                                                    <?php echo CourseUtility::formatMoney($price); ?>
-                                                                </div>
+                                                              
                                                                 <div class="course-slide-price-note">
                                                                     Access this and similar courses with your plan.
                                                                 </div>
@@ -1689,9 +1697,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                                                         <a href="<?php echo MyUtility::makeUrl('Courses', 'view', [$crs['course_slug']]); ?>">
                                                             View course
                                                         </a>
-                                                        <span class="text-muted">
-                                                            <?php echo CourseUtility::formatMoney($crs['course_price'] ?? 0); ?>
-                                                        </span>
+                                                     
                                                     </div>
                                                 </div>
                                             </div>

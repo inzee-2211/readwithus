@@ -20,7 +20,7 @@ $priceTill->setFieldTagAttribute('class', 'price-till-js');
     <div class="section-filters">
         <div class="container container--narrow">
             <h1 class="page-title margin-bottom-8">
-                <?php echo Label::getLabel('LBL_COURSE_LISTING_HEADING'); ?>
+                <?php echo Label::getLabel('LBL_UPGRADE_YOUR_GRADES_WITH_STRUCTURED_COURSES_AND_REAL_PRACTICE'); ?>
             </h1>
             <?php echo $srchFrm->getFormTag(); ?>
             <div id="filter-panel" class="filter-panel">
