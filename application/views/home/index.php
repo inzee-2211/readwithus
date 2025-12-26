@@ -232,7 +232,7 @@ if (empty($trendingCourses)) {
             );
             if (empty($imgUrl)) { $imgUrl = CONF_WEBROOT_URL . 'images/defaults/course-4by3.jpg'; }
             // Little helpers (adjust to your data keys if different)
-            $teacherName = $c['teacher_name'] ?? 'by Determined-Poitras';
+          
             $title       = $c['course_title'] ?? 'Create an LMS Website with LearnPress';
         
             $oldPrice    = $c['old_price'] ?? null;       // e.g., 59.0
@@ -254,7 +254,7 @@ if (empty($trendingCourses)) {
             </div>
 
             <div class="body">
-              <div class="by"><?= htmlspecialchars($teacherName) ?></div>
+              <!-- <div class="by"><?= htmlspecialchars($teacherName) ?></div> -->
               <a class="name <?= $idx === 1 ? 'link' : '' ?>" href="<?= $viewLink ?>">
                 <?= htmlspecialchars($title) ?>
               </a>
