@@ -1030,28 +1030,131 @@ class Afile extends FatModel
      * @param integer $subRecordId
      * @return video
      */
+    // public function showVideo(int $recordId, int $subRecordId = 0)
+    // {
+    //     ob_end_clean();
+    //     $file = $this->getFile($recordId, $subRecordId);
+    //     $filePath = CONF_UPLOADS_PATH . $file['file_path'];
+    //     $fileExt = strtolower(pathinfo($file['file_name'], PATHINFO_EXTENSION));
+    //     header("Content-Type: " . static::getContentType($fileExt));
+    //     $headers = FatApp::getApacheRequestHeaders();
+    //     if (strtotime($headers['If-Modified-Since'] ?? '') == filemtime($filePath)) {
+    //         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($filePath)) . ' GMT', true, 304);
+    //         exit;
+    //     }
+    //     header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($filePath)) . ' GMT', true, 200);
+    //     header("Expires: " . date('r', strtotime("+30 Day")));
+    //     header('Cache-Control: public');
+    //     header("Pragma: public");
+    //     $fileData = file_get_contents($filePath);
+    //     if (CONF_USE_FAT_CACHE) {
+    //         FatCache::set($_SERVER['REQUEST_URI'], $fileData, '.' . $fileExt);
+    //     }
+    //     echo $fileData;
+    // }
     public function showVideo(int $recordId, int $subRecordId = 0)
-    {
-        ob_end_clean();
-        $file = $this->getFile($recordId, $subRecordId);
-        $filePath = CONF_UPLOADS_PATH . $file['file_path'];
-        $fileExt = strtolower(pathinfo($file['file_name'], PATHINFO_EXTENSION));
-        header("Content-Type: " . static::getContentType($fileExt));
-        $headers = FatApp::getApacheRequestHeaders();
-        if (strtotime($headers['If-Modified-Since'] ?? '') == filemtime($filePath)) {
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($filePath)) . ' GMT', true, 304);
+{
+    // Clean all output buffers (important for Range/streaming)
+    while (ob_get_level() > 0) {
+        @ob_end_clean();
+    }
+
+    // IMPORTANT: getFile() 2nd param is $universal (bool) not subRecordId.
+    // Use universal=true so it can fallback to lang_id=0 when needed.
+    $file = $this->getFile($recordId, true);
+
+    if (empty($file) || empty($file['file_path'])) {
+        FatUtility::exitWithErrorCode(404);
+    }
+
+    $filePath = CONF_UPLOADS_PATH . $file['file_path'];
+    if (!file_exists($filePath)) {
+        FatUtility::exitWithErrorCode(404);
+    }
+
+    $fileSize = filesize($filePath);
+    $mtime = filemtime($filePath);
+
+    $fileExt = strtolower(pathinfo($file['file_name'] ?? $filePath, PATHINFO_EXTENSION));
+    $mime = static::getContentType($fileExt);
+    if ($mime === '') {
+        $mime = 'application/octet-stream';
+    }
+
+    $headers = FatApp::getApacheRequestHeaders();
+    $rangeHeader = $headers['Range'] ?? ($_SERVER['HTTP_RANGE'] ?? '');
+
+    // Cache headers
+    header('Content-Type: ' . $mime);
+    header('Accept-Ranges: bytes');
+    header('Cache-Control: public');
+    header('Pragma: public');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
+    header("Expires: " . gmdate('D, d M Y H:i:s', time() + 2592000) . ' GMT'); // 30 days
+
+    // Only send 304 when it's NOT a range request (range + 304 can confuse some clients)
+    if (empty($rangeHeader) && strtotime($headers['If-Modified-Since'] ?? '') == $mtime) {
+        header($_SERVER['SERVER_PROTOCOL'] . ' 304 Not Modified');
+        exit;
+    }
+
+    // Handle byte-range requests (iOS Safari needs this)
+    if (!empty($rangeHeader) && preg_match('/bytes=(\d*)-(\d*)/i', $rangeHeader, $m)) {
+        $start = ($m[1] !== '') ? (int)$m[1] : 0;
+        $end   = ($m[2] !== '') ? (int)$m[2] : ($fileSize - 1);
+
+        // Validate range
+        if ($start > $end || $start >= $fileSize) {
+            header($_SERVER['SERVER_PROTOCOL'] . ' 416 Range Not Satisfiable');
+            header("Content-Range: bytes */{$fileSize}");
             exit;
         }
-        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($filePath)) . ' GMT', true, 200);
-        header("Expires: " . date('r', strtotime("+30 Day")));
-        header('Cache-Control: public');
-        header("Pragma: public");
-        $fileData = file_get_contents($filePath);
-        if (CONF_USE_FAT_CACHE) {
-            FatCache::set($_SERVER['REQUEST_URI'], $fileData, '.' . $fileExt);
+        if ($end >= $fileSize) {
+            $end = $fileSize - 1;
         }
-        echo $fileData;
+
+        $length = ($end - $start) + 1;
+
+        header($_SERVER['SERVER_PROTOCOL'] . ' 206 Partial Content');
+        header("Content-Range: bytes {$start}-{$end}/{$fileSize}");
+        header("Content-Length: {$length}");
+
+        $fp = fopen($filePath, 'rb');
+        if ($fp === false) {
+            FatUtility::exitWithErrorCode(500);
+        }
+
+        fseek($fp, $start);
+
+        $chunkSize = 1024 * 256; // 256 KB chunks
+        while (!feof($fp) && $length > 0) {
+            $read = ($length > $chunkSize) ? $chunkSize : $length;
+            $buffer = fread($fp, $read);
+            if ($buffer === false) break;
+
+            echo $buffer;
+            flush();
+
+            $length -= strlen($buffer);
+            if (connection_status() != CONNECTION_NORMAL) {
+                break;
+            }
+        }
+        fclose($fp);
+        exit;
     }
+
+    // No Range: stream the whole file (DON'T load into memory)
+    header("Content-Length: {$fileSize}");
+    $fp = fopen($filePath, 'rb');
+    if ($fp === false) {
+        FatUtility::exitWithErrorCode(500);
+    }
+    fpassthru($fp);
+    fclose($fp);
+    exit;
+}
+
     /**
      * Show Video
      *
