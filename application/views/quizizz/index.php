@@ -208,22 +208,10 @@ $yearName = $yearName ?? '';
                                                                 </button>
                                                                 <div class="video-container mt-2" id="video-<?php echo $subId; ?>"
                                                                     style="display:none;">
-                                                                    <!-- <div class="ratio ratio-16x9">
+                                                                    <div class="ratio ratio-16x9">
                                                                         <iframe src="<?php echo $embedUrl; ?>" frameborder="0"
                                                                             allowfullscreen></iframe>
-                                                                    </div> -->
-                                                                    <div class="ratio ratio-16x9">
-  <iframe
-    data-src="<?php echo $embedUrl; ?>"
-    src=""
-    frameborder="0"
-    loading="lazy"
-    referrerpolicy="strict-origin-when-cross-origin"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-    allowfullscreen>
-  </iframe>
-</div>
-
+                                                                    </div>
                                                                 </div>
                                                             <?php } else { ?>
                                                                 <p class="text-muted mb-0">No video found for <?php echo $subName; ?>.</p>
