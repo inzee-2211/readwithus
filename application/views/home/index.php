@@ -194,7 +194,7 @@ if (empty($trendingCourses)) {
   <div class="wrap">
     <div class="pill">Trending Courses</div>
     <h2 class="title">Perfect <span style="color:#1D9CFD">Online Courses</span> for your career</h2>
-    <div class="sub">
+    <div class="sub" style=" margin:auto; margin-bottom:32px;">
       Explore career-focused online courses built by expert tutors and powered by intelligent learning tools.
       Every course integrates video lessons, guided projects, and AI-supported feedback, making learning measurable,
       flexible, and outcome-driven.
@@ -234,8 +234,7 @@ if (empty($trendingCourses)) {
             // Little helpers (adjust to your data keys if different)
             $teacherName = $c['teacher_name'] ?? 'by Determined-Poitras';
             $title       = $c['course_title'] ?? 'Create an LMS Website with LearnPress';
-            $weeks       = $c['duration_weeks'] ?? '2 Weeks';
-            $students    = ($c['course_students'] ?? 156) . ' Students';
+        
             $oldPrice    = $c['old_price'] ?? null;       // e.g., 59.0
             $price       = $c['price']     ?? 0;          // 0 => Free
               $slug      = $c['course_slug'] ?? '';
@@ -260,8 +259,8 @@ if (empty($trendingCourses)) {
                 <?= htmlspecialchars($title) ?>
               </a>
               <div class="meta">
-                <span><?= htmlspecialchars($weeks) ?></span>
-                <span><?= htmlspecialchars($students) ?></span>
+                <span>AI Assissted Learning</span>
+                <!-- <span>Multiple Assessments</span> -->
               </div>
               <div class="line"></div>
               <div class="footer">
@@ -270,10 +269,14 @@ if (empty($trendingCourses)) {
                     <span class="was">$<?= number_format((float)$oldPrice, 1) ?></span>
                   <?php endif; ?>
                   <?php if ((float)$price > 0): ?>
-                    <span class="now-blue">$<?= number_format((float)$price, 1) ?></span>
-                  <?php else: ?>
-                    <span class="now-green">Subscribe to unlock</span>
-                  <?php endif; ?>
+  <span class="now-blue">$<?= number_format((float)$price, 1) ?></span>
+<?php else: ?>
+  <a class="now-green"
+     href="<?= MyUtility::makeUrl('Pricing', 'index'); ?>">
+     Subscribe to unlock
+  </a>
+<?php endif; ?>
+
                 </div>
                 <a class="more" href="<?= $viewLink ?>">View course</a>
               </div>
