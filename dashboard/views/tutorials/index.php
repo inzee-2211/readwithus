@@ -429,7 +429,7 @@ var currentLectureId = "<?php echo $progress['crspro_lecture_id'] ?>";
 function getReviews() {
   const progressId = $('#progressId').val();
 
-  fcom.ajax(fcom.makeUrl('Tutorials', 'getReviews'), {
+  fcom.ajax(fcom.makeFullUrl('Tutorials', 'getReviews'), {
     course_id: courseId,
     progress_id: progressId
   }, function (res) {
