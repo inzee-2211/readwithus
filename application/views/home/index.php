@@ -267,13 +267,18 @@ if (empty($trendingCourses)) {
       $durationTxt = YouTube::convertDuration($durationRaw);
   }
 ?>
-<div class="meta">
-  <p class="meta__subtitle">
-    <?= htmlspecialchars($subtitle !== '' ? $subtitle : 'AI Assisted Learning'); ?>
-  </p>
+<?php
+  $rawSubtitle = ($subtitle !== '' ? $subtitle : 'AI Assisted Learning');
 
- 
-</div>
+  // decode &amp; &ndash; etc, remove any HTML tags, then escape safely
+  $cleanSubtitle = html_entity_decode($rawSubtitle, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+  $cleanSubtitle = strip_tags($cleanSubtitle);
+  $cleanSubtitle = preg_replace('/\s+/', ' ', trim($cleanSubtitle));
+?>
+<p class="meta__subtitle">
+  <?= htmlspecialchars($cleanSubtitle, ENT_QUOTES, 'UTF-8'); ?>
+</p>
+
 
 
               <div class="line"></div>
