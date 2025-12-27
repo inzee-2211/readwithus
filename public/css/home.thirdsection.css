@@ -28,6 +28,36 @@
   font:500 clamp(14px,1.35vw,24px)/1.7 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
 }
 
+/* Trending cards: subtitle full width + duration on next line */
+.rwu-course .meta{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rwu-course .meta__subtitle{
+  margin: 0;
+  width: 100%;
+  line-height: 1.35;
+  /* optional safety so huge subtitles don't explode card */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rwu-course .meta__duration{
+  display: flex;
+  justify-content: flex-end;  /* keep time on the right */
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  line-height: 1;
+}
+
+.rwu-course .meta__dot{
+  opacity: 0.6;
+}
 
 /* ---------- Grid ---------- */
 .rwu-trending .grid {

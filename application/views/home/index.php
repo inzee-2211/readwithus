@@ -268,14 +268,13 @@ if (empty($trendingCourses)) {
   }
 ?>
 <div class="meta">
-  <p><?= htmlspecialchars($subtitle !== '' ? $subtitle : 'AI Assisted Learning'); ?></p>
+  <p class="meta__subtitle">
+    <?= htmlspecialchars($subtitle !== '' ? $subtitle : 'AI Assisted Learning'); ?>
+  </p>
 
-  <?php if ($durationTxt !== ''): ?>
-    <br>
-    <span aria-hidden="true">•</span>
-    <p><?= htmlspecialchars($durationTxt); ?></p>
-  <?php endif; ?>
+ 
 </div>
+
 
               <div class="line"></div>
               <div class="footer">
