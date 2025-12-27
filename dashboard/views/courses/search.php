@@ -16,7 +16,7 @@ if (count($courses) == 0) {
             <h4><?php echo Label::getLabel('LBL_NO_ACTIVE_SUBSCRIPTION'); ?></h4>
             <p><?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?></p>
 
-            <a class="btn btn--primary" href="<?php echo MyUtility::makeUrl('Subscriptions'); ?>">
+            <a class="btn btn--primary" href="<?php echo MyUtility::makeUrl('my-subscriptions'); ?>">
                 <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
             </a>
         </div>
