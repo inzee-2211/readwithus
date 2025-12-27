@@ -215,19 +215,7 @@ $address   = FatApp::getConfig('CONF_ADDRESS_' . $siteLangId, FatUtility::VAR_ST
             </div>
 
             <!-- Payment logos (swap placeholders with your real images if you have them) -->
-            <div class="rwu-pay">
-              <!-- examples:
-              <img src="<?= CONF_WEBROOT_URL ?>images/payments/visa.svg" alt="Visa">
-              <img src="<?= CONF_WEBROOT_URL ?>images/payments/mastercard.svg" alt="Mastercard">
-              <img src="<?= CONF_WEBROOT_URL ?>images/payments/skrill.svg" alt="Skrill">
-              <img src="<?= CONF_WEBROOT_URL ?>images/payments/klrna.svg" alt="Klarna">
-              -->
-              <span class="slot" title="Visa"></span>
-              <span class="slot" title="PayPal"></span>
-              <span class="slot" style="width:53px;" title="Skrill"></span>
-              <span class="slot" style="width:41px;" title="Klarna"></span>
-              <span class="slot" style="width:64px;" title="Stripe"></span>
-            </div>
+      
           
           </div>
           </div>
