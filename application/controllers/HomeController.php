@@ -266,19 +266,24 @@ private function getTiersFromDB(): array
 {
     $db = FatApp::getDb();
 
-    // Only non-deleted tiers, ordered by name
-    $sql = "SELECT id, name, examboard_id
-              FROM course_tier
-             WHERE deleted = 0
-          ORDER BY name ASC";
+    // pick ONE id per tier name (handles duplicates with different examboard_id or spacing/case)
+    $sql = "
+        SELECT MIN(id) AS id, TRIM(name) AS name
+        FROM course_tier
+        WHERE deleted = 0
+          AND TRIM(name) <> ''
+        GROUP BY LOWER(TRIM(name))
+        ORDER BY TRIM(name) ASC
+    ";
 
     $rs = $db->query($sql);
     if (!$rs) {
         return [];
     }
 
-    return $db->fetchAll($rs); // rows: ['id' => .., 'name' => .., 'examboard_id' => ..]
+    return $db->fetchAll($rs);
 }
+
 
 
 
