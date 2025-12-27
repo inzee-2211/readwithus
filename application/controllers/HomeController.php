@@ -131,8 +131,12 @@ class HomeController extends MyAppController
 
     $class  = new GroupClassSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
     $course = new CourseSearch($this->siteLangId, $this->siteUserId, 0);
-    $this->set('classes', $class->getUpcomingClasses());
-    $this->set('courses', $course->getPopularCourses());
+   $this->set('classes', $class->getUpcomingClasses());
+
+$popularCourses = $course->getPopularCourses();
+$popularCourses = $this->attachCourseCardMeta($popularCourses);
+$this->set('courses', $popularCourses);
+
     /* =========================
      * HOME PAGE SEO (Title/Desc/OG/Twitter/Schema)
      * ========================= */
@@ -185,6 +189,62 @@ class HomeController extends MyAppController
 
     $this->_template->render();
 }
+/**
+ * Add course_subtitle + course_duration to the courses used on home page cards.
+ */
+private function attachCourseCardMeta(array $courses): array
+{
+    if (empty($courses)) {
+        return $courses;
+    }
+
+    $ids = [];
+    foreach ($courses as $c) {
+        $id = (int)($c['course_id'] ?? 0);
+        if ($id > 0) $ids[] = $id;
+    }
+
+    $ids = array_values(array_unique($ids));
+    if (empty($ids)) {
+        return $courses;
+    }
+
+    $db = FatApp::getDb();
+    $langId = (int)$this->siteLangId;
+    $in = implode(',', array_map('intval', $ids));
+
+    // NOTE: if your lang table uses different column names, adjust them here.
+    $sql = "
+        SELECT 
+            c.course_id,
+            c.course_duration,
+            cl.course_subtitle
+        FROM " . Course::DB_TBL . " c
+        LEFT JOIN " . Course::DB_TBL_LANG . " cl
+            ON cl.courselang_course_id = c.course_id
+           AND cl.courselang_lang_id = {$langId}
+        WHERE c.course_id IN ({$in})
+    ";
+
+    $rs = $db->query($sql);
+    $rows = $rs ? $db->fetchAll($rs, 'course_id') : [];
+
+    foreach ($courses as &$c) {
+        $id = (int)($c['course_id'] ?? 0);
+        if ($id > 0 && isset($rows[$id])) {
+            if (!isset($c['course_subtitle']) || $c['course_subtitle'] === '') {
+                $c['course_subtitle'] = $rows[$id]['course_subtitle'] ?? '';
+            }
+            if (!isset($c['course_duration']) || $c['course_duration'] === '' || $c['course_duration'] === null) {
+                $c['course_duration'] = $rows[$id]['course_duration'] ?? '';
+            }
+        }
+    }
+    unset($c);
+
+    return $courses;
+}
+
 private function getExamBoardsFromDB(): array
 {
     $db = FatApp::getDb();

@@ -258,10 +258,24 @@ if (empty($trendingCourses)) {
               <a class="name <?= $idx === 1 ? 'link' : '' ?>" href="<?= $viewLink ?>">
                 <?= htmlspecialchars($title) ?>
               </a>
-              <div class="meta">
-                <span>AI Assissted Learning</span>
-                <!-- <span>Multiple Assessments</span> -->
-              </div>
+             <?php
+  $subtitle = trim($c['course_subtitle'] ?? '');
+  $durationRaw = $c['course_duration'] ?? '';
+  $durationTxt = '';
+  if ($durationRaw !== '' && $durationRaw !== null) {
+      // same helper you use in courses/search.php
+      $durationTxt = YouTube::convertDuration($durationRaw);
+  }
+?>
+<div class="meta">
+  <span><?= htmlspecialchars($subtitle !== '' ? $subtitle : 'AI Assisted Learning'); ?></span>
+
+  <?php if ($durationTxt !== ''): ?>
+    <span aria-hidden="true">•</span>
+    <span><?= htmlspecialchars($durationTxt); ?></span>
+  <?php endif; ?>
+</div>
+
               <div class="line"></div>
               <div class="footer">
                 <div class="price">

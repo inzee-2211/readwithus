@@ -666,3 +666,19 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
   window.RWU_CONFIG.baseUrl = '<?= getBaseUrl(); ?>';
 </script>
 <script src="<?= CONF_WEBROOT_URL ?>js/nav-revise.js"></script>
+<style>
+    /* Hide "Revise Your Topic" on mobile/tablet */
+@media (max-width: 991.98px){
+  /* hide the whole menu item (safest) */
+  .menu.nav--primary-offset li.dropdown { 
+    display: none !important; 
+  }
+
+  /* extra safety (in case markup changes) */
+  #openSelectorNav,
+  #dropDownOptionNav{
+    display: none !important;
+  }
+}
+
+</style>
