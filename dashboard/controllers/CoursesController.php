@@ -197,21 +197,32 @@ $subscriptionSrch->addCondition('usubs_end_date', '>=', date('Y-m-d H:i:s'));
         }
 
         // Remove duplicates and ensure we have valid IDs
-        $allSubjectIds = array_unique(array_filter($allSubjectIds));
+       // Remove duplicates and ensure we have valid IDs
+$allSubjectIds = array_unique(array_filter($allSubjectIds));
 
-        if (empty($allSubjectIds)) {
-            // No subjects in subscriptions - return empty results
-            $this->sets([
-                'courses'        => [],
-                'post'           => $post,
-                'recordCount'    => 0,
-                'courseStatuses' => Course::getStatuses(),
-                'courseTypes'    => Course::getTypes(),
-                'orderStatuses'  => CourseProgress::getStatuses(),
-            ]);
-            $this->_template->render(false, false);
-            return;
-        }
+/**
+ * ✅ Determine if learner has NO active subscription
+ * We treat it as "no subscription" if:
+ * - no subscription rows returned OR
+ * - subscription rows exist but subject_ids empty
+ */
+$noActiveSubscription = (empty($subscriptions) || empty($allSubjectIds));
+
+if (empty($allSubjectIds)) {
+    // No subjects in subscriptions - return empty results
+    $this->sets([
+        'courses'               => [],
+        'post'                  => $post,
+        'recordCount'           => 0,
+        'noActiveSubscription'  => $noActiveSubscription, // ✅ added
+        'courseStatuses'        => Course::getStatuses(),
+        'courseTypes'           => Course::getTypes(),
+        'orderStatuses'         => CourseProgress::getStatuses(),
+    ]);
+    $this->_template->render(false, false);
+    return;
+}
+
 
         // 2) Derive allowed level_ids from these subjects
         $allowedLevels = [];
@@ -290,6 +301,8 @@ $subscriptionSrch->addCondition('usubs_end_date', '>=', date('Y-m-d H:i:s'));
     $this->sets([
         'courses'        => $courses,
         'post'           => $post,
+        'noActiveSubscription' => false,
+
         'recordCount'    => $srch->recordCount(),
         'courseStatuses' => Course::getStatuses(),
         'courseTypes'    => Course::getTypes(),

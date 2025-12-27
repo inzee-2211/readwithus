@@ -1,9 +1,34 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 if (count($courses) == 0) {
+
+    // ✅ If learner has no subscription → show custom message
+    if (!empty($noActiveSubscription) && $siteUserType == User::LEARNER) { ?>
+        <div class="no-data no-data--empty">
+            <div class="no-data__img">
+                <svg class="icon icon--empty" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
+                    <circle cx="45" cy="45" r="44" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15"></circle>
+                    <path d="M27 54c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="currentColor" stroke-width="2" opacity="0.35"></path>
+                    <path d="M33 38h24" stroke="currentColor" stroke-width="2" opacity="0.35"></path>
+                </svg>
+            </div>
+
+            <h4><?php echo Label::getLabel('LBL_NO_ACTIVE_SUBSCRIPTION'); ?></h4>
+            <p><?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?></p>
+
+            <a class="btn btn--primary" href="<?php echo MyUtility::makeUrl('Subscriptions'); ?>">
+                <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
+            </a>
+        </div>
+    <?php
+        return;
+    }
+
+    // otherwise keep default empty state (filters / no courses)
     $this->includeTemplate('_partial/no-record-found.php');
     return;
 }
+
 $requestStatuses = Course::getRefundStatuses();
 ?>
 
