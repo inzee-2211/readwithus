@@ -51,7 +51,7 @@
                                 <p class="margin-bottom-3 margin-top-4 align-center">
                                     <?php echo Label::getLabel('LBL_HAVE_YOU_USED_THIS_COURSE?') ?>
                                 </p>
-                                <a href="javascript:void(0);" onclick="feedbackForm('<?php echo $ordcrsId; ?>')" class="btn color-primary btn--bordered btn--block">
+<a href="javascript:void(0);" onclick="feedbackForm('<?php echo (int)$progressId; ?>')" class="btn color-primary btn--bordered btn--block">
                                     <?php echo Label::getLabel('LBL_RATE_IT_NOW') ?>
                                 </a>
                             </div>
@@ -93,6 +93,7 @@
                     </div>
                 </div>
             </div>
+            <div class="reviewsListingJs"></div>
         </div>
     </div>
 </div>

@@ -911,12 +911,22 @@ private function canAttemptExam(int $sectionId, int $courseId, int $userId): boo
     );
     $fld->requirements()->setRequired(true);
     $fld->requirements()->setLength(3, 1000);
+    // Submit + Cancel buttons
+$frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_SUBMIT'), [
+    'class' => 'btn btn--primary'
+]);
+
+$frm->addButton('', 'btn_cancel', Label::getLabel('LBL_CANCEL'), [
+    'class' => 'btn btn--secondary',
+    'onclick' => '$.facebox.close();'
+]);
+
 
     $this->set('frm', $frm);
     $this->set('courseId', $courseId);
     $this->set('progressId', $progressId);
 
-    $this->_template->render(false, false);
+$this->_template->render(false, false, 'tutorials/feedback-form.php');
 }
 
 
@@ -932,7 +942,7 @@ private function canAttemptExam(int $sectionId, int $courseId, int $userId): boo
  */
 public function feedbackSetup()
 {
-    $userId = $this->siteUserId;
+    $userId = (int)$this->siteUserId;
 
     $courseId   = FatApp::getPostedData('course_id', FatUtility::VAR_INT, 0);
     $progressId = FatApp::getPostedData('progress_id', FatUtility::VAR_INT, 0);
@@ -941,6 +951,7 @@ public function feedbackSetup()
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
+    // Validate progress belongs to this user + matches course
     $progressData = CourseProgress::getAttributesById($progressId, [
         'crspro_user_id',
         'crspro_course_id',
@@ -955,59 +966,83 @@ public function feedbackSetup()
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
-    // Check subscription access
+    // Subscription access check
     if (!CourseAccessService::hasSubscriptionAccess($userId, $courseId)) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
-    // Optional: require some progress before rating
-    // if ((float)$progressData['crspro_progress'] <= 0) {
-    //     FatUtility::dieJsonError(Label::getLabel('LBL_COMPLETE_SOME_PART_OF_COURSE_BEFORE_RATING'));
-    // }
+    // Build same form fields for server-side validation (NO chaining)
+    $frm = new Form('courseRatingFrm');
 
-    // Same form definition as in feedbackForm()
-    $frm  = new Form('courseRatingFrm');
-    $fld  = $frm->addHiddenField('', 'course_id');
-    $fld->requirements()->setRequired(true)->setIntPositive();
-    $fld2 = $frm->addHiddenField('', 'progress_id');
-    $fld2->requirements()->setRequired(true)->setIntPositive();
+    $fld = $frm->addHiddenField('', 'course_id');
+    $req = $fld->requirements();
+    $req->setRequired(true);
+    $req->setIntPositive();
 
-    $ratingsArr = [
-        1 => '1',
-        2 => '2',
-        3 => '3',
-        4 => '4',
-        5 => '5',
-    ];
-    $fld = $frm->addSelectBox('', 'coursrat_rating', $ratingsArr);
-    $fld->requirements()->setRequired(true)->setIntPositive();
+    $fld = $frm->addHiddenField('', 'progress_id');
+    $req = $fld->requirements();
+    $req->setRequired(true);
+    $req->setIntPositive();
+
+    $ratingsArr = [1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5'];
+    $fld = $frm->addSelectBox('', 'coursrat_rating', $ratingsArr, '', [], '');
+    $req = $fld->requirements();
+    $req->setRequired(true);
+    $req->setIntPositive();
 
     $fld = $frm->addTextArea('', 'coursrat_review');
-    $fld->requirements()->setRequired(true)->setLength(3, 1000);
+    $req = $fld->requirements();
+    $req->setRequired(true);
+    $req->setLength(3, 1000);
 
     $post = $frm->getFormDataFromArray(FatApp::getPostedData());
     if ($post === false) {
-        FatUtility::dieJsonError(current($frm->getValidationErrors()));
+        $errs = $frm->getValidationErrors();
+        FatUtility::dieJsonError(!empty($errs) ? current($errs) : Label::getLabel('LBL_INVALID_REQUEST'));
     }
 
-    // Persist using RatingReview model (already used in searchReviews())
-    $rating = new RatingReview(0);
+    $db = FatApp::getDb();
+
+    // If review already exists by this user for this course -> update it (avoid duplicates)
+    $srch = new SearchBase(RatingReview::DB_TBL, 'ratrev');
+    $srch->addCondition('ratrev.ratrev_type', '=', AppConstant::COURSE);
+    $srch->addCondition('ratrev.ratrev_type_id', '=', $courseId);
+    $srch->addCondition('ratrev.ratrev_user_id', '=', $userId);
+    $srch->setPageSize(1);
+    $srch->doNotCalculateRecords();
+    $srch->addMultipleFields(['ratrev.ratrev_id']);
+    $existing = $db->fetch($srch->getResultSet());
+
+    $ratrevId = !empty($existing['ratrev_id']) ? (int)$existing['ratrev_id'] : 0;
+
+    $rating = new RatingReview($ratrevId);
+    $courseRow = Course::getAttributesById($courseId, ['course_user_id']);
+$teacherId = (int)($courseRow['course_user_id'] ?? 0);
+
+if ($teacherId < 1) {
+    FatUtility::dieJsonError('Invalid course teacher.');
+}
+
     $rating->assignValues([
-        'ratrev_type'      => AppConstant::COURSE,
-        'ratrev_type_id'   => $courseId,
-        'ratrev_user_id'   => $userId,
-        'ratrev_overall'   => (int)$post['coursrat_rating'],
-        'ratrev_title'     => '', // or you can add a separate title field later
-        'ratrev_detail'    => $post['coursrat_review'],
-        'ratrev_status'    => RatingReview::STATUS_PENDING, // or STATUS_APPROVED if you want instant publish
-        'ratrev_created'   => date('Y-m-d H:i:s'),
+         'ratrev_lang_id' => (int)$this->siteLangId,
+         'ratrev_teacher_id' => $teacherId, 
+         'ratrev_teacher_notify' => 0,
+
+        'ratrev_type'    => AppConstant::COURSE,
+        'ratrev_type_id' => $courseId,
+        'ratrev_user_id' => $userId,
+        'ratrev_overall' => (int)$post['coursrat_rating'],
+        'ratrev_title'   => '',
+        'ratrev_detail'  => (string)$post['coursrat_review'],
+        'ratrev_status'  => RatingReview::STATUS_PENDING,
+        'ratrev_created' => date('Y-m-d H:i:s'),
     ]);
 
     if (!$rating->save()) {
         FatUtility::dieJsonError($rating->getError());
     }
 
-    FatUtility::dieJsonSuccess(Label::getLabel('LBL_REVIEW_SUBMITTED'));
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_REVIEW_SUBMITTED_FOR_APPROVAL'));
 }
 
 

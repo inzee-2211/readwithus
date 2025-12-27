@@ -29,6 +29,7 @@ $(function () {
             '</div>'
         );
     }
+    
 
     function renderBot(text) {
         return (
@@ -265,6 +266,36 @@ $(function () {
             }
         );
     };
+// called by feedback-form.php onsubmit="feedbackSetup(this); return(false);"
+feedbackSetup = function (frm) {
+    if (!$(frm).validate()) return;
+
+    fcom.updateWithAjax(
+        fcom.makeUrl('Tutorials', 'feedbackSetup'),
+        fcom.frmData(frm),
+        function (res) {
+            $.facebox.close();
+            // refresh reviews tab content
+            if (typeof getReviews === 'function') {
+                getReviews();
+            }
+        }
+    );
+};
+
+window.searchReviews = function (page) {
+    page = page || 1;
+
+    var $frm = $('#reviewFrm');
+    if (!$frm.length) return;
+
+    $frm.find('input[name="pageno"]').val(page);
+
+    fcom.ajax(fcom.makeUrl('Tutorials', 'searchReviews'), $frm.serialize(), function (res) {
+        $('.reviewsListingJs').html(res);
+    });
+};
+
 
     markComplete = function (lectureId, status) {
         fcom.updateWithAjax(
@@ -399,29 +430,30 @@ $(function () {
         searchReviews(frm);
     };
 
-    feedbackForm = function (ordcrsId) {
-        fcom.ajax(
-            fcom.makeUrl('Tutorials', 'feedbackForm'),
-            { 'ordcrs_id': ordcrsId },
-            function (res) {
-                $.facebox(res, 'facebox-medium');
-            }
-        );
-    };
-
-    feedbackSetup = function (frm) {
-        if (!$(frm).validate()) {
-            return;
+ feedbackForm = function (progressId) {
+    fcom.ajax(
+        fcom.makeUrl('Tutorials', 'feedbackForm', [progressId]),
+        {}, // no need to send ordcrs_id anymore
+        function (res) {
+            $.facebox(res, 'facebox-medium');
         }
-        fcom.updateWithAjax(
-            fcom.makeUrl('Tutorials', 'feedbackSetup'),
-            fcom.frmData(frm),
-            function (res) {
-                $.facebox.close();
-                $('.reviewFrmJs').removeAttr('onclick').addClass('btn--disabled');
-            }
-        );
-    };
+    );
+};
+
+
+    // feedbackSetup = function (frm) {
+    //     if (!$(frm).validate()) {
+    //         return;
+    //     }
+    //     fcom.updateWithAjax(
+    //         fcom.makeUrl('Tutorials', 'feedbackSetup'),
+    //         fcom.frmData(frm),
+    //         function (res) {
+    //             $.facebox.close();
+    //             $('.reviewFrmJs').removeAttr('onclick').addClass('btn--disabled');
+    //         }
+    //     );
+    // };
 
     getNotes = function (id) {
         if (notes == false) {

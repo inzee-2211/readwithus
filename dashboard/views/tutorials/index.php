@@ -137,12 +137,12 @@ echo $this->includeTemplate('tutorials/head-section.php', [
                                             <?php echo Label::getLabel('LBL_LECTURE_DETAIL'); ?>
                                         </a>
                                     </li>
-                                    <li>
+                                    <!-- <li>
                                         <?php // echo '<pre';print_r($course);die; ?>
                                         <a href="javascript:void(0);" onclick="getNotes('<?php echo $progress['crspro_ordcrs_id']; ?>');">
                                             <?php echo Label::getLabel('LBL_NOTES'); ?>
                                         </a>
-                                    </li>
+                                    </li> -->
                                     <li>
                                         <a href="javascript:void(0);" onclick="getReviews();">
                                             <?php echo Label::getLabel('LBL_REVIEWS') . ' (' . $course['course_reviews'] . ')'; ?>
@@ -426,6 +426,39 @@ function markLectureCoveredInSidebar(lectureId){
 var currentLectureId = "<?php echo $progress['crspro_lecture_id'] ?>";
     var courseId = "<?php echo $course['course_id'] ?>";
    var learnerId = "<?php echo $siteUserId; ?>";  
+function getReviews() {
+  const progressId = $('#progressId').val();
+
+  fcom.ajax(fcom.makeUrl('Tutorials', 'getReviews'), {
+    course_id: courseId,
+    progress_id: progressId
+  }, function (res) {
+    $('.lectureDetailJs, .notesJs, .tutorInfoJs, .quizJs').hide();
+    $('.reviewsJs').html(res).show();
+
+    // ✅ load list after template is inserted
+    if (typeof searchReviews === 'function') {
+      searchReviews(1);
+    }
+  });
+}
+
+
+function feedbackForm(progressId) {
+  fcom.ajax(fcom.makeUrl('Tutorials', 'feedbackForm', [progressId]), {}, function (res) {
+    $.facebox(res, 'facebox-panel');
+  });
+}
+
+function submitCourseReview() {
+  const data = $('#courseRatingFrm').serialize();
+  fcom.updateWithAjax(fcom.makeUrl('Tutorials', 'feedbackSetup'), data, function (t) {
+    // refresh reviews after submitting
+    getReviews();
+    $(document).trigger('close.facebox');
+  });
+}
+
 
             </script>
             <script src="//www.youtube.com/player_api"></script>
