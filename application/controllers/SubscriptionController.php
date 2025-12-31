@@ -20,6 +20,7 @@ class SubscriptionController extends MyAppController
             $p['is_quiz_only'] = !empty($p['spackage_is_quiz_only']);
 
         }
+
         $this->set('plans', $plans);
         $this->set('siteCurrency', $this->siteCurrency);
         $this->_template->render(true, true, 'pricing/index.php');
@@ -64,17 +65,25 @@ public function activateFreeQuizPlan($spackageId)
 
     // Create a free subscription row (no Stripe)
     $data = [
-        'usubs_user_id'          => $this->siteUserId,
-        'usubs_spackage_id'      => $spackageId,
-        'usubs_billing_interval' => 'free',
-        'usubs_subject_ids'      => '',
-        'stripe_subscription_id' => null,
-        'stripe_customer_id'     => null,
-        'usubs_status'           => 'free',
-        'usubs_is_trial'         => 0,
-        'usubs_start_date'       => date('Y-m-d H:i:s'),
-        'usubs_end_date'         => null,
-    ];
+    'usubs_user_id'          => $this->siteUserId,
+    'usubs_spackage_id'      => $spackageId,
+
+    // keep enum safe:
+    'usubs_billing_interval' => 'month',
+
+    'usubs_subject_ids'      => '',
+
+    'stripe_subscription_id' => null,
+    'stripe_customer_id'     => null,
+
+    // ✅ treat free as time-bound trial-like access
+    'usubs_status'           => 'trialing',
+    'usubs_is_trial'         => 1,
+
+    'usubs_start_date'       => date('Y-m-d H:i:s'),
+    'usubs_end_date'         => date('Y-m-d H:i:s', strtotime('+30 days')),
+];
+
 
     UserSubscription::createOrActivate($data);
 
