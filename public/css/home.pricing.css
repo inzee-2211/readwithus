@@ -15,6 +15,27 @@
   --rwu-font-ui: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   --rwu-font-price: Hind, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
+
+/* Disable CTA style (same as pricing page) */
+.rwu-plan__cta.is-disabled{
+  opacity: .55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Center plans on homepage when 1-2 items */
+.rwu-pricing .grid{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:24px;
+}
+.rwu-pricing .grid .rwu-plan{
+  width:360px;
+  max-width:100%;
+}
+
+
 .level-filter {
   display: flex;
   flex-direction: column;

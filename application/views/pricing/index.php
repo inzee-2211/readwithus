@@ -25,6 +25,8 @@ if (isset($plans) && is_array($plans)) {
       $isCurrent = !empty($p['is_current']);
       $isUpgrade = !empty($p['is_upgrade']);
 
+  $isQuizOnly = !empty($p['spackage_is_quiz_only']);
+
       $plans[$idx] = [
         'id'          => (int)$p['spackage_id'],
         'name'        => (string)$p['spackage_name'],
@@ -32,15 +34,22 @@ if (isset($plans) && is_array($plans)) {
         'price_month' => (float)$p['spackage_price_monthly'],
         'price_year'  => (float)$p['spackage_price_yearly'],
          'trial_days'  => isset($p['spackage_trial_days']) ? (int)$p['spackage_trial_days'] : 0,
-        'features'    => [
-          'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
-          'Unlimited courses in selected subjects',
-          'Email/priority support',
-        ],
-        'is_popular'  => false,
-        'is_current'  => $isCurrent,
-        'is_upgrade'  => $isUpgrade,
-      ];
+            'is_quiz_only' => $isQuizOnly,
+       'features'    => $isQuizOnly ? [
+      'Unlimited practice quizzes',
+      'User support via email',
+      'No course/subject access',
+  ] : [
+      'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
+      'Unlimited courses in selected subjects',
+      'Email/priority support',
+  ],
+
+  'is_popular'  => false,
+  'is_current'  => !empty($p['is_current']),
+  'is_upgrade'  => !empty($p['is_upgrade']),
+];
+
     } else {
       // ensure expected keys exist for seeded data
       $plans[$idx]['id']          = $plans[$idx]['id']          ?? ($idx+1);
@@ -53,6 +62,8 @@ if (isset($plans) && is_array($plans)) {
       $plans[$idx]['is_popular']  = (bool)($plans[$idx]['is_popular'] ?? false);
       $plans[$idx]['is_current']  = (bool)($plans[$idx]['is_current'] ?? false);
       $plans[$idx]['is_upgrade']  = (bool)($plans[$idx]['is_upgrade'] ?? false);
+      $plans[$idx]['is_quiz_only'] = (bool)($plans[$idx]['is_quiz_only'] ?? false);
+
     }
   }
 
@@ -65,8 +76,18 @@ if (isset($plans) && is_array($plans)) {
 
   // Third pass: add monthly/yearly checkout URLs (keeps your single CTA; JS switches href)
   foreach ($plans as $idx => $p) {
-    $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'monthly' ]);
-    $plans[$idx]['cta_year_url']  = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'yearly' ]);
+    // $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'monthly' ]);
+    // $plans[$idx]['cta_year_url']  = MyUtility::makeUrl('Subscription', 'selectSubjects', [ (int)$p['id'], 'yearly' ]);
+$isQuizOnly = !empty($p['is_quiz_only']);
+
+if ($isQuizOnly) {
+    $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'activateFreeQuizPlan', [(int)$p['id']]);
+    $plans[$idx]['cta_year_url']  = $plans[$idx]['cta_month_url']; // same (no billing)
+} else {
+    $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [(int)$p['id'], 'monthly']);
+    $plans[$idx]['cta_year_url']  = MyUtility::makeUrl('Subscription', 'selectSubjects', [(int)$p['id'], 'yearly']);
+}
+
   }
 }
 
@@ -94,6 +115,11 @@ if (isset($plans) && is_array($plans)) {
   text-transform: uppercase;
   color: #6B7280;          /* soft grey like filters */
   font-weight: 700;
+}
+.rwu-plan__cta.is-disabled{
+  opacity: .55;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 /* -------- LEVEL TABS -------- */
@@ -153,6 +179,18 @@ if (isset($plans) && is_array($plans)) {
 .billing-toggle .knob{
   position:absolute; top:3px; left:3px; width:28px; height:28px; border-radius:50%; background:#2DADFF; transition: left .2s ease;
 }
+/* ✅ Center plans when only 1-2 cards exist */
+#plansGrid{
+  display:flex !important;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:24px;
+}
+#plansGrid .rwu-plan{
+  width:360px;
+  max-width:100%;
+}
+
 .billing-toggle input{ display:none; }
 .billing-toggle input:checked + .switch .knob{ left:49px; }
 .billing-toggle .save{ color:#0a8bff; font-weight:600; background:#e6f4ff; padding:4px 8px; border-radius:6px; }
@@ -249,9 +287,19 @@ if (isset($plans) && is_array($plans)) {
 
         <!-- Single CTA that switches href when billing toggle changes -->
            <?php
-  $hasSub    = !empty($hasActiveSubscription);
-  $isCurrent = !empty($p['is_current']);
-  $isUpgrade = !empty($p['is_upgrade']);
+$hasSub      = !empty($hasActiveSubscription);
+$planId      = (int)($p['id'] ?? 0);
+$isQuizOnly  = !empty($p['is_quiz_only']);
+
+// ✅ Strong current-plan detection using controller vars
+$isCurrent = !empty($p['is_current']) || ($hasSub && (int)$currentPackageId === $planId);
+
+// ✅ If controller didn't provide upgrade flag, decide upgrade by price
+$isUpgrade = !empty($p['is_upgrade']);
+if ($hasSub && !$isCurrent && !$isUpgrade) {
+    // Simple heuristic: higher monthly price = upgrade
+    $isUpgrade = ((float)$p['price_month'] > 0); // keeps paid as upgrade vs free
+}
 
   // Defaults for guests / no active subscription
   $ctaLabel = 'Get Started';
@@ -270,27 +318,44 @@ if (isset($plans) && is_array($plans)) {
   // - this package has trial_days > 0
   // - admin/system still allows trial for this user
   $canStartTrial = $isLogged && !$hasSub && $trialDays > 0 && $userTrialEligible;
+if ($hasSub && $isCurrent) {
 
-  if ($hasSub && $isCurrent) {
-      // Current plan: send user to their courses/dashboard
-      $ctaLabel = 'Go to my courses';
-      $ctaHref  = MyUtility::makeUrl('Courses'); // change to your dashboard route if needed
-      $ctaClass = 'rwu-plan__cta';               // no js-cta => JS won't override href
-      $fineText = 'Already subscribed – explore your courses.';
-  } elseif ($hasSub) {
-      // Other plans: user already has a subscription
-      $ctaLabel = $isUpgrade ? 'Upgrade subscription' : 'Change plan';
-      // href remains the selectSubjects flow
-      $fineText = 'You can change your plan anytime.';
- } elseif ($canStartTrial) {
-    $ctaLabel = sprintf('Start %d-day free trial', $trialDays);
-    // 👉 keep $ctaHref as month/year URL (selectSubjects), just change text
-    $ctaClass = 'rwu-plan__cta js-cta'; // keep js-cta so toggle still updates href
-    $fineText = 'Your card will be charged after the trial ends unless you cancel.';
-}
- else {
-      // keep default: "Get Started"
+    $ctaLabel = 'Current plan';
+    $ctaHref  = MyUtility::makeUrl('Courses');
+    $ctaClass = 'rwu-plan__cta'; // no js-cta
+    $fineText = $isQuizOnly
+        ? 'Free quiz plan is active.'
+        : 'Your subscription is active.';
+
+} elseif ($hasSub) {
+
+    // ✅ User has an active subscription
+
+    if ($isCurrent) {
+        $ctaLabel = 'Current plan';
+        $ctaHref  = MyUtility::makeUrl('Courses');
+        $ctaClass = 'rwu-plan__cta';
+        $fineText = 'Your subscription is active.';
+    } elseif ($isQuizOnly) {
+        // ✅ Free quizzes are INCLUDED in paid plans
+        $ctaLabel = 'Included with your plan';
+        $ctaHref  = MyUtility::makeUrl('Courses');
+        $ctaClass = 'rwu-plan__cta is-disabled';
+        $fineText = 'Quizzes are already unlocked in your subscription.';
+    } elseif ($isUpgrade) {
+        $ctaLabel = 'Upgrade plan';
+        $ctaHref  = htmlspecialchars($p['cta_month_url']);
+        $ctaClass = 'rwu-plan__cta js-cta';
+        $fineText = 'Upgrade anytime.';
+    } else {
+        // ✅ Not current + not upgrade = downgrade (hide/disable)
+        $ctaLabel = 'Current plan is better';
+        $ctaHref  = 'javascript:void(0)';
+        $ctaClass = 'rwu-plan__cta is-disabled';
+        $fineText = 'Downgrades are not available from here.';
+    }
   }
+
 ?>
 
 
@@ -325,13 +390,58 @@ if (isset($plans) && is_array($plans)) {
           <?php endforeach; ?>
         </tr>
       </thead>
-      <tbody>
-        <tr><td>Unlimited courses</td><?php foreach ($plans as $i=>$p): ?><td class="<?= $i>0?'yes':'no' ?>"><?= $i>0?'Yes':'No' ?></td><?php endforeach; ?></tr>
-        <tr><td>AI practice quizzes (advanced)</td><?php foreach ($plans as $i=>$p): ?><td class="<?= $i>=1?'yes':'no' ?>"><?= $i>=1?'Yes':'No' ?></td><?php endforeach; ?></tr>
-        <tr><td>Assignments & feedback</td><?php foreach ($plans as $i=>$p): ?><td class="<?= $i>=1?'yes':'no' ?>"><?= $i>=1?'Yes':'No' ?></td><?php endforeach; ?></tr>
-        <tr><td>Progress analytics</td><?php foreach ($plans as $i=>$p): ?><td class="<?= $i==2?'yes':'no' ?>"><?= $i==2?'Yes':'No' ?></td><?php endforeach; ?></tr>
-        <tr><td>Priority/Dedicated support</td><?php foreach ($plans as $i=>$p): ?><td class="<?= $i==2?'yes':'no' ?>"><?= $i==2?'Yes':'No' ?></td><?php endforeach; ?></tr>
-      </tbody>
+    <tbody>
+  <!-- Free quizzes: YES for everyone -->
+  <tr>
+    <td>Free quizzes</td>
+    <?php foreach ($plans as $p): ?>
+      <td class="yes">Yes</td>
+    <?php endforeach; ?>
+  </tr>
+
+  <!-- AI tutor -->
+  <tr>
+    <td>AI tutor</td>
+    <?php foreach ($plans as $p): ?>
+      <?php $paid = empty($p['is_quiz_only']); ?>
+      <td class="<?= $paid ? 'yes' : 'no' ?>"><?= $paid ? 'Yes' : 'No' ?></td>
+    <?php endforeach; ?>
+  </tr>
+
+  <!-- Everything else: only for PAID plans (non-quiz-only) -->
+  <tr>
+    <td>Unlimited courses</td>
+    <?php foreach ($plans as $p): ?>
+      <?php $paid = empty($p['is_quiz_only']); ?>
+      <td class="<?= $paid ? 'yes' : 'no' ?>"><?= $paid ? 'Yes' : 'No' ?></td>
+    <?php endforeach; ?>
+  </tr>
+
+  <tr>
+    <td>Assignments & feedback</td>
+    <?php foreach ($plans as $p): ?>
+      <?php $paid = empty($p['is_quiz_only']); ?>
+      <td class="<?= $paid ? 'yes' : 'no' ?>"><?= $paid ? 'Yes' : 'No' ?></td>
+    <?php endforeach; ?>
+  </tr>
+
+  <tr>
+    <td>Progress analytics</td>
+    <?php foreach ($plans as $p): ?>
+      <?php $paid = empty($p['is_quiz_only']); ?>
+      <td class="<?= $paid ? 'yes' : 'no' ?>"><?= $paid ? 'Yes' : 'No' ?></td>
+    <?php endforeach; ?>
+  </tr>
+
+  <tr>
+    <td>Priority/Dedicated support</td>
+    <?php foreach ($plans as $p): ?>
+      <?php $paid = empty($p['is_quiz_only']); ?>
+      <td class="<?= $paid ? 'yes' : 'no' ?>"><?= $paid ? 'Yes' : 'No' ?></td>
+    <?php endforeach; ?>
+  </tr>
+</tbody>
+
     </table>
   </div>
 </section>

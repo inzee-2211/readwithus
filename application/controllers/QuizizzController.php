@@ -190,32 +190,99 @@ class QuizizzController extends MyAppController
     }
 
 
-    public function checkQuota()
+  public function checkQuota()
 {
     header('Content-Type: application/json; charset=utf-8');
 
-    $userId = $_SESSION['quiz_user']['id'] ?? 0;
-    if ($userId < 1) {
-        echo json_encode(['status' => 0, 'msg' => 'Session expired']);
+    $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+    if ($quizUserId < 1) {
+        echo json_encode(['status' => 0, 'allowed' => false, 'msg' => 'Session expired']);
         exit;
     }
 
     $db = FatApp::getDb();
-    $row = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int)$userId));
+   $email = $this->getSessionQuizEmail();
 
-    $attempts = (int)($row['quiz_attempts_count'] ?? 0);
-    if ($attempts >= 10) {
+if ($email !== '') {
+    $subInfo = $this->getSubscriptionInfo($email);
+    if (!empty($subInfo['is_subscribed'])) {
         echo json_encode([
-            'status' => 0,
-            'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
-            'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
+            'status' => 1,
+            'allowed' => true,
+            'is_subscribed' => 1,
+            'subscription_status' => $subInfo['status'],
+            'quota' => 'unlimited',
+            'attempts_left' => null,
+            'attempts_used' => null,
+        ]);
+        exit;
+    }
+}
+
+
+    // 1) Subscription check => unlimited, no increment
+    $subInfo = $this->getSubscriptionInfo($email);
+    if (!empty($subInfo['is_subscribed'])) {
+        echo json_encode([
+            'status' => 1,
+            'allowed' => true,
+            'is_subscribed' => 1,
+            'subscription_status' => $subInfo['status'],
+            'quota' => 'unlimited',
+            'attempts_left' => null,
+            'attempts_used' => null,
         ]);
         exit;
     }
 
-    echo json_encode(['status' => 1, 'allowed' => true]);
+    // 2) Not subscribed => normal quota
+    $quota = $this->getFreeQuizQuotaByEmail($email);
+
+    $row = $db->fetch($db->query(
+        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
+        [$quizUserId]
+    ));
+    $attempts = (int)($row['quiz_attempts_count'] ?? 0);
+
+    if ($attempts >= $quota) {
+        echo json_encode([
+            'status' => 0,
+            'allowed' => false,
+            'is_subscribed' => 0,
+            'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
+            'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
+            'attempts_used' => $attempts,
+            'attempts_left' => 0,
+            'quota' => $quota
+        ]);
+        exit;
+    }
+
+    // Reserve attempt here
+    $db->query("
+        UPDATE course_attempt_userdetails
+        SET quiz_attempts_count = quiz_attempts_count + 1,
+            quiz_attempts_updated_at = NOW()
+        WHERE id = " . (int)$quizUserId
+    );
+
+    $updatedRow = $db->fetch($db->query(
+        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
+        [$quizUserId]
+    ));
+    $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? ($attempts + 1));
+
+    echo json_encode([
+        'status' => 1,
+        'allowed' => true,
+        'is_subscribed' => 0,
+        'attempts_used' => $newAttempts,
+        'attempts_left' => max(0, $quota - $newAttempts),
+        'quota' => $quota
+    ]);
     exit;
 }
+
 
 
 public function submitSignup()
@@ -242,90 +309,130 @@ public function submitSignup()
     $cnd->attachCondition('u.parent_email', '=', $parentEmail, 'OR');
     $cnd->attachCondition('u.phone', '=', $phone, 'OR');
     $srch->addMultipleFields(['u.id', 'u.name', 'u.email', 'u.parent_email', 'u.phone', 'u.quiz_attempts_count']);
+    $srch->setPageSize(1);
     $row = $db->fetch($srch->getResultSet());
 
-    // Existing user
+    /**
+     * 1) Create / reuse quiz guest user session row
+     *    IMPORTANT: Do NOT increment attempts here.
+     *    Attempt reservation happens below (gate logic).
+     */
     if (!empty($row)) {
-        $attempts = (int)($row['quiz_attempts_count'] ?? 0);
 
-        if ($attempts >= 10) {
-            echo json_encode([
-                "status" => 0,
-                "msg" => "Your free quiz quota is expired. Please subscribe to continue.",
-                "redirect_url" => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
-                "attempts_used" => $attempts,
-                "attempts_left" => 0,
-                "quota" => 10
-            ]);
-            exit;
-        }
-
-        // UPDATE: Increment the attempt count immediately when returning user signs up for a new quiz
-        $db->query("UPDATE course_attempt_userdetails 
-                    SET quiz_attempts_count = quiz_attempts_count + 1, 
-                        quiz_attempts_updated_at = NOW() 
-                    WHERE id = " . (int)$row['id']);
-        
-        // Fetch updated count
-        $updatedRow = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int)$row['id']));
-        $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? $attempts + 1);
-
+        // Existing user -> just set session
         $_SESSION['quiz_user'] = [
-            'id'          => (int)$row['id'],
-            'name'        => (string)$row['name'],
-            'email'       => (string)$row['email'],
-            'parent_email'=> (string)$row['parent_email'],
-            'phone'       => (string)$row['phone'],
+            'id'           => (int)$row['id'],
+            'name'         => (string)$row['name'],
+            'email'        => (string)$row['email'],
+            'parent_email' => (string)$row['parent_email'],
+            'phone'        => (string)$row['phone'],
         ];
 
+    } else {
+
+        // New user insert -> start with 0 attempts (gate will reserve 1)
+        $dataToInsert = [
+            'name'                   => $name,
+            'email'                  => $email,
+            'parent_email'           => $parentEmail,
+            'phone'                  => $phone,
+            'created_at'             => date('Y-m-d H:i:s'),
+            'quiz_attempts_count'    => 0,
+            'quiz_attempts_updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
+        if (!$success) {
+            FatUtility::dieJsonError('Insert failed: ' . $db->getError());
+        }
+
+        $newId = (int)$db->getInsertId();
+        if ($newId < 1) {
+            FatUtility::dieJsonError('Insert failed: No insert id returned.');
+        }
+
+        $_SESSION['quiz_user'] = [
+            'id'           => $newId,
+            'name'         => $name,
+            'email'        => $email,
+            'parent_email' => $parentEmail,
+            'phone'        => $phone,
+        ];
+    }
+
+    /**
+     * 2) Gate logic (same as checkQuota):
+     *    - subscribed => unlimited (no increment)
+     *    - not subscribed => check quota and reserve (+1)
+     */
+    $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+    if ($quizUserId < 1) {
+        FatUtility::dieJsonError('Session expired.');
+    }
+$sessionEmail = strtolower(trim($email)); // from post
+$subInfo = $this->getSubscriptionInfo($sessionEmail);
+
+
+    if (!empty($subInfo['is_subscribed'])) {
         echo json_encode([
             'status' => 1,
             'msg' => 'Success',
             'subtopicid' => $subtopicId,
-            'attempts_used' => $newAttempts,
-            'attempts_left' => max(0, 10 - $newAttempts),
-            'quota' => 10
+            'allowed' => true,
+            'is_subscribed' => 1,
+            'subscription_status' => $subInfo['status'] ?? null,
+            'quota' => 'unlimited',
+            'attempts_used' => null,
+            'attempts_left' => null,
         ]);
         exit;
     }
 
-    // New user insert
-    $dataToInsert = [
-        'name'        => $name,
-        'email'       => $email,
-        'parent_email'=> $parentEmail,
-        'phone'       => $phone,
-        'created_at'  => date('Y-m-d H:i:s'),
-        // IMPORTANT: Set quiz_attempts_count to 1 for new user (since they're starting their first quiz)
-        'quiz_attempts_count' => 1,
-        'quiz_attempts_updated_at' => date('Y-m-d H:i:s'),
-    ];
+    // ❌ Not subscribed => normal quota
+    $quota = $this->getFreeQuizQuotaByEmail($sessionEmail);
 
-    $success = $db->insertFromArray('course_attempt_userdetails', $dataToInsert);
-    if (!$success) {
-        FatUtility::dieJsonError('Insert failed: ' . $db->getError());
+    $row2 = $db->fetch($db->query(
+        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
+        [(int)$quizUserId]
+    ));
+    $attempts = (int)($row2['quiz_attempts_count'] ?? 0);
+
+    if ($attempts >= $quota) {
+        echo json_encode([
+            "status" => 0,
+            "msg" => "Your free quiz quota is expired. Please subscribe to continue.",
+            "redirect_url" => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
+            "attempts_used" => $attempts,
+            "attempts_left" => 0,
+            "quota" => $quota,
+            "is_subscribed" => 0
+        ]);
+        exit;
     }
 
-    $newId = (int)$db->getInsertId();
-    if ($newId < 1) {
-        FatUtility::dieJsonError('Insert failed: No insert id returned.');
-    }
+    // Reserve attempt now (+1)
+    $db->query("
+        UPDATE course_attempt_userdetails
+        SET quiz_attempts_count = quiz_attempts_count + 1,
+            quiz_attempts_updated_at = NOW()
+        WHERE id = " . (int)$quizUserId
+    );
 
-    $_SESSION['quiz_user'] = [
-        'id'          => $newId,
-        'name'        => $name,
-        'email'       => $email,
-        'parent_email'=> $parentEmail,
-        'phone'       => $phone,
-    ];
+    $updatedRow = $db->fetch($db->query(
+        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
+        [(int)$quizUserId]
+    ));
+    $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? ($attempts + 1));
 
     echo json_encode([
         'status' => 1,
         'msg' => 'Success',
         'subtopicid' => $subtopicId,
-        'attempts_used' => 1,
-        'attempts_left' => 9,
-        'quota' => 10
+        'allowed' => true,
+        'is_subscribed' => 0,
+        'attempts_used' => $newAttempts,
+        'attempts_left' => max(0, $quota - $newAttempts),
+        'quota' => $quota
     ]);
     exit;
 }
@@ -544,6 +651,159 @@ public function submitSignup()
 
         $this->_template->render(false, false);
     }
+/**
+ * Write debug log to application/logs/
+ * Creates daily log file: quizizz-debug-YYYY-MM-DD.log
+ */
+// private function quizLog(string $label, array $context = []): void
+// {
+//     // IMPORTANT: adjust if your project uses a different base constant
+//     $basePath = defined('CONF_APPLICATION_PATH') ? CONF_APPLICATION_PATH : dirname(__DIR__, 2) . '/';
+//     $logDir   = rtrim($basePath, '/\\') . '/application/logs';
+
+//     if (!is_dir($logDir)) {
+//         @mkdir($logDir, 0775, true);
+//     }
+
+//     $file = $logDir . '/quizizz-debug-' . date('Y-m-d') . '.log';
+
+//     // Mask any email-like values to avoid leaking data
+//     $maskEmail = function ($email) {
+//         $email = strtolower(trim((string)$email));
+//         if ($email === '' || strpos($email, '@') === false) return $email;
+//         [$u, $d] = explode('@', $email, 2);
+//         $uMasked = substr($u, 0, 2) . str_repeat('*', max(0, strlen($u) - 2));
+//         return $uMasked . '@' . $d;
+//     };
+
+//     // Sanitize context (no passwords / tokens)
+//     $safe = [];
+//     foreach ($context as $k => $v) {
+//         $key = strtolower((string)$k);
+//         if (strpos($key, 'password') !== false || strpos($key, 'token') !== false || strpos($key, 'secret') !== false) {
+//             $safe[$k] = '[REDACTED]';
+//             continue;
+//         }
+//         if (strpos($key, 'email') !== false) {
+//             $safe[$k] = $maskEmail($v);
+//             continue;
+//         }
+//         $safe[$k] = $v;
+//     }
+
+//     $payload = [
+//         'ts'     => date('Y-m-d H:i:s'),
+//         'label'  => $label,
+//         'uri'    => $_SERVER['REQUEST_URI'] ?? '',
+//         'ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
+//         'sess'   => session_id(),
+//         'user'   => $_SESSION['quiz_user']['id'] ?? null,
+//         'data'   => $safe,
+//     ];
+
+//     @file_put_contents($file, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+// }
+/**
+ * Return tbl_users.user_id for a given email, or 0 if not found.
+ */
+/**
+ * Return tbl_users.user_id for a given email, or 0 if not found.
+ */
+/**
+ * Return tbl_users.user_id for a given email, or 0 if not found.
+ * Simple and robust approach
+ */
+private function getRegisteredUserIdByEmail(string $email): int
+{
+    $email = strtolower(trim($email));
+
+    // Must be a valid email, otherwise never query
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return 0;
+    }
+
+    $db = FatApp::getDb();
+
+    // Use SearchBase instead of prepared query (avoids the "no params supplied" fatal)
+    $srch = new SearchBase('tbl_users', 'u');
+    $srch->addCondition('u.user_email', '=', $email);
+    $srch->addFld('u.user_id');
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    return (int)($row['user_id'] ?? 0);
+}
+
+
+
+/**
+ * Active/trialing subscription check by tbl_users.user_id.
+ * Uses safe expiry checks.
+ */
+private function getActiveSubscriptionInfoByUserId(int $userId): array
+{
+    if ($userId < 1) {
+        return ['is_subscribed' => false, 'status' => null];
+    }
+
+    $db = FatApp::getDb();
+
+    // Use inline int casting to avoid prepared statement binding issues in this DB wrapper
+    $uid = (int)$userId;
+
+    // NOTE: you said "active OR trailing" (and Stripe uses "trialing")
+    $sql = "
+        SELECT usubs_status, usubs_current_period_end, usubs_end_date
+        FROM tbl_user_subscriptions
+        WHERE usubs_user_id = {$uid}
+          AND usubs_status IN ('active','trialing','trailing','free')
+          AND (usubs_current_period_end IS NULL OR usubs_current_period_end >= NOW())
+          AND (usubs_end_date IS NULL OR usubs_end_date >= NOW())
+        ORDER BY usubs_id DESC
+        LIMIT 1
+    ";
+
+    $rs  = $db->query($sql);
+    $row = $rs ? $db->fetch($rs) : [];
+
+    if (!empty($row['usubs_status'])) {
+        return [
+            'is_subscribed' => true,
+            'status' => (string)$row['usubs_status'],
+            'current_period_end' => $row['usubs_current_period_end'] ?? null,
+            'end_date' => $row['usubs_end_date'] ?? null,
+        ];
+    }
+
+    return ['is_subscribed' => false, 'status' => null];
+}
+
+/**
+ * Unified subscription resolver:
+ * 1) If platform user is logged in -> check by $this->siteUserId
+ * 2) Else fallback to email -> tbl_users -> tbl_user_subscriptions
+ */
+private function getSubscriptionInfo(string $email): array
+{
+    $platformUserId = (int)($this->siteUserId ?? 0);
+    if ($platformUserId > 0) {
+        $info = $this->getActiveSubscriptionInfoByUserId($platformUserId);
+        $info['user_id'] = $platformUserId;
+        $info['source'] = 'siteUserId';
+        return $info;
+    }
+
+    $userId = $this->getRegisteredUserIdByEmail($email);
+    if ($userId < 1) {
+        return ['is_subscribed' => false, 'status' => null, 'user_id' => 0, 'source' => 'email_not_registered'];
+    }
+
+    $info = $this->getActiveSubscriptionInfoByUserId($userId);
+    $info['user_id'] = $userId;
+    $info['source'] = 'email_lookup';
+    return $info;
+}
+
 
     public function submitAnswers()
     {
@@ -558,21 +818,9 @@ public function submitSignup()
         }
 
         // --- Quota Check (Server Side) ---
-        $quizUserId = $_SESSION['quiz_user']['id'] ?? 0;
-        if ($quizUserId < 1) {
-            FatUtility::dieJsonError("Session expired or invalid user.");
-        }
 
-        $db = FatApp::getDb();
-        $row = $db->fetch($db->query("SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = " . (int) $quizUserId));
-        $attempts = (int) ($row['quiz_attempts_count'] ?? 0);
 
-        if ($attempts >= 10) {
-            FatUtility::dieJsonError([
-                'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
-                'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing'
-            ]);
-        }
+     
         // --------------------------------
 
         $api_key = FatApp::getConfig('CONF_OPENAI_KEY', FatUtility::VAR_STRING, '');
@@ -739,14 +987,7 @@ public function submitSignup()
         }
 
         // Increment attempt count for the user
-        $quizUserId = $_SESSION['quiz_user']['id'] ?? 0;
-        if ($quizUserId > 0) {
-            $db->query("UPDATE course_attempt_userdetails 
-                        SET quiz_attempts_count = quiz_attempts_count + 1, 
-                            quiz_attempts_updated_at = NOW() 
-                        WHERE id = " . (int) $quizUserId);
-        }
-
+    
 
         FatUtility::dieJsonSuccess([
             'message' => 'Quiz submitted successfully!',
@@ -756,6 +997,57 @@ public function submitSignup()
             'totalMarks' => $totalQuestions * $questionMarks,
         ]);
     }
+private function getFreeQuizQuotaByEmail(string $email): int
+{
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return 3;
+    }
+
+    $db = FatApp::getDb();
+
+    // If your tbl_users column is user_email (as in your screenshot)
+    $srch = new SearchBase('tbl_users', 'u');
+    $srch->addCondition('u.user_email', '=', $email); // collation usually makes it case-insensitive
+    $srch->addFld('u.user_id');
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+
+    return !empty($row) ? 5 : 3;
+}
+
+
+private function getSessionQuizEmail(): string
+{
+    $email = (string)($_SESSION['quiz_user']['email'] ?? '');
+    $email = strtolower(trim($email));
+
+    // If already valid, use it
+    if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return $email;
+    }
+
+    // Fallback: load email from course_attempt_userdetails using quiz_user id
+    $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+    if ($quizUserId > 0) {
+        $db = FatApp::getDb();
+        $row = $db->fetch($db->query(
+            "SELECT email FROM course_attempt_userdetails WHERE id = ? LIMIT 1",
+            [$quizUserId]
+        ));
+
+        $dbEmail = strtolower(trim((string)($row['email'] ?? '')));
+        if ($dbEmail !== '' && filter_var($dbEmail, FILTER_VALIDATE_EMAIL)) {
+            // repair session so future calls are safe
+            $_SESSION['quiz_user']['email'] = $dbEmail;
+            return $dbEmail;
+        }
+    }
+
+    return '';
+}
+
 
     // public function getQuestions()
     // {
@@ -881,6 +1173,8 @@ public function getQuestions()
         ]
     ]);
 }
+
+
 
     public function getQuizizzList()
     {

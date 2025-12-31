@@ -509,43 +509,71 @@ $heroBase = $heroBase ?? CONF_WEBROOT_URL . 'images/home/';
 
 // Normalize $plans:
 // If controller passed DB rows (spackage_*), map them to card shape.
+// Normalize $plans (same logic as pricing/index.php)
 if (!empty($plans) && is_array($plans)) {
+
     foreach ($plans as $idx => $p) {
+
         if (isset($p['spackage_id'])) {
+
+            $isQuizOnly = !empty($p['spackage_is_quiz_only']);
+
             $plans[$idx] = [
-                'id'          => (int)$p['spackage_id'],
-                'name'        => (string)$p['spackage_name'],
-                'tag'         => (string)($p['spackage_description'] ?? ''),
-                'price_month' => (float)$p['spackage_price_monthly'],
-                'price_year'  => (float)$p['spackage_price_yearly'],
-                'trial_days'  => isset($p['spackage_trial_days']) ? (int)$p['spackage_trial_days'] : 0,
-                'features'    => [
-                    'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
-                    'Unlimited courses in selected subjects',
-                    'Email/priority support',
-                ],
+                'id'           => (int)$p['spackage_id'],
+                'name'         => (string)$p['spackage_name'],
+                'tag'          => (string)($p['spackage_description'] ?? ''),
+                'price_month'  => (float)$p['spackage_price_monthly'],
+                'price_year'   => (float)$p['spackage_price_yearly'],
+                'trial_days'   => isset($p['spackage_trial_days']) ? (int)$p['spackage_trial_days'] : 0,
+                'is_quiz_only' => $isQuizOnly,
+
+                // ✅ Free plan only shows quizzes
+                'features'     => $isQuizOnly
+                    ? [
+                        'Unlimited quizzes',
+                        'user support via email',
+                        'Free quiz access only',
+                    ]
+                    : [
+                        'Access to ' . (int)$p['spackage_subject_limit'] . ' subjects',
+                        'Unlimited courses in selected subjects',
+                        'Email/priority support',
+                    ],
+
+                // flags from controller if present (optional)
+                'is_current'   => !empty($p['is_current']),
+                'is_upgrade'   => !empty($p['is_upgrade']),
             ];
+
         } else {
             // seeded / static data safety
             $plans[$idx]['id']          = $plans[$idx]['id']          ?? ($idx+1);
             $plans[$idx]['name']        = $plans[$idx]['name']        ?? ('Plan '.($idx+1));
             $plans[$idx]['tag']         = $plans[$idx]['tag']         ?? '';
             $plans[$idx]['price_month'] = (float)($plans[$idx]['price_month'] ?? 0);
-            $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month']*12));
+            $plans[$idx]['price_year']  = (float)($plans[$idx]['price_year'] ?? ($plans[$idx]['price_month'] * 12));
             $plans[$idx]['features']    = $plans[$idx]['features']    ?? [];
             $plans[$idx]['trial_days']  = (int)($plans[$idx]['trial_days'] ?? 0);
+            $plans[$idx]['is_quiz_only']= (bool)($plans[$idx]['is_quiz_only'] ?? false);
+            $plans[$idx]['is_current']  = (bool)($plans[$idx]['is_current'] ?? false);
+            $plans[$idx]['is_upgrade']  = (bool)($plans[$idx]['is_upgrade'] ?? false);
         }
     }
 
-    // Add checkout URL (monthly only, home page is a simple entry point)
+    // ✅ Add CTA URLs (free plan => activateFreeQuizPlan, paid => selectSubjects)
     foreach ($plans as $idx => $p) {
-        $plans[$idx]['cta_month_url'] = MyUtility::makeUrl(
-            'Subscription',
-            'selectSubjects',
-            [ (int)$p['id'], 'monthly' ]
-        );
+        $isQuizOnly = !empty($p['is_quiz_only']);
+
+        if ($isQuizOnly) {
+            $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'activateFreeQuizPlan', [(int)$p['id']]);
+            $plans[$idx]['cta_year_url']  = $plans[$idx]['cta_month_url'];
+        } else {
+            $plans[$idx]['cta_month_url'] = MyUtility::makeUrl('Subscription', 'selectSubjects', [(int)$p['id'], 'monthly']);
+            $plans[$idx]['cta_year_url']  = MyUtility::makeUrl('Subscription', 'selectSubjects', [(int)$p['id'], 'yearly']);
+        }
     }
 }
+
 
 ?>
 
@@ -600,33 +628,51 @@ if (!empty($plans) && is_array($plans)) {
 
             // CTA defaults
                         // CTA defaults
-            $ctaHref  = htmlspecialchars($p['cta_month_url'] ?? '#');
-            $ctaLabel = 'Get Started';
-            $fineText = 'No contracts. Cancel anytime.';
+         $hasSub     = !empty($hasActiveSubscription);
+$isQuizOnly = !empty($p['is_quiz_only']);
+$isCurrent  = !empty($p['is_current']) || ($hasSub && ($planId === (int)$currentPackageId));
+$isUpgrade  = !empty($p['is_upgrade']); // if controller provides it
 
-            $hasSub    = !empty($hasActiveSubscription);
-            $isCurrent = $hasSub && ($planId === (int)$currentPackageId);
+// If controller didn't provide upgrade, basic heuristic: any paid plan above current is upgrade (optional)
+// (home page can keep it simple; pricing page is more accurate)
+if ($hasSub && !$isCurrent && !$isUpgrade && !$isQuizOnly) {
+    $isUpgrade = true; // treat paid alternative as upgrade on homepage
+}
 
-            // Trial context (same logic as pricing page, but simpler)
-            $isLogged          = UserAuth::isUserLogged();
-            $userTrialEligible = !empty($userDetail['user_trial_eligible'] ?? 0);
-            $trialDays         = (int)($p['trial_days'] ?? 0);
+// Defaults
+$ctaLabel = 'Get Started';
+$ctaHref  = htmlspecialchars($p['cta_month_url'] ?? '#');
+$ctaClass = 'rwu-plan__cta';
+$fineText = 'No contracts. Cancel anytime.';
 
-            $canStartTrial = $isLogged && !$hasSub && $trialDays > 0 && $userTrialEligible;
+// Trial
+$isLogged          = UserAuth::isUserLogged();
+$userTrialEligible = !empty($userDetail['user_trial_eligible'] ?? 0);
+$trialDays         = (int)($p['trial_days'] ?? 0);
+$canStartTrial     = $isLogged && !$hasSub && !$isQuizOnly && $trialDays > 0 && $userTrialEligible;
 
-            if ($isCurrent) {
-                $ctaHref  = MyUtility::makeUrl('Courses');
-                $ctaLabel = 'Go to my courses';
-                $fineText = 'You’re currently on this plan.';
-            } elseif ($hasSub) {
-                // user has some other plan – keep same URL but change label if you like
-                $ctaLabel = 'Change plan';
-                $fineText = 'You can switch plans anytime from your account.';
-            } elseif ($canStartTrial) {
-                // show trial text, keep same monthly selectSubjects flow
-                $ctaLabel = sprintf('Start %d-day free trial', $trialDays);
-                $fineText = 'Your card will be charged after the trial ends unless you cancel.';
-            }
+if ($hasSub && $isCurrent) {
+    $ctaLabel = 'Current plan';
+    $ctaHref  = MyUtility::makeUrl('Courses');
+    $ctaClass = 'rwu-plan__cta is-disabled';
+    $fineText = 'You’re currently on this plan.';
+} elseif ($hasSub && $isQuizOnly) {
+    $ctaLabel = 'Included with your plan';
+    $ctaHref  = 'javascript:void(0)';
+    $ctaClass = 'rwu-plan__cta is-disabled';
+    $fineText = 'Quizzes are already unlocked in your subscription.';
+} elseif ($hasSub && $isUpgrade) {
+    $ctaLabel = 'Upgrade plan';
+    $ctaHref  = htmlspecialchars($p['cta_month_url']); // (paid) selectSubjects
+    $fineText = 'Upgrade anytime.';
+} elseif (!$hasSub && $isQuizOnly) {
+    $ctaLabel = 'Activate free quiz plan';
+    $ctaHref  = htmlspecialchars($p['cta_month_url']); // activateFreeQuizPlan
+    $fineText = 'Free access to quizzes.';
+} elseif ($canStartTrial) {
+    $ctaLabel = sprintf('Start %d-day free trial', $trialDays);
+    $fineText = 'Your card will be charged after the trial ends unless you cancel.';
+}
 
           ?>
 
@@ -671,11 +717,10 @@ if (!empty($plans) && is_array($plans)) {
               <?php endforeach; ?>
             </ul>
 
-            <a class="rwu-plan__cta"
-               href="<?= $ctaHref; ?>"
-               aria-label="<?= $ctaLabel; ?> for <?= htmlspecialchars($name); ?>">
-              <?= $ctaLabel; ?>
-            </a>
+          <a class="<?= $ctaClass; ?>" href="<?= $ctaHref; ?>">
+  <?= $ctaLabel; ?>
+</a>
+
 
             <div class="rwu-plan__fine"><?= $fineText; ?></div>
           </article>

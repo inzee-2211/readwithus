@@ -495,23 +495,33 @@ fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response)
             response = JSON.parse(response);
         }
 
-        if (response.status == 1 && response.subtopicid) {
-            // Show attempt count info
-            if (response.attempts_left <= 0) {
-                alert('You have used all your free quizzes. Please subscribe for more.');
-                window.location.href = response.redirect_url || '/pricing';
-            } else {
-                alert('You have ' + response.attempts_left + ' free quizzes left out of ' + response.quota);
-                window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
-            }
-        } else if (response.status == 0) {
-            alert(response.msg || "Something went wrong.");
-            if (response.redirect_url) {
-                window.location.href = response.redirect_url;
-            }
+       if (response.status == 1 && response.subtopicid) {
+
+    // ✅ SUBSCRIBED / UNLIMITED: go straight to quiz
+    if (response.is_subscribed == 1 || response.quota === 'unlimited') {
+        alert('Subscription active — unlimited quiz access.');
+        window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
+        return;
+    }
+
+    // ✅ FREE QUOTA FLOW
+    const attemptsLeft = Number(response.attempts_left);
+
+    if (!Number.isFinite(attemptsLeft) || attemptsLeft <= 0) {
+        alert('You have used all your free quizzes. Please subscribe for more.');
+        if (response.redirect_url) {
+            window.location.href = response.redirect_url;
         } else {
-            alert(response.msg || "Something went wrong.");
+            window.location.href = FRONT_WEBROOT.replace(/\/+$/, '') + '/pricing';
         }
+        return;
+    }
+
+    alert('You have ' + response.attempts_left + ' free quizzes left out of ' + response.quota);
+    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
+    return;
+}
+
     } catch (e) {
         console.error("Invalid JSON:", e);
         alert("Failed to parse server response.");
@@ -551,32 +561,45 @@ fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response)
         document.getElementById(tabId).classList.add('active');
     }
     // Handler for logged-in users to check quota before starting
-    $(document).on('click', '.start-quiz-logged-in', function () {
+ $(document).on('click', '.start-quiz-logged-in', function () {
     const subtopicId = $(this).data('subtopic-id');
 
-    fcom.ajax(fcom.makeUrl('Quizizz', 'checkQuota'), '', function (res) {
+    // checkQuota now also RESERVES (increments) an attempt
+    fcom.ajax(fcom.makeUrl('Quizizz', 'checkQuota'), 'subtopic_id=' + encodeURIComponent(subtopicId), function (res) {
         let response = res;
 
-        // Handle both string + object
         if (typeof res === 'string') {
-            try {
-                response = JSON.parse(res);
-            } catch (e) {
+            try { response = JSON.parse(res); } catch (e) {
                 console.error("Non-JSON response from checkQuota:", res);
                 alert("Failed to parse server response.");
                 return;
             }
         }
 
-        // YoCoach often wraps payload in response.data
+        const status = response.status ?? response.data?.status;
         const allowed = response.allowed ?? response.data?.allowed;
         const msg = response.msg ?? response.data?.msg;
         const redirectUrl = response.redirect_url ?? response.data?.redirect_url;
 
-        if ((response.status == 1 || response.success === true) && allowed) {
-            window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
-            return;
-        }
+        const attemptsLeft = response.attempts_left ?? response.data?.attempts_left;
+        const quota = response.quota ?? response.data?.quota;
+
+       if (status == 1 && allowed) {
+
+    if (response.is_subscribed == 1 || response.quota === 'unlimited') {
+        // no quota alert for subscribed users
+        window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+        return;
+    }
+
+    if (typeof attemptsLeft !== 'undefined' && typeof quota !== 'undefined') {
+        alert('You have ' + attemptsLeft + ' free quizzes left out of ' + quota);
+    }
+
+    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+    return;
+}
+
 
         alert(msg || 'Quota check failed');
         if (redirectUrl) window.location.href = redirectUrl;

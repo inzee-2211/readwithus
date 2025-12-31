@@ -19,13 +19,33 @@ class AccountController extends DashboardController
         parent::__construct($action);
     }
 
-    public function index()
-    {
+    // public function index()
+    // {
        
-        $url = ($this->siteUserType == User::TEACHER) ? 'Teacher' : 'Learner';
+    //     $url = ($this->siteUserType == User::TEACHER) ? 'Teacher' : 'Learner';
       
-        FatApp::redirectUser(MyUtility::makeUrl($url));
+    //     FatApp::redirectUser(MyUtility::makeUrl($url));
+    // }
+
+   public function index()
+{
+    // If session is Teacher type, keep existing behaviour
+    if ($this->siteUserType == User::TEACHER) {
+        FatApp::redirectUser(MyUtility::makeUrl('Teacher'));
     }
+
+    // Parent mode is controlled by session flag
+    $isParentMode = (!empty($_SESSION['RWU_DASHBOARD_ROLE']) && $_SESSION['RWU_DASHBOARD_ROLE'] === 'parent');
+
+    // Only redirect to Parent when user is parent AND parent mode is ON
+    if ($isParentMode && !empty($this->siteUser['user_is_parent']) && $this->siteUser['user_is_parent'] == AppConstant::YES) {
+        FatApp::redirectUser(MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD));
+    }
+
+    // Default learner
+    FatApp::redirectUser(MyUtility::makeUrl('Learner'));
+}
+
 
     /**
      * Render Change Password Page
@@ -658,6 +678,40 @@ class AccountController extends DashboardController
         }
         FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
     }
+
+    //lines added by rehan for parent portl
+    public function switchToParentProfile()
+{
+    if (empty($this->siteUser['user_is_parent']) || $this->siteUser['user_is_parent'] != AppConstant::YES) {
+        Message::addErrorMessage(Label::getLabel('MSG_ERROR_INVALID_ACCESS'));
+        FatApp::redirectUser(MyUtility::makeUrl('Learner'));
+    }
+
+    $_SESSION['RWU_DASHBOARD_ROLE'] = 'parent';
+    FatApp::redirectUser(MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD));
+}
+
+// public function switchToParentProfile()
+// {
+//     $_SESSION['RWU_DASHBOARD_ROLE'] = 'parent';
+//     MyUtility::setUserType(User::LEARNER); // parent runs under learner session type in your setup
+//     FatApp::redirectUser(MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD));
+// }
+
+public function switchToLearnerProfile()
+{
+    $_SESSION['RWU_DASHBOARD_ROLE'] = 'learner';
+    MyUtility::setUserType(User::LEARNER);
+    FatApp::redirectUser(MyUtility::makeUrl('Learner', '', [], CONF_WEBROOT_DASHBOARD));
+}
+
+public function switchToTeacherProfile()
+{
+    $_SESSION['RWU_DASHBOARD_ROLE'] = 'teacher';
+    MyUtility::setUserType(User::TEACHER);
+    FatApp::redirectUser(MyUtility::makeUrl('Teacher', '', [], CONF_WEBROOT_DASHBOARD));
+}
+
 
     /**
      * User Logout

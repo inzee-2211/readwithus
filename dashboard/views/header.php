@@ -97,9 +97,17 @@ if (empty($pageTitle) && empty($pageDescription)) {
     </script>
 </head>
 <?php $isPreviewOn = MyUtility::isDemoUrl() ? 'is-preview-on' : ''; ?>
+<?php
+$dashboardRole = $_SESSION['RWU_DASHBOARD_ROLE'] ?? '';
+$isParentMode  = ($dashboardRole === 'parent');
+$isParentPage = (strtolower($controllerName) === 'parent');
+
+$isUserParent = (!empty($siteUser['user_is_parent']) && $siteUser['user_is_parent'] == AppConstant::YES);
+$parentModeClass = ($isParentMode && $isUserParent && $isParentPage) ? 'is-parent-mode' : '';
+?>
 
 <body
-    class="dashboard-<?php echo (($siteUserType == User::TEACHER) ? 'teacher' : 'learner') . ' ' . strtolower($controllerName) . ' ' . strtolower($actionName) . ' ' . $mainDashboardClass . ' ' . $isPreviewOn; ?>">
+      class="dashboard-<?php echo (($siteUserType == User::TEACHER) ? 'teacher' : 'learner') . ' ' . $parentModeClass . ' ' . strtolower($controllerName) . ' ' . strtolower($actionName) . ' ' . $mainDashboardClass . ' ' . $isPreviewOn; ?>">
     <?php
     if (MyUtility::isDemoUrl()) {
         include(CONF_INSTALLATION_PATH . 'restore/view/header-bar.php');
@@ -260,8 +268,20 @@ if (empty($pageTitle) && empty($pageDescription)) {
                                         <h6 class="profile__title">
                                             <?php echo $siteUser['user_first_name'] . ' ' . $siteUser['user_last_name']; ?>
                                         </h6>
-                                        <?php $loggedAs = ($siteUserType == User::TEACHER) ? 'LBL_LOGGED_IN_AS_A_TEACHER' : 'LBL_LOGGED_IN_AS_A_LEARNER'; ?>
-                                        <small class="color-black"><?php echo Label::getLabel($loggedAs); ?></small>
+                                        <!-- <?php $loggedAs = ($siteUserType == User::TEACHER) ? 'LBL_LOGGED_IN_AS_A_TEACHER' : 'LBL_LOGGED_IN_AS_A_LEARNER'; ?>
+                                        <small class="color-black"><?php echo Label::getLabel($loggedAs); ?></small> -->
+<?php
+// use the variables already defined above the <body> (do NOT redefine them here)
+if ($isParentMode && $isUserParent && strtolower($controllerName) === 'parent') {
+    $loggedAsText = 'Logged In As A Parent';
+} else {
+    $loggedAsKey = ($siteUserType == User::TEACHER) ? 'LBL_LOGGED_IN_AS_A_TEACHER' : 'LBL_LOGGED_IN_AS_A_LEARNER';
+    $loggedAsText = Label::getLabel($loggedAsKey);
+}
+?>
+<small class="color-black"><?php echo $loggedAsText; ?></small>
+
+
                                     </div>
                                 </div>
                             </a>
@@ -289,16 +309,44 @@ if (empty($pageTitle) && empty($pageDescription)) {
                                                 <a href="<?php echo MyUtility::makeFullUrl('teachers', 'view', [$siteUser['user_username']], CONF_WEBROOT_FRONTEND); ?>"
                                                     class="btn btn--bordered color-third btn--block margin-top-2"><?php echo label::getLabel('LBL_View_Public_Profile'); ?></a>
                                             <?php } ?>
-                                            <a href="<?php echo MyUtility::makeUrl('Learner'); ?>"
-                                                class="btn btn--third btn--block margin-top-4"><?php echo label::getLabel('LBL_Switch_to_Learner_Profile'); ?></a>
+                                            <!-- <a href="<?php echo MyUtility::makeUrl('Learner'); ?>"
+                                                class="btn btn--third btn--block margin-top-4"><?php echo label::getLabel('LBL_Switch_to_Learner_Profile'); ?></a> -->
+                                                <a href="<?php echo MyUtility::makeUrl('Account', 'switchToLearnerProfile', [], CONF_WEBROOT_DASHBOARD); ?>"
+   class="btn btn--third btn--block margin-top-4">
+   <?php echo label::getLabel('LBL_Switch_to_Learner_Profile'); ?>
+</a>
+
                                             <?php
                                         }
                                         if ($siteUserType == User::LEARNER && ($siteUser['user_is_teacher'] == AppConstant::YES || $siteUser['user_registered_as'] == User::TEACHER)) {
                                             ?>
-                                            <a href="<?php echo MyUtility::makeUrl('Teacher'); ?>"
-                                                class="btn btn--third btn--block margin-top-4"><?php echo label::getLabel('LBL_Switch_to_Teacher_Profile'); ?></a>
+                                            <!-- <a href="<?php echo MyUtility::makeUrl('Teacher'); ?>"
+                                                class="btn btn--third btn--block margin-top-4"><?php echo label::getLabel('LBL_Switch_to_Teacher_Profile'); ?></a> -->
+                                                <a href="<?php echo MyUtility::makeUrl('Account', 'switchToTeacherProfile', [], CONF_WEBROOT_DASHBOARD); ?>"
+   class="btn btn--third btn--block margin-top-4">
+   <?php echo label::getLabel('LBL_Switch_to_Teacher_Profile'); ?>
+</a>
+
                                         <?php }
                                         ?>
+                                        <!-- <?php
+$isParentMode = (!empty($_SESSION['RWU_DASHBOARD_ROLE']) && $_SESSION['RWU_DASHBOARD_ROLE'] === 'parent');
+?> -->
+
+<?php if (!empty($siteUser['user_is_parent']) && $siteUser['user_is_parent'] == AppConstant::YES) { ?>
+    <?php if (!$isParentMode) { ?>
+        <a href="<?php echo MyUtility::makeUrl('Account', 'switchToParentProfile', [], CONF_WEBROOT_DASHBOARD); ?>"
+           class="btn btn--third btn--block margin-top-4">
+            Switch to Parent Profile
+        </a>
+    <?php } else { ?>
+        <a href="<?php echo MyUtility::makeUrl('Account', 'switchToLearnerProfile', [], CONF_WEBROOT_DASHBOARD); ?>"
+           class="btn btn--third btn--block margin-top-4">
+            Switch to Learner Profile
+        </a>
+    <?php } ?>
+<?php } ?>
+
                                     </div>
                                 </div>
                             </div>
@@ -311,7 +359,7 @@ if (empty($pageTitle) && empty($pageDescription)) {
                     <div class="sidebar__scroll">
                         <div id="primary-nav" class="menu-offset">
                             <!-- Display flashcard list on left sidebar in lesson view page  -->
-                            <?php
+                            <!-- <?php
                             $templateVariable = ['controllerName' => $controllerName, 'action' => $actionName, 'siteUser' => $siteUser, 'siteUserType' => $siteUserType];
                             $sidebarMenuLayout = '_partial/learner-sidebar.php';
                             if ($siteUserType == User::TEACHER) {
@@ -323,7 +371,32 @@ if (empty($pageTitle) && empty($pageDescription)) {
                                 $sidebarMenuLayout = '_partial/flashcard-sidebar.php';
                             }
                             $this->includeTemplate($sidebarMenuLayout, $templateVariable);
-                            ?>
+                            ?> -->
+                            <?php 
+                            $templateVariable = ['controllerName' => $controllerName, 'action' => $actionName, 'siteUser' => $siteUser, 'siteUserType' => $siteUserType];
+
+// $isParentMode = (!empty($_SESSION['RWU_DASHBOARD_ROLE']) && $_SESSION['RWU_DASHBOARD_ROLE'] === 'parent');
+
+$sidebarMenuLayout = '_partial/learner-sidebar.php';
+
+if ($siteUserType == User::TEACHER) {
+    $templateVariable['tpp'] = $siteUser['profile_progress'];
+    $sidebarMenuLayout = '_partial/teacher-sidebar.php';
+}
+
+// ONLY show parent sidebar when you are in Parent controller
+if (strtolower($controllerName) === 'parent' && $isUserParent) {
+    $sidebarMenuLayout = '_partial/parent-sidebar.php';
+}
+
+
+if (isset($flashcardSrchFrm)) {
+    $templateVariable['flashcardSrchFrm'] = $flashcardSrchFrm;
+    $sidebarMenuLayout = '_partial/flashcard-sidebar.php';
+}
+
+$this->includeTemplate($sidebarMenuLayout, $templateVariable);
+ ?>
                         </div>
                     </div>
                 </div>

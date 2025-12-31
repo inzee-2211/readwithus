@@ -17,16 +17,77 @@ class SubscriptionController extends MyAppController
             $p['name']        = $p['spackage_name'];
             $p['price_month'] = (float)$p['spackage_price_monthly'];
             $p['price_year']  = (float)$p['spackage_price_yearly'];
+            $p['is_quiz_only'] = !empty($p['spackage_is_quiz_only']);
+
         }
         $this->set('plans', $plans);
         $this->set('siteCurrency', $this->siteCurrency);
         $this->_template->render(true, true, 'pricing/index.php');
     }
+public function activateFreeQuizPlan($spackageId)
+{
+    // must be logged in
+    if (!UserAuth::isUserLogged()) {
+        Message::addErrorMessage(Label::getLabel('LBL_PLEASE_LOGIN'));
+        // optionally store redirect
+        $_SESSION['redirect_url'] = MyUtility::makeUrl('Subscription', 'activateFreeQuizPlan', [$spackageId]);
+        FatApp::redirectUser(MyUtility::makeUrl('GuestUser', 'loginForm'));
+    }
+
+    $spackageId = FatUtility::int($spackageId);
+
+    $pkg = SubscriptionPackage::getById($spackageId);
+    if (!$pkg) {
+        FatUtility::exitWithErrorCode(404);
+    }
+
+    // Ensure this is the quiz-only package
+    $isQuizOnly = !empty($pkg['spackage_is_quiz_only']);
+    if (!$isQuizOnly) {
+        Message::addErrorMessage('Invalid free plan.');
+        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+    }
+
+    // If user already has a paid active/trialing subscription, no need for free plan
+    $paid = UserSubscription::getActiveByUser($this->siteUserId);
+    if ($paid) {
+        Message::addMessage('You already have an active subscription. Quizzes are already unlocked.');
+        FatApp::redirectUser(MyUtility::makeUrl('Courses'));
+    }
+
+    // If user already has quiz-access subscription (including free), do nothing
+    $quizSub = UserSubscription::getQuizAccessByUser($this->siteUserId);
+    if ($quizSub) {
+        Message::addMessage('Free quiz access is already active.');
+        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+    }
+
+    // Create a free subscription row (no Stripe)
+    $data = [
+        'usubs_user_id'          => $this->siteUserId,
+        'usubs_spackage_id'      => $spackageId,
+        'usubs_billing_interval' => 'free',
+        'usubs_subject_ids'      => '',
+        'stripe_subscription_id' => null,
+        'stripe_customer_id'     => null,
+        'usubs_status'           => 'free',
+        'usubs_is_trial'         => 0,
+        'usubs_start_date'       => date('Y-m-d H:i:s'),
+        'usubs_end_date'         => null,
+    ];
+
+    UserSubscription::createOrActivate($data);
+
+    Message::addMessage('Free Quiz Plan activated! You now have unlimited quiz access.');
+    FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+}
 
     /* -----------------------------
      * Step 1: Select subjects (after package click)
      * URL: /subscription/select-subjects/{spackageId}/{billing}
      * ----------------------------- */
+
+    
    public function selectSubjects($spackageId, $billing = 'monthly')
 {
     if (!UserAuth::isUserLogged()) {

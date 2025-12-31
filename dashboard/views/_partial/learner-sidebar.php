@@ -44,6 +44,7 @@
                 </a>
             </li>
 
+
             <li class="menu__item <?php echo ($controllerName == "Lessons" && $action == 'index') ? 'is-active' : ''; ?>">
                 <a href="<?php echo MyUtility::makeUrl('Quizzez'); ?>">
                     <svg class="icon icon--lesson margin-right-2">
@@ -101,6 +102,7 @@
                     <span><?php echo Label::getLabel('LBL_MY_TEACHERS'); ?></span>
                 </a>
             </li>
+            
         </ul>
     </nav>
 </div>

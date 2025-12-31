@@ -83,6 +83,8 @@ class LearnerController extends DashboardController
     {
         MyUtility::setUserType(User::LEARNER);
         parent::__construct($action);
+        $_SESSION['RWU_DASHBOARD_ROLE'] = 'learner';
+
     }
 
     /**

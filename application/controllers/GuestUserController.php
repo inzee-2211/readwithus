@@ -53,11 +53,32 @@ use Google\Service\Oauth2;
 class GuestUserController extends MyAppController
 {
     
- private function getDashboardUrl(): string
-    {
-        // /dashboard/my-subscriptions
-        return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
+//  private function getDashboardUrl(): string
+//     {
+//         // /dashboard/my-subscriptions
+//         return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
+//     }
+private function getDashboardUrl(): string
+{
+    // If user is logged in and is a parent -> go to parent portal
+    if (!empty($this->siteUserId)) {
+        $isParent = !empty($this->siteUser['user_is_parent']);
+
+        // Fallback if siteUser doesn't include it for any reason
+        if (!$isParent) {
+            $row = User::getAttributesById($this->siteUserId, ['user_is_parent']);
+            $isParent = !empty($row['user_is_parent']);
+        }
+
+        if ($isParent) {
+            return MyUtility::makeUrl('Parent', '', [], CONF_WEBROOT_DASHBOARD);
+        }
     }
+
+    // Default existing behaviour
+    return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
+}
+
     /**
      * Initialize Guest User
      * 
