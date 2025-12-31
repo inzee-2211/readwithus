@@ -666,7 +666,7 @@ if ($hasSub && $isCurrent) {
     $ctaHref  = htmlspecialchars($p['cta_month_url']); // (paid) selectSubjects
     $fineText = 'Upgrade anytime.';
 } elseif (!$hasSub && $isQuizOnly) {
-    $ctaLabel = 'Activate free quiz plan';
+    $ctaLabel = 'Get Started';
     $ctaHref  = htmlspecialchars($p['cta_month_url']); // activateFreeQuizPlan
     $fineText = 'Free access to quizzes.';
 } elseif ($canStartTrial) {
