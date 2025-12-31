@@ -28,6 +28,32 @@ class UserSubscription
         $rs = $srch->getResultSet();
         return $db->fetch($rs);
     }
+/**
+ * Get any subscription that grants quiz access.
+ * - Includes: free, active, trialing
+ * - Allows end_date NULL (free plan) OR end_date >= NOW()
+ */
+public static function getQuizAccessByUser(int $userId)
+{
+    $db     = FatApp::getDb();
+    $userId = FatUtility::int($userId);
+
+    if ($userId < 1) {
+        return null;
+    }
+
+    $sql = "
+        SELECT u.*
+        FROM " . self::DB_TBL . " u
+        WHERE u.usubs_user_id = " . (int)$userId . "
+          AND u.usubs_status IN ('free', 'active', 'trialing')
+          AND (u.usubs_end_date IS NULL OR u.usubs_end_date >= " . $db->quoteVariable(date('Y-m-d H:i:s')) . ")
+        ORDER BY u.usubs_id DESC
+        LIMIT 1
+    ";
+
+    return $db->fetch($db->query($sql));
+}
 
     /**
      * Check if user subscription allows access to this course
