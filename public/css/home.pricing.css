@@ -134,17 +134,19 @@
 }
 
 /* Grid */
-.rwu-pricing .grid {
+/* Grid (centers automatically for 1–2 cards, scales for 3+) */
+.rwu-pricing .grid{
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: center; /* ✅ centers the whole grid track */
   gap: 26px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 360px));
 }
-@media (max-width: 1000px){
-  .rwu-pricing .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+
+/* Mobile */
 @media (max-width: 680px){
   .rwu-pricing .grid{ grid-template-columns: 1fr; }
 }
+
 
 /* Card */
 .rwu-plan {
