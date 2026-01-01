@@ -27,16 +27,12 @@ $frm->setFormTagAttribute('enctype', 'multipart/form-data'); // ✅ keep upload 
         <h4 class="mb-0">
             <?php echo ($categoryId > 0) ? Label::getLabel('LBL_EDIT_QUIZ') : Label::getLabel('LBL_ADD_QUIZ'); ?>
         </h4>
-<a href="<?php echo MyUtility::makeUrl('Coursemanagement', 'downloadSampleCsv'); ?>"
+       <a href="<?php echo MyUtility::makeUrl('Coursemanagement', 'downloadSampleCsv'); ?>"
    class="btn btn--primary btn--sm"
    title="Download sample course import file">
     <i class="ion-android-download"></i> Download Sample CSV
 </a>
-           class="btn btn--primary btn--sm"
-           download
-           title="Download sample course import file">
-            <i class="ion-android-download"></i> Download Sample CSV
-        </a>
+
     </div>
 
     <div class="sectionbody space">
