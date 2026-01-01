@@ -201,48 +201,31 @@ class QuizizzController extends MyAppController
     }
 
     $db = FatApp::getDb();
-   $email = $this->getSessionQuizEmail();
+  $email = $this->getSessionQuizEmail();
+$subInfo = $this->getSubscriptionInfo($email);
 
-if ($email !== '') {
-    $subInfo = $this->getSubscriptionInfo($email);
-    if (!empty($subInfo['is_subscribed'])) {
-        echo json_encode([
-            'status' => 1,
-            'allowed' => true,
-            'is_subscribed' => 1,
-            'subscription_status' => $subInfo['status'],
-            'quota' => 'unlimited',
-            'attempts_left' => null,
-            'attempts_used' => null,
-        ]);
-        exit;
-    }
+if (!empty($subInfo['is_subscribed'])) {
+    echo json_encode([
+        'status' => 1,
+        'allowed' => true,
+        'is_subscribed' => 1,
+        'subscription_status' => $subInfo['status'],
+        'quota' => 'unlimited',
+        'attempts_left' => null,
+        'attempts_used' => null,
+    ]);
+    exit;
 }
 
 
-    // 1) Subscription check => unlimited, no increment
-    $subInfo = $this->getSubscriptionInfo($email);
-    if (!empty($subInfo['is_subscribed'])) {
-        echo json_encode([
-            'status' => 1,
-            'allowed' => true,
-            'is_subscribed' => 1,
-            'subscription_status' => $subInfo['status'],
-            'quota' => 'unlimited',
-            'attempts_left' => null,
-            'attempts_used' => null,
-        ]);
-        exit;
-    }
+
+    
 
     // 2) Not subscribed => normal quota
     $quota = $this->getFreeQuizQuotaByEmail($email);
 
-    $row = $db->fetch($db->query(
-        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
-        [$quizUserId]
-    ));
-    $attempts = (int)($row['quiz_attempts_count'] ?? 0);
+   $attempts = $this->getQuizAttemptsCount($quizUserId);
+
 
     if ($attempts >= $quota) {
         echo json_encode([
@@ -259,18 +242,9 @@ if ($email !== '') {
     }
 
     // Reserve attempt here
-    $db->query("
-        UPDATE course_attempt_userdetails
-        SET quiz_attempts_count = quiz_attempts_count + 1,
-            quiz_attempts_updated_at = NOW()
-        WHERE id = " . (int)$quizUserId
-    );
+   $this->incrementQuizAttempts($quizUserId);
+$newAttempts = $this->getQuizAttemptsCount($quizUserId);
 
-    $updatedRow = $db->fetch($db->query(
-        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
-        [$quizUserId]
-    ));
-    $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? ($attempts + 1));
 
     echo json_encode([
         'status' => 1,
@@ -391,11 +365,8 @@ $subInfo = $this->getSubscriptionInfo($sessionEmail);
     // ❌ Not subscribed => normal quota
     $quota = $this->getFreeQuizQuotaByEmail($sessionEmail);
 
-    $row2 = $db->fetch($db->query(
-        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
-        [(int)$quizUserId]
-    ));
-    $attempts = (int)($row2['quiz_attempts_count'] ?? 0);
+$attempts = $this->getQuizAttemptsCount($quizUserId);
+
 
     if ($attempts >= $quota) {
         echo json_encode([
@@ -411,18 +382,9 @@ $subInfo = $this->getSubscriptionInfo($sessionEmail);
     }
 
     // Reserve attempt now (+1)
-    $db->query("
-        UPDATE course_attempt_userdetails
-        SET quiz_attempts_count = quiz_attempts_count + 1,
-            quiz_attempts_updated_at = NOW()
-        WHERE id = " . (int)$quizUserId
-    );
+    $this->incrementQuizAttempts($quizUserId);
+$newAttempts = $this->getQuizAttemptsCount($quizUserId);
 
-    $updatedRow = $db->fetch($db->query(
-        "SELECT quiz_attempts_count FROM course_attempt_userdetails WHERE id = ?",
-        [(int)$quizUserId]
-    ));
-    $newAttempts = (int)($updatedRow['quiz_attempts_count'] ?? ($attempts + 1));
 
     echo json_encode([
         'status' => 1,
@@ -437,6 +399,50 @@ $subInfo = $this->getSubscriptionInfo($sessionEmail);
     exit;
 }
 
+private function getQuizAttemptsCount(int $quizUserId): int
+{
+    if ($quizUserId < 1) return 0;
+
+    $db = FatApp::getDb();
+    $srch = new SearchBase('course_attempt_userdetails', 'u');
+    $srch->addCondition('u.id', '=', (int)$quizUserId);
+    $srch->addFld('u.quiz_attempts_count');
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    return (int)($row['quiz_attempts_count'] ?? 0);
+}
+
+private function incrementQuizAttempts(int $quizUserId): bool
+{
+    if ($quizUserId < 1) return false;
+
+    $db = FatApp::getDb();
+    $id = (int)$quizUserId;
+
+    // safe because it's an int cast
+    return (bool)$db->query("
+        UPDATE course_attempt_userdetails
+        SET quiz_attempts_count = quiz_attempts_count + 1,
+            quiz_attempts_updated_at = NOW()
+        WHERE id = {$id}
+    ");
+}
+
+private function getQuizEmailById(int $quizUserId): string
+{
+    if ($quizUserId < 1) return '';
+
+    $db = FatApp::getDb();
+    $srch = new SearchBase('course_attempt_userdetails', 'u');
+    $srch->addCondition('u.id', '=', (int)$quizUserId);
+    $srch->addFld('u.email');
+    $srch->setPageSize(1);
+
+    $row = $db->fetch($srch->getResultSet());
+    $email = strtolower(trim((string)($row['email'] ?? '')));
+    return (filter_var($email, FILTER_VALIDATE_EMAIL)) ? $email : '';
+}
 
     public function submitfindatutor()
     {
@@ -1023,27 +1029,22 @@ private function getSessionQuizEmail(): string
     $email = (string)($_SESSION['quiz_user']['email'] ?? '');
     $email = strtolower(trim($email));
 
-    // If already valid, use it
+    // If already valid, use it 
     if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return $email;
     }
 
     // Fallback: load email from course_attempt_userdetails using quiz_user id
-    $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
-    if ($quizUserId > 0) {
-        $db = FatApp::getDb();
-        $row = $db->fetch($db->query(
-            "SELECT email FROM course_attempt_userdetails WHERE id = ? LIMIT 1",
-            [$quizUserId]
-        ));
+   // Fallback: load email from course_attempt_userdetails using quiz_user id
+$quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+if ($quizUserId > 0) {
+    $dbEmail = $this->getQuizEmailById($quizUserId);
+    if ($dbEmail !== '') {
+        $_SESSION['quiz_user']['email'] = $dbEmail;
+        return $dbEmail;
+    }    
+}
 
-        $dbEmail = strtolower(trim((string)($row['email'] ?? '')));
-        if ($dbEmail !== '' && filter_var($dbEmail, FILTER_VALIDATE_EMAIL)) {
-            // repair session so future calls are safe
-            $_SESSION['quiz_user']['email'] = $dbEmail;
-            return $dbEmail;
-        }
-    }
 
     return '';
 }
