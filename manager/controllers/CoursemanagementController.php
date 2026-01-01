@@ -174,6 +174,63 @@ private function getForm(int $id = 0): Form
     return $frm;
 }
 
+public function downloadSampleCsv()
+{
+    $this->objPrivilege->canViewCourses();
+
+    // Force download
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="quiz_questions_sample.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+
+    // UTF-8 BOM for Excel compatibility
+    fwrite($out, "\xEF\xBB\xBF");
+
+    // This matches your setup() CSV import (11 columns)
+    $headers = [
+        'question_text',
+        'answer_a',
+        'answer_b',
+        'answer_c',
+        'answer_d',
+        'correct_answer',   // A/B/C/D
+        'difficulty',       // Easy/Medium/Hard
+        'question_type',    // Multiple-Choice / Story-Based / Short (recommend Multiple-Choice here)
+        'hint',
+        'explanation',
+        'image_url'
+    ];
+    fputcsv($out, $headers);
+
+    // Sample rows
+    fputcsv($out, [
+        'What is 2 + 2?',
+        '3', '4', '5', '6',
+        'B',
+        'Easy',
+        'Multiple-Choice',
+        'Think about pairs.',
+        '2 + 2 equals 4.',
+        'https://example.com/sample-q1.png'
+    ]);
+
+    fputcsv($out, [
+        'Read: "The cat sat on the mat." Which word is a noun?',
+        'cat', 'sat', 'on', 'mat',
+        'A',
+        'Medium',
+        'Multiple-Choice',
+        'A noun is a person/place/thing.',
+        '"Cat" is a noun (a thing/animal).',
+        ''
+    ]);
+
+    fclose($out);
+    exit; // IMPORTANT: stop template output
+}
 
 public function topicsBySubject()
 {
