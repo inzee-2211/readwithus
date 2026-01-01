@@ -10,6 +10,17 @@
         <span><?php echo Label::getLabel('LBL_MY_SUBSCRIPTIONS'); ?></span>
     </a>
 </li>
+<li class="menu__item <?php echo ($controllerName == "Learner" && $action == "parentRequests") ? 'is-active' : ''; ?>">
+    <a href="<?php echo MyUtility::makeUrl('Learner', 'parentRequests', [], CONF_WEBROOT_DASHBOARD); ?>">
+        <svg class="icon icon--notification margin-right-2">
+            <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#notification'; ?>"></use>
+        </svg>
+        <span><?php echo Label::getLabel('LBL_PARENT_REQUESTS'); ?></span>
+        <?php if (!empty($pendingParentRequestsCount)) { ?>
+            <span class="badge badge--danger badge--small"><?php echo $pendingParentRequestsCount; ?></span>
+        <?php } ?>
+    </a>
+</li>
             <li class="menu__item <?php echo ($controllerName == "Learner" && $action == "index") ? 'is-active' : ''; ?> ">
                 <a href="<?php echo MyUtility::makeUrl('Learner'); ?>">
                     <svg class="icon icon--dashboard margin-right-2">

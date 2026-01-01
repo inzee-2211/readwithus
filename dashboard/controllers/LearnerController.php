@@ -128,6 +128,117 @@ class LearnerController extends DashboardController
     $this->_template->render();
 }
 
+
+/**
+ * List pending parent requests
+ */
+public function parentRequests()
+{
+    $pendingRequests = $this->getPendingParentRequests();
+    
+    $this->sets([
+        'pendingRequests' => $pendingRequests,
+    ]);
+    $this->_template->render();
+}
+
+/**
+ * Approve parent request
+ */
+public function approveParentRequest($requestId)
+{
+    $requestId = FatUtility::int($requestId);
+    if ($requestId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $db = FatApp::getDb();
+    
+    // Check if request exists and belongs to this user
+    $srch = new SearchBase(ParentController::DB_TBL_PARENT_STUDENTS, 'ps');
+    $srch->addCondition('ps.parstd_id', '=', $requestId);
+    $srch->addCondition('ps.parstd_student_user_id', '=', $this->siteUserId);
+    $srch->addCondition('ps.parstd_status', '=', ParentController::STATUS_PENDING);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+    $request = $db->fetch($srch->getResultSet());
+    
+    if (empty($request)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    // Update status to approved
+    $data = [
+        'parstd_status' => ParentController::STATUS_APPROVED,
+        'parstd_approved_at' => date('Y-m-d H:i:s')
+    ];
+    
+    if (!$db->updateFromArray(ParentController::DB_TBL_PARENT_STUDENTS, $data, 
+        ['smt' => 'parstd_id = ?', 'vals' => [$requestId]])) {
+        FatUtility::dieJsonError($db->getError());
+    }
+
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_REQUEST_APPROVED_SUCCESSFULLY'));
+}
+
+/**
+ * Reject parent request
+ */
+public function rejectParentRequest($requestId)
+{
+    $requestId = FatUtility::int($requestId);
+    if ($requestId < 1) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    $db = FatApp::getDb();
+    
+    // Check if request exists and belongs to this user
+    $srch = new SearchBase(ParentController::DB_TBL_PARENT_STUDENTS, 'ps');
+    $srch->addCondition('ps.parstd_id', '=', $requestId);
+    $srch->addCondition('ps.parstd_student_user_id', '=', $this->siteUserId);
+    $srch->addCondition('ps.parstd_status', '=', ParentController::STATUS_PENDING);
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+    $request = $db->fetch($srch->getResultSet());
+    
+    if (empty($request)) {
+        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+    }
+
+    // Update status to rejected
+    $data = ['parstd_status' => ParentController::STATUS_REJECTED];
+    
+    if (!$db->updateFromArray(ParentController::DB_TBL_PARENT_STUDENTS, $data, 
+        ['smt' => 'parstd_id = ?', 'vals' => [$requestId]])) {
+        FatUtility::dieJsonError($db->getError());
+    }
+
+    FatUtility::dieJsonSuccess(Label::getLabel('LBL_REQUEST_REJECTED_SUCCESSFULLY'));
+}
+
+/**
+ * Get pending parent requests for current user
+ */
+private function getPendingParentRequests(): array
+{
+    $srch = new SearchBase(ParentController::DB_TBL_PARENT_STUDENTS, 'ps');
+    $srch->joinTable(User::DB_TBL, 'INNER JOIN', 'parent.user_id = ps.parstd_parent_user_id', 'parent');
+    $srch->addCondition('ps.parstd_student_user_id', '=', $this->siteUserId);
+    $srch->addCondition('ps.parstd_status', '=', ParentController::STATUS_PENDING);
+    $srch->addMultipleFields([
+        'ps.parstd_id',
+        'ps.parstd_relation',
+        'ps.parstd_added_on',
+        'parent.user_id as parent_id',
+        'parent.user_first_name',
+        'parent.user_last_name',
+        'parent.user_email',
+    ]);
+    $srch->addOrder('ps.parstd_added_on', 'DESC');
+    return FatApp::getDb()->fetchAll($srch->getResultSet());
+}
+
     /**
      * Toggle Teacher Favorite
      */

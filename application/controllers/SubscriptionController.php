@@ -46,7 +46,7 @@ public function activateFreeQuizPlan($spackageId)
     $isQuizOnly = !empty($pkg['spackage_is_quiz_only']);
     if (!$isQuizOnly) {
         Message::addErrorMessage('Invalid free plan.');
-        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+        FatApp::redirectUser(MyUtility::makeUrl('pricing', 'index'));
     }
 
     // If user already has a paid active/trialing subscription, no need for free plan
@@ -60,7 +60,7 @@ public function activateFreeQuizPlan($spackageId)
     $quizSub = UserSubscription::getQuizAccessByUser($this->siteUserId);
     if ($quizSub) {
         Message::addMessage('Free quiz access is already active.');
-        FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+        FatApp::redirectUser(MyUtility::makeUrl('pricing', 'index'));
     }
 
     // Create a free subscription row (no Stripe)
@@ -88,7 +88,7 @@ public function activateFreeQuizPlan($spackageId)
     UserSubscription::createOrActivate($data);
 
     Message::addMessage('Free Quiz Plan activated! You now have unlimited quiz access.');
-    FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+    FatApp::redirectUser(MyUtility::makeUrl('pricing', 'index'));
 }
 
     /* -----------------------------
