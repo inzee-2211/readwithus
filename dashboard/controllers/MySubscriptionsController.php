@@ -21,20 +21,54 @@ class MySubscriptionsController extends DashboardController
     /**
      * My Subscription page for learner
      */
-    public function index()
-    {
-        $subscription = $this->getActiveSubscription($this->userId);
-        $subjects     = $this->getSubscriptionSubjects($subscription);
+    // public function index()
+    // {
+    //     $subscription = $this->getActiveSubscription($this->userId);
+    //     $subjects     = $this->getSubscriptionSubjects($subscription);
 
-        $this->set('subscription', $subscription);
-        $this->set('subjects', $subjects);
+    //     $this->set('subscription', $subscription);
+    //     $this->set('subjects', $subjects);
 
-        // Pricing page URL (for upgrade / browse plans)
-        $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
-        $this->set('pricingUrl', $pricingUrl);
+    //     // Pricing page URL (for upgrade / browse plans)
+    //     $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
+    //     $this->set('pricingUrl', $pricingUrl);
 
-        $this->_template->render(true,true);
+    //     $this->_template->render(true,true);
+    // }
+
+public function index()
+{
+    $subscription = $this->getActiveSubscription($this->userId);
+    $subjects     = $this->getSubscriptionSubjects($subscription);
+
+    $this->set('subscription', $subscription);
+    $this->set('subjects', $subjects);
+
+    // Pricing page URL (for upgrade / browse plans)
+    $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
+    $this->set('pricingUrl', $pricingUrl);
+
+    /**
+     * ✅ Detect FREE plan
+     * Use whatever fields exist in your tbl_subscription_packages.
+     * This is written to be robust even if some fields are missing.
+     */
+    $isFreePlan = false;
+    if (!empty($subscription)) {
+        $title = strtolower(trim(($subscription['spackage_title'] ?? $subscription['spackage_name'] ?? '')));
+        $price = $subscription['spackage_price'] ?? $subscription['spackage_amount'] ?? null;
+
+        $isFreePlan =
+            ((int)($subscription['spackage_is_free'] ?? 0) === 1) ||
+            ($price !== null && (float)$price <= 0) ||
+            (strpos($title, 'free') !== false);
     }
+
+    $this->set('isFreePlan', $isFreePlan);
+
+    $this->_template->render(true,true);
+}
+
 
     /**
      * Cancel subscription (AJAX / POST)

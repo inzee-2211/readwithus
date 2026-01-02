@@ -753,7 +753,7 @@ $isActiveLike = in_array($status, ['active', 'trialing'], true);
 
     <?php if (empty($subjects)) { ?>
         <p class="subs-empty-text">
-            <?php echo Label::getLabel('LBL_NO_SUBJECTS_SELECTED_YET'); ?>
+            <?php echo Label::getLabel('LBL_NO_SUBJECTS_AVAILABLE'); ?>
         </p>
     <?php } else { ?>
         <div class="subs-tags">
@@ -766,14 +766,27 @@ $isActiveLike = in_array($status, ['active', 'trialing'], true);
     <?php } ?>
 
     <!-- NEW: benefits of this plan under unlocked subjects -->
-    <div class="subs-plan-benefits">
-        <h5><?php echo Label::getLabel('LBL_WHATS_INCLUDED_IN_YOUR_PLAN'); ?></h5>
+  <div class="subs-plan-benefits">
+    <h5><?php echo Label::getLabel('LBL_WHATS_INCLUDED_IN_YOUR_PLAN'); ?></h5>
+
+    <?php if (!empty($isFreePlan)) { ?>
+        <!-- ✅ FREE PLAN BENEFITS ONLY -->
         <ul>
+            <li>Free quizzes and video lessons included in the Free Plan.</li>
+            <li>Basic progress tracking.</li>
+            <li>Upgrade to unlock AI Tutor and full exam-style practice.</li>
+        </ul>
+    <?php } else { ?>
+        <!-- ✅ PAID/TRIAL (NON-FREE) PLAN BENEFITS -->
+        <ul>
+            <li>Access to all subjects included in your subscription plan.</li>
             <li>AI Tutor support for step-by-step help on topics.</li>
             <li>Unlimited practice quizzes & exam-style questions.</li>
-            <li>Topic-wise video lessons .</li>
+            <li>Topic-wise video lessons.</li>
         </ul>
-    </div>
+    <?php } ?>
+</div>
+
 </div>
 
 

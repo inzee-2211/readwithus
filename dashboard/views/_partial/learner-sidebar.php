@@ -61,7 +61,7 @@
                     <svg class="icon icon--lesson margin-right-2">
                         <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#lessons'; ?>"></use>
                     </svg>
-                    <span><?php echo Label::getLabel('LBL_QUIZZES'); ?></span>
+                    <span><?php echo Label::getLabel('LBL_EXAM_HISTORY'); ?></span>
                 </a>
             </li>
 

@@ -3,7 +3,11 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 if (count($courses) == 0) {
 
     // ✅ If learner has no subscription → show custom message
-    if (!empty($noActiveSubscription) && $siteUserType == User::LEARNER) { ?>
+    if (!empty($noActiveSubscription) && $siteUserType == User::LEARNER) { 
+        
+        // ✅ MUST open application pricing (front), not dashboard
+        $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
+        ?>
         <div class="no-data no-data--empty">
             <div class="no-data__img">
                 <svg class="icon icon--empty" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
@@ -14,12 +18,89 @@ if (count($courses) == 0) {
             </div>
 
             <h4><?php echo Label::getLabel('LBL_NO_ACTIVE_SUBSCRIPTION'); ?></h4>
-            <p><?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?></p>
+            <p class="margin-bottom-3"><?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?></p>
 
-            <a class="btn btn--primary" href="<?php echo MyUtility::makeUrl('my-subscriptions'); ?>">
-                <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
-            </a>
+          <ul class="text-left" style="max-width:720px; margin:0 0 18px; line-height:1.9;">
+
+                <li><strong>Unlimited course access</strong> for the subjects included in your plan.</li>
+                <li><strong>Structured learning path</strong> (Exam board + Tier) so you always know what to study next.</li>
+                <li><strong>Quizzes + exam practice</strong> to improve performance with real patterns.</li>
+                <li><strong>Progress tracking</strong> to stay consistent and complete faster.</li>
+                <li><strong>New content added regularly</strong> across levels and subjects.</li>
+                <li><strong>Better value</strong> than buying individual courses separately.</li>
+            </ul>
+
+<div class="buttons-group margin-top-4" style="gap:10px; display:flex; flex-wrap:wrap; justify-content:flex-start;">
+                <!-- Primary CTA -->
+                <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">
+                    <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
+                </a>
+
+                <!-- Secondary CTA -->
+                <a class="btn btn--bordered color-secondary" href="javascript:void(0);" onclick="openUnlockModal();">
+                    See what you’ll unlock
+                </a>
+            </div>
         </div>
+
+        <!-- ✅ Self-contained modal overlay (won't break layout if theme modal CSS differs) -->
+        <div id="unlockModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; align-items:center; justify-content:center;">
+            <div id="unlockModalBox" style="width:100%; max-width:860px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25);">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid rgba(0,0,0,.08);">
+                    <h4 style="margin:0;">What you’ll unlock with a subscription</h4>
+                    <button type="button" aria-label="Close" onclick="closeUnlockModal();"
+                        style="border:0; background:transparent; font-size:22px; line-height:1; cursor:pointer;">&times;</button>
+                </div>
+
+                <div style="padding:18px;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 style="margin-top:0;">Learning Experience</h5>
+                            <ul style="line-height:1.9; margin-bottom:0;">
+                                <li>Unlimited access to courses in your subscribed subjects</li>
+                                <li>Structured tiers (Exam board → Tier) with a clear study path</li>
+                                <li>Quizzes + exam practice to boost scores</li>
+                                <li>Progress tracking to keep you consistent</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 style="margin-top:0;">Value & Support</h5>
+                            <ul style="line-height:1.9; margin-bottom:0;">
+                                <li>New lessons and practice material added regularly</li>
+                                <li>Better value than purchasing courses individually</li>
+                                <li>Access from any device — learn anytime</li>
+                                <li>Clear goals and milestones to stay on track</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="margin-top-4" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+                        <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">View Plans</a>
+                        <a class="btn btn--bordered" href="javascript:void(0);" onclick="closeUnlockModal();">Not now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function openUnlockModal() {
+            var overlay = document.getElementById('unlockModalOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+        function closeUnlockModal() {
+            var overlay = document.getElementById('unlockModalOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+        document.addEventListener('click', function(e){
+            var overlay = document.getElementById('unlockModalOverlay');
+            if (!overlay || overlay.style.display !== 'flex') return;
+            if (e.target === overlay) closeUnlockModal();
+        });
+        document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape') closeUnlockModal();
+        });
+        </script>
+
     <?php
         return;
     }
@@ -249,3 +330,24 @@ $pagingArr = [
 
 $this->includeTemplate('_partial/pagination.php', $pagingArr, false);
 echo FatUtility::createHiddenFormFromData($post, ['name' => 'frmPaging']);
+?>
+<script>
+function openUnlockModal() {
+    var overlay = document.getElementById('unlockModalOverlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+function closeUnlockModal() {
+    var overlay = document.getElementById('unlockModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+// close on background click
+document.addEventListener('click', function(e){
+    var overlay = document.getElementById('unlockModalOverlay');
+    if (!overlay || overlay.style.display !== 'flex') return;
+    if (e.target === overlay) closeUnlockModal();
+});
+// close on ESC
+document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeUnlockModal();
+});
+</script>
