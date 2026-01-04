@@ -52,20 +52,30 @@ class TeacherSearch extends YocoachSearch
      * 
      * @return void
      */
-    public function applyPrimaryConditions(): void
-    {
-        $this->addCondition('teacher.user_username', '!=', "");
-        $this->addDirectCondition('teacher.user_deleted IS NULL');
-        $this->addDirectCondition('teacher.user_verified IS NOT NULL');
-        $this->addCondition('teacher.user_country_id', '>', AppConstant::NO);
-        $this->addCondition('teacher.user_active', '=', AppConstant::ACTIVE);
-        $this->addCondition('teacher.user_is_teacher', '=', AppConstant::YES);
-        $this->addCondition('testat.testat_teachlang', '=', AppConstant::YES);
-        $this->addCondition('testat.testat_speaklang', '=', AppConstant::YES);
-        $this->addCondition('testat.testat_preference', '=', AppConstant::YES);
-        $this->addCondition('testat.testat_availability', '=', AppConstant::YES);
-        $this->addCondition('testat.testat_qualification', '=', AppConstant::YES);
-    }
+public function applyPrimaryConditions(): void
+{
+    // keep only safety/validity filters
+    $this->addDirectCondition('teacher.user_deleted IS NULL');
+    $this->addCondition('teacher.user_active', '=', AppConstant::ACTIVE);
+    $this->addCondition('teacher.user_is_teacher', '=', AppConstant::YES);
+
+    // keep country requirement if you need flags/locations
+    $this->addCondition('teacher.user_country_id', '>', AppConstant::NO);
+
+    // OPTIONAL: if you want to show unverified teachers too, remove this
+    $this->addDirectCondition('teacher.user_verified IS NOT NULL');
+
+    // ❌ remove these “profile completion” restrictions
+    // $this->addCondition('testat.testat_teachlang', '=', AppConstant::YES);
+    // $this->addCondition('testat.testat_speaklang', '=', AppConstant::YES);
+    // $this->addCondition('testat.testat_preference', '=', AppConstant::YES);
+    // $this->addCondition('testat.testat_availability', '=', AppConstant::YES);
+    // $this->addCondition('testat.testat_qualification', '=', AppConstant::YES);
+
+    // ❌ remove username requirement (we’ll handle link fallback)
+    $this->addCondition('teacher.user_username', '!=', "");
+}
+
 
     /**
      * Apply Search Conditions

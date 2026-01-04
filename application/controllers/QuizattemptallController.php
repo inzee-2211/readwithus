@@ -430,51 +430,74 @@ foreach ($results as $res) {
 }
 
     public function getQuestions()
-    {
-        $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
-        $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
-      
-        $subtopicId = isset($posts['subtopicid']) ? (int)$posts['subtopicid'] : 0;
-        //echo $subtopicId;die;
-        $db = FatApp::getDb();
-        $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = ".$subtopicId." ORDER BY RAND() LIMIT 10";
- 
+{
+    $posts = FatApp::getPostedData();
+    $subtopicId = FatUtility::int($posts['subtopicid'] ?? 0);
 
-      //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
-    
-        $result = $db->query($query);
-    
-        if ($result) {
-            $quizzes = $db->fetchAll($result);
-    
-            
-            $formattedQuestions = [];
-            foreach ($quizzes as $quiz) {
-                $formattedQuestions[] = [
-                    "id" => $quiz['id'],
-                    "text" => $quiz['question_title'],
-                    "type" => $quiz['question_type'],
-                    "options" => array_values(array_filter([
-                        $quiz['answer_a'], 
-                        $quiz['answer_b'], 
-                        $quiz['answer_c'], 
-                        $quiz['answer_d']
-                    ])),  
-                    "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
-                    "hint" => $quiz['hint'],
-                    "explanation" => $quiz['explanation'],
-                    "image" => $quiz['image'] ?? ''
-                ];
-            }
-     
-            FatUtility::dieJsonSuccess([
-                'success' => true,
-                'data' => $formattedQuestions
-            ]);
-        } else {
-            FatUtility::dieJsonError("No questions found.");
-        }
+    if ($subtopicId <= 0) {
+        FatUtility::dieJsonError("Invalid subtopic id.");
     }
+
+    $db = FatApp::getDb();
+
+    // 1) Get questions
+    $qSql = "SELECT * FROM tbl_quaestion_bank
+             WHERE subtopic_id = ?
+             ORDER BY RAND()
+             LIMIT 10";
+    $qRs = $db->query($qSql, [$subtopicId]);
+
+    if (!$qRs) {
+        FatUtility::dieJsonError("No questions found.");
+    }
+
+    $quizzes = $db->fetchAll($qRs);
+
+    $formattedQuestions = [];
+    foreach ($quizzes as $quiz) {
+        $formattedQuestions[] = [
+            "id" => $quiz['id'],
+            "text" => $quiz['question_title'],
+            "type" => $quiz['question_type'],
+            "options" => array_values(array_filter([
+                $quiz['answer_a'],
+                $quiz['answer_b'],
+                $quiz['answer_c'],
+                $quiz['answer_d']
+            ])),
+            "answer" => explode(",", (string)$quiz['correct_answer']),
+            "hint" => $quiz['hint'],
+            "explanation" => $quiz['explanation'],
+            "image" => $quiz['image'] ?? ''
+        ];
+    }
+
+    // 2) Detect subject for this subtopic (quiz_management.id)
+    $sSql = "
+        SELECT cs.subject
+        FROM tbl_quiz_management qm
+        INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+        INNER JOIN course_subjects cs ON cs.id = qs.subject_id
+        WHERE qm.id = ?
+        LIMIT 1
+    ";
+    $sRs = $db->query($sSql, [$subtopicId]);
+    $sRow = $sRs ? $db->fetch($sRs) : [];
+
+    $subjectName = strtolower(trim($sRow['subject'] ?? ''));
+    $isMathSubject = (strpos($subjectName, 'math') !== false); // matches math/maths/mathematics
+
+    FatUtility::dieJsonSuccess([
+        'success' => true,
+        'data' => $formattedQuestions,
+        'meta' => [
+            'subjectName'   => $subjectName,
+            'isMathSubject' => $isMathSubject,
+            'subtopicId'    => $subtopicId,
+        ]
+    ]);
+}
+
     
     public function getQuizizzList()
 {

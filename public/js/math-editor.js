@@ -93,7 +93,9 @@
                 // Set attributes for MathLive
                 mathField.setAttribute('virtual-keyboard-mode', mode);
                 mathField.setAttribute('virtual-keyboard-layout', layout);
-                mathField.setAttribute('virtual-keyboard-policy', 'manual');
+                // mathField.setAttribute('virtual-keyboard-policy', 'manual');
+                mathField.setAttribute('virtual-keyboard-policy', 'auto');
+
                 
                 // Set initial value
                 if (hidden.value) {

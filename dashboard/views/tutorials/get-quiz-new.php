@@ -1,5 +1,13 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
 
+<?php if (!empty($quizDetails['is_math'])): ?>
+    <!-- Math editor only for math quizzes on attempt screen -->
+    <link rel="stylesheet"
+           href="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive-static.css" />
+<script src="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js"></script>
+    <script src="<?php echo CONF_WEBROOT_DASHBOARD; ?>../js/math-editor.js"></script>
+<?php endif; ?>
+
 <?php if ($quizDetails) { ?>
 <style>
 /* ====== Layout (sidebar LEFT + widened question panel) ====== */
@@ -34,6 +42,48 @@
   display:flex; align-items:center; justify-content:space-between;
   background:#fff7ed; border:1px solid #fde7c7; color:#8a4b10;
   border-radius:10px; padding:10px 12px; font-weight:700;
+}
+/* Add to the style section in get-quiz-new.php */
+.quiz-math-wrapper {
+    position: relative;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f9fafb;
+    padding: 12px;
+}
+
+.quiz-math-wrapper math-field {
+    min-height: 40px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-family: "Cambria Math", "Latin Modern Math", STIXGeneral, serif;
+}
+
+.quiz-math-wrapper math-field:focus {
+    outline: 2px solid #2DADFF;
+    outline-offset: 2px;
+}
+
+.quiz-math-wrapper .rwu-math-clear {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.quiz-math-wrapper .rwu-math-clear:hover {
+    background: #e5e7eb;
+    color: #374151;
 }
 .qz-progress-wrap{ margin:12px 0 8px; }
 .qz-progress-bar{ height:10px; background:#f1f5f9; border-radius:999px; overflow:hidden; }
@@ -394,12 +444,38 @@
               </div>
 
             <?php } else { ?>
-              <textarea id="q_<?php echo $question['question_id']; ?>"
-                        name="answers[<?php echo $question['question_id']; ?>]"
-                        class="form-control" rows="3"
-                        style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc;"
-                        placeholder="<?php echo Label::getLabel('LBL_ENTER_YOUR_ANSWER'); ?>"></textarea>
-            <?php } ?>
+    <?php if ($quizDetails['is_math'] && $question['question_type'] === '3'): ?>
+        <!-- Math subject: use math field -->
+        <div class="quiz-math-wrapper" style="position: relative; margin: 8px 0;">
+            <math-field 
+                id="math_<?php echo $question['question_id']; ?>"
+                style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc; min-height: 60px;"
+                placeholder="<?php echo Label::getLabel('LBL_ENTER_YOUR_ANSWER'); ?>"
+                virtual-keyboard-mode="onfocus"
+                virtual-keyboard-layout="basic"
+                virtual-keyboard-policy="auto"
+            >
+            </math-field>
+            <input type="hidden" 
+                   id="ans_<?php echo $question['question_id']; ?>"
+                   name="answers[<?php echo $question['question_id']; ?>]"
+                   value="">
+            <button type="button" class="rwu-math-clear" 
+                    style="position: absolute; right: 10px; top: 10px; border: none; background: #f3f4f6; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: #6b7280;"
+                    onclick="clearMathField('<?php echo $question['question_id']; ?>')">
+                Clear
+            </button>
+        </div>
+    <?php else: ?>
+        <!-- Non-math subject: use textarea -->
+        <textarea id="q_<?php echo $question['question_id']; ?>"
+                  name="answers[<?php echo $question['question_id']; ?>]"
+                  class="form-control" rows="3"
+                  style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc;"
+                  placeholder="<?php echo Label::getLabel('LBL_ENTER_YOUR_ANSWER'); ?>"></textarea>
+    <?php endif; ?>
+<?php } ?>
+            
           </div>
         <?php } ?>
 
@@ -458,6 +534,7 @@
 
 
 <script>
+  
 // ====== Timer ======
 let qzTimerSecs = 8 * 60; // 8 minutes
 let qzTick = null;
@@ -469,23 +546,131 @@ function startQuizTimer(){
     if (qzTimerSecs <= 0){ clearInterval(qzTick); autoFillWrongAndSubmit(); }
   }, 1000);
 }
+const IS_MATH_QUIZ = <?php echo !empty($quizDetails['is_math']) ? 'true' : 'false'; ?>;
 
-// ====== Progress + Navigator ======
-function updateProgress(){
-  const total = $('.quiz-question').length;
-  let answered = 0;
-  $('.quiz-question').each(function(){
-    const has = $(this).find('input[type="radio"]:checked, input[type="checkbox"]:checked, textarea').filter(function(){ return $(this).val().trim() !== ''; }).length;
-    if (has) answered++;
-  });
-  const pct = Math.round((answered/Math.max(1,total))*100);
-  $('#qzAnsCount').text(answered); $('#qzPercent').text(pct+'%'); $('#qzProgFill').css('width', pct+'%');
+function initMathInputs() {
+    if (!IS_MATH_QUIZ) return;
+    if (typeof MathfieldElement === 'undefined') {
+        console.warn('MathLive not loaded');
+        return;
+    }
 
-  // mark dots (simple heuristic)
-  $('.qz-dot').each(function(i){
-    $(this).toggleClass('answered', i < answered);
-  });
+    // Configure MathLive
+    MathfieldElement.soundsDirectory = null;
+    MathfieldElement.fontsDirectory = null;
+    
+    // Initialize all math fields
+    document.querySelectorAll('.quiz-math-wrapper math-field').forEach((mathField) => {
+        const wrapper = mathField.closest('.quiz-math-wrapper');
+        const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+        const clearButton = wrapper.querySelector('.rwu-math-clear');
+        
+        if (!hiddenInput) return;
+        
+        // Configure the math field
+        mathField.setOptions({
+            virtualKeyboardMode: 'onfocus',
+            smartMode: true,
+            virtualKeyboardLayout: 'basic'
+        });
+        
+        // Sync value to hidden input
+        mathField.addEventListener('input', () => {
+            hiddenInput.value = mathField.value || '';
+            updateProgress();
+        });
+        
+        // Initialize with any existing value
+        if (hiddenInput.value) {
+            mathField.value = hiddenInput.value;
+        }
+        
+        // Clear button functionality
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                mathField.value = '';
+                hiddenInput.value = '';
+                mathField.focus();
+                updateProgress();
+            });
+        }
+    });
 }
+
+// Helper function to clear math field
+function clearMathField(questionId) {
+    const mathField = document.getElementById('math_' + questionId);
+    const hiddenInput = document.getElementById('ans_' + questionId);
+    
+    if (mathField) {
+        mathField.value = '';
+    }
+    if (hiddenInput) {
+        hiddenInput.value = '';
+    }
+    updateProgress();
+}
+
+// Update the isQuestionAnswered function to check math fields
+function isQuestionAnswered($q) {
+    const type = ($q.data('type') + '');
+
+    // MCQ / Checkbox
+    if (type === '1' || type === '2') {
+        return $q.find('input[type="radio"]:checked, input[type="checkbox"]:checked').length > 0;
+    }
+
+    // Short answer: textarea OR math hidden field
+    const ta = $q.find('textarea');
+    const hidden = $q.find('input[type="hidden"][id^="ans_"]');
+    const mathField = $q.find('math-field');
+
+    const taOk = ta.length && (ta.val() || '').trim() !== '';
+    const hiddenOk = hidden.length && (hidden.val() || '').trim() !== '';
+    const mathFieldOk = mathField.length && (mathField[0].value || '').trim() !== '';
+
+    return taOk || hiddenOk || mathFieldOk;
+}
+// ====== Progress + Navigator ======
+// function isQuestionAnswered($q){
+//   const type = ($q.data('type') + '');
+
+//   // MCQ / Checkbox
+//   if (type === '1' || type === '2') {
+//     return $q.find('input[type="radio"]:checked, input[type="checkbox"]:checked').length > 0;
+//   }
+
+//   // Short answer: textarea OR math hidden field
+//   const ta = $q.find('textarea');
+//   const hidden = $q.find('input[type="hidden"][id^="ans_"]');
+
+//   const taOk = ta.length && (ta.val() || '').trim() !== '';
+//   const hiddenOk = hidden.length && (hidden.val() || '').trim() !== '';
+
+//   return taOk || hiddenOk;
+// }
+
+function updateProgress(){
+  const $questions = $('.quiz-question');
+  const total = $questions.length;
+
+  let answered = 0;
+
+  $questions.each(function(i){
+    const $q = $(this);
+    const ok = isQuestionAnswered($q);
+    if (ok) answered++;
+
+    // mark dot by question index
+    $('.qz-dot').eq(i).toggleClass('answered', ok);
+  });
+
+  const pct = Math.round((answered / Math.max(1,total)) * 100);
+  $('#qzAnsCount').text(answered);
+  $('#qzPercent').text(pct + '%');
+  $('#qzProgFill').css('width', pct + '%');
+}
+
 // scroll to card
 $('#qzNav').on('click', '.qz-dot', function(){
   const id = $(this).data('target');
@@ -520,10 +705,12 @@ function autoFillWrongAndSubmit(){
 function submitLectureQuiz(silent=false) {
   if (!silent){
     let allAnswered = true;
-    $('#quizForm .quiz-question').each(function() {
-      const selected = $(this).find('input[type="radio"]:checked, input[type="checkbox"]:checked, textarea').filter(function(){ return $(this).val().trim() !== ''; });
-      if (!selected.length) { allAnswered = false; }
-    });
+   $('#quizForm .quiz-question').each(function() {
+  if (!isQuestionAnswered($(this))) {
+    allAnswered = false;
+  }
+});
+
     if (!allAnswered) { alert('<?php echo Label::getLabel('LBL_PLEASE_ANSWER_ALL_QUESTIONS'); ?>'); return; }
   }
   $('.qz-btn-primary').prop('disabled', true).text('Submitting...');
@@ -775,7 +962,27 @@ function showConfettiWin(){
   })(start);
 }
 
-$(function(){ startQuizTimer(); updateProgress(); });
+$(function(){ 
+    startQuizTimer(); 
+    updateProgress(); 
+    
+    // Initialize math fields if needed
+    if (IS_MATH_QUIZ) {
+        // Wait a moment for MathLive to load if needed
+        if (typeof MathfieldElement !== 'undefined') {
+            initMathInputs();
+        } else {
+            // Try again after a short delay
+            setTimeout(function() {
+                if (typeof MathfieldElement !== 'undefined') {
+                    initMathInputs();
+                } else {
+                    console.warn('MathLive failed to load');
+                }
+            }, 500);
+        }
+    }
+});
 </script>
 
 <?php } else { ?>

@@ -2,6 +2,12 @@
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 $stickyDemoHeader = MyUtility::isDemoUrl() ? 'sticky-demo-header' : '';
 ?>
+<?php
+// File: application/views/_partial/header.php
+// Add this near other CSS/JS includes
+
+$mathEditorEnabled = defined('CONF_ENABLE_MATH_EDITOR') && CONF_ENABLE_MATH_EDITOR;
+?>
 <!doctype html>
 <html lang="en" dir="<?php echo $siteLanguage['language_direction']; ?>" class="<?php echo $stickyDemoHeader; ?>">
 
@@ -35,7 +41,128 @@ if (empty($pageTitle) && empty($pageDescription)) {
     <link rel="apple-touch-icon" sizes="114x114"
         href="<?php echo CONF_WEBROOT_FRONTEND; ?>images/apple-touch-icon-114x114.png">
     <!-- CSS/JS ================================================== -->
+        <?php if ($mathEditorEnabled): ?>
+            <!-- Math Editor System -->
+<link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive-static.css" />
+<script src="https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js"></script>
 
+<!-- MathJax v3 for LaTeX rendering -->
+<script>
+window.MathJax = {
+    tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+    },
+    options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax',
+        renderActions: {
+            addMenu: [],
+            checkLoading: []
+        }
+    },
+    startup: {
+        pageReady: () => {
+            return MathJax.startup.defaultPageReady().then(() => {
+                console.log('MathJax initialized');
+            });
+        }
+    }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- Our Math Editor JS -->
+<script src="<?php echo CONF_WEBROOT_DASHBOARD; ?>../js/math-editor.js"></script>
+<!-- Inline Styles for Math Editor -->
+<style>
+/* Math Editor Styles */
+.rwu-math-wrapper {
+    position: relative;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f9fafb;
+    padding: 12px;
+}
+
+.rwu-mathfield {
+    min-height: 40px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-family: "Cambria Math", "Latin Modern Math", STIXGeneral, serif;
+}
+
+.rwu-mathfield:focus {
+    outline: 2px solid #2DADFF;
+    outline-offset: 2px;
+}
+
+.rwu-math-clear {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.rwu-math-clear:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.rwu-math-raw {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 8px;
+    padding: 4px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    word-break: break-all;
+    max-height: 60px;
+    overflow-y: auto;
+}
+
+.math-field-error {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Ensure virtual keyboard stays on top */
+.ML__virtual-keyboard {
+    z-index: 9999 !important;
+}
+
+/* LaTeX rendering styles */
+.latex-render {
+    display: inline-block;
+    margin: 2px 0;
+    padding: 2px 4px;
+    vertical-align: middle;
+}
+
+.latex-render-error {
+    color: #dc3545;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+</style>
+        <?php endif; ?>
 
     <?php
     $jsVariables = CommonHelper::htmlEntitiesDecode($jsVariables);

@@ -14,6 +14,44 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
   margin: 10px auto 28px;
   padding: 0 8px;
 }
+/* ===== Math field styling (MathLive) ===== */
+.rwu-math-wrapper{
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  background: #f9fafb;
+}
+.rwu-math-wrapper math-field{
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 16px;
+  display:block;
+}
+.rwu-math-clear{
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background:#f3f4f6;
+  cursor:pointer;
+  font-weight:700;
+  font-size:12px;
+}
+.rwu-math-raw{
+  margin-top: 8px;
+  padding: 6px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  max-height: 60px;
+  overflow-y: auto;
+}
 
 /* Mobile / tablet: stack, sidebar full-width, no sticky */
 @media (max-width: 1100px){
@@ -314,12 +352,15 @@ var questions = <?php echo json_encode($questionData ?? []); ?>;
 let currentQuestion = 0;
 const CONF_WEBROOT_FRONT_URL = <?= json_encode(CONF_WEBROOT_FRONT_URL); ?>;
 const ENFORCE_SINGLE_CHOICE = true;
-var userSessionId = "<?php echo $_SESSION['subtopicId']; ?>";
+var userSessionId = parseInt("<?php echo (int)($_SESSION['subtopicId'] ?? 0); ?>", 10) || 0; // line changed jan 2 2026
 
 /* ------------------ STATE ------------------ */
 let timerDuration = 10 * 60;
 let timerInterval = null;
 let userAnswers = {};
+let isMathSubject = false;
+window.RWU_IS_MATH_SUBJECT = false; // RWUMath reads this in other pages too
+
 
 /* ------------------ UTILITIES ------------------ */
 function toArray(val) { return Array.isArray(val) ? val : (val ? [val] : []); }
@@ -396,16 +437,27 @@ function fetchQuestions() {
     type: "POST",
     data: { pageno: 1, subtopicid: userSessionId },
     dataType: "json",
-    success: function (response) {
-      if (response && response.success) {
-        questions = normalizeQuestions(response.data);
-        loadAllQuestions();
-        startTimer();
-      } else {
-        alert("No questions found. Please try some other");
-        window.history.back();
-      }
-    },
+ success: function (response) {
+  if (response && response.success) {
+    questions = normalizeQuestions(response.data);
+
+    isMathSubject = !!(response.meta && response.meta.isMathSubject);
+    window.RWU_IS_MATH_SUBJECT = isMathSubject;
+
+    loadAllQuestions();
+    startTimer();
+
+    // ✅ only init math when subject is math
+    if (isMathSubject) {
+      setTimeout(() => window.RWUMath?.initFields?.(), 0);
+    }
+  } else {
+    alert(response?.message || response?.msg || "No questions found.");
+    window.history.back();
+  }
+}
+
+    ,
     error: function (xhr, status, error) {
       console.error("Error fetching questions:", error);
       alert("Failed to load questions. Please try again.");
@@ -425,7 +477,16 @@ function updateProgress() {
     const inputs = card.querySelectorAll('input[type="radio"], input[type="checkbox"]');
     inputs.forEach(function(inp){ if (inp.checked) has = true; });
     const ta = card.querySelector('textarea');
-    if (ta && ta.value.trim() !== '') has = true;
+if (ta && ta.value.trim() !== '') has = true;
+
+// ✅ NEW: math hidden input
+const mh = card.querySelector('#math_hidden_' + (card.dataset.qindex || ''));
+if (mh && mh.value.trim() !== '') has = true;
+
+// safer (works even if dataset missing)
+const anyHidden = card.querySelector('input[type="hidden"][id^="math_hidden_"]');
+if (anyHidden && anyHidden.value.trim() !== '') has = true;
+
     if (has) answered++;
   });
 
@@ -446,7 +507,54 @@ function updateProgress() {
 }
 
 /* ------------------ RENDERING ------------------ */
+function canUseMathLive() {
+  return !!(isMathSubject && window.customElements && customElements.get('math-field') && window.RWUMath);
+}
+
 function renderTextarea(parent, index) {
+  if (canUseMathLive()) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "rwu-math-wrapper";
+    wrapper.setAttribute("data-math-field", "true");
+    wrapper.setAttribute("data-keyboard", "basic");
+    wrapper.setAttribute("data-keyboard-mode", "onfocus");
+
+    // hidden input used by RWUMath to store latex (we'll read it for answers)
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.id = `math_hidden_${index}`;
+    hidden.addEventListener('input', updateProgress);
+
+    // clear button (RWUMath also creates one sometimes; this keeps UX consistent)
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "rwu-math-clear";
+    clearBtn.textContent = "Clear";
+    clearBtn.addEventListener("click", () => {
+      // RWUMath attaches math-field inside wrapper; clear if present
+      const mf = wrapper.querySelector('math-field');
+      if (mf) mf.value = '';
+      hidden.value = '';
+      hidden.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    const raw = document.createElement("div");
+    raw.className = "rwu-math-raw";
+    raw.textContent = "";
+
+    wrapper.appendChild(hidden);
+    // wrapper.appendChild(clearBtn);
+    wrapper.appendChild(raw);
+
+    parent.appendChild(wrapper);
+
+    // ✅ Ensure RWUMath upgrades this wrapper into <math-field>
+    setTimeout(() => window.RWUMath?.initFields?.(), 0);
+
+    return;
+  }
+
+  // fallback: normal textarea for non-math subjects
   const textarea = document.createElement("textarea");
   textarea.name = `question-${index}`;
   textarea.placeholder = "Type your answer here...";
@@ -464,6 +572,8 @@ function loadAllQuestions() {
     const wrap = document.createElement("div");
     wrap.className = "quiz-question";
     wrap.id = "qcard_" + q.id;
+    wrap.dataset.qindex = String(index);
+
 
     // top row
     const top = document.createElement("div");
@@ -584,8 +694,14 @@ function validateAllAnswers() {
     } else if (finalType === 'multiple') {
       if (document.querySelectorAll(`input[name="question-${i}"]:checked`).length === 0) return false;
     } else {
-      const input = document.querySelector(`textarea[name="question-${i}"]`);
-      if (!input || input.value.trim() === "") return false;
+   if (canUseMathLive()) {
+  const hidden = document.getElementById(`math_hidden_${i}`);
+  if (!hidden || hidden.value.trim() === "") return false;
+} else {
+  const input = document.querySelector(`textarea[name="question-${i}"]`);
+  if (!input || input.value.trim() === "") return false;
+}
+
     }
   }
   return true;
@@ -604,8 +720,14 @@ function buildUserAnswers() {
       const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
       answer = Array.from(selected).map(el => el.value);
     } else {
-      const textarea = document.querySelector(`textarea[name="question-${index}"]`);
-      answer = (textarea && textarea.value) ? textarea.value.trim() : "";
+     if (canUseMathLive()) {
+  const hidden = document.getElementById(`math_hidden_${index}`);
+  answer = hidden ? (hidden.value || '').trim() : "";
+} else {
+  const textarea = document.querySelector(`textarea[name="question-${index}"]`);
+  answer = (textarea && textarea.value) ? textarea.value.trim() : "";
+}
+
     }
 
     userAnswers[index] = { questionId: q.id, answer: answer };

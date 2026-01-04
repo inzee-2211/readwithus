@@ -249,6 +249,7 @@ function fetchQuestions() {
         success: function (response) {
             if (response.success) {
                 questions = response.data || [];
+                
 
                 // set global math flag
                 window.RWU_IS_MATH_SUBJECT = !!(response.meta && response.meta.isMathSubject);

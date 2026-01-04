@@ -431,53 +431,188 @@ class QuizattemptController extends MyAppController
             'totalMarks' => $totalQuestions * $questionMarks,
         ]);
     }
+public function getQuestions()
+{
+    header('Content-Type: application/json; charset=utf-8');
 
-    public function getQuestions()
-    {
-        $posts = FatApp::getPostedData(); // Fetch input data from AJAX request
-        $subtopic = isset($_GET['subtopic']) ? $_GET['subtopic'] : '';
+    $debugStep = 'start';
 
-        $subtopicId = isset($posts['subtopicid']) ? (int) $posts['subtopicid'] : 0;
-        //echo $subtopicId;die;
-        $db = FatApp::getDb();
-        $query = "SELECT * FROM tbl_quaestion_bank WHERE subtopic_id = " . $subtopicId . " ORDER BY RAND() LIMIT 10";
-
-
-        //  $query = "SELECT * FROM tbl_quaestion_bank  ORDER BY id desc LIMIT 5";
-
-        $result = $db->query($query);
-
-        if ($result) {
-            $quizzes = $db->fetchAll($result);
-
-
-            $formattedQuestions = [];
-            foreach ($quizzes as $quiz) {
-                $formattedQuestions[] = [
-                    "id" => $quiz['id'],
-                    "text" => $quiz['question_title'],
-                    "type" => $quiz['question_type'],
-                    "options" => array_values(array_filter([
-                        $quiz['answer_a'],
-                        $quiz['answer_b'],
-                        $quiz['answer_c'],
-                        $quiz['answer_d']
-                    ])),
-                    "answer" => explode(",", $quiz['correct_answer']), // Convert CSV string to array
-                    "hint" => $quiz['hint'],
-                    "explanation" => $quiz['explanation'],
-                    "image" => $quiz['image'] ?? '' //$quiz['image_path'] if that’s your column
-                ];
-            }
-
-            FatUtility::dieJsonSuccess([
-                'success' => true,
-                'data' => $formattedQuestions
+    register_shutdown_function(function () use (&$debugStep) {
+        $err = error_get_last();
+        if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'FATAL: ' . $err['message'],
+                'file'    => $err['file'] ?? '',
+                'line'    => $err['line'] ?? 0,
+                'debug'   => ['step' => $debugStep],
             ]);
-        } else {
-            FatUtility::dieJsonError("No questions found.");
         }
+    });
+
+    set_error_handler(function ($severity, $message, $file, $line) {
+        if (!(error_reporting() & $severity)) return false;
+        throw new ErrorException($message, 0, $severity, $file, $line);
+    });
+
+    try {
+        $debugStep = 'read_posts';
+        $posts = FatApp::getPostedData();
+
+        // IMPORTANT:
+        // your frontend sends subtopicid=57, but this is actually tbl_quiz_management.id
+        $debugStep = 'parse_inputs';
+        $quizMgmtId = FatUtility::int($posts['subtopicid'] ?? 0);
+
+        $limit = FatUtility::int($posts['limit'] ?? 10);
+        if ($limit < 1) $limit = 10;
+        if ($limit > 50) $limit = 50;
+
+        if ($quizMgmtId < 1) {
+            throw new Exception("Invalid subtopicid/quizMgmtId. Received: {$quizMgmtId}");
+        }
+
+        $debugStep = 'get_db';
+        $db = FatApp::getDb();
+        if (!$db) {
+            throw new Exception("FatApp::getDb() returned null/false");
+        }
+
+        // ---------------------------
+        // 1) Fetch questions
+        // tbl_quaestion_bank.subtopic_id matches tbl_quiz_management.id in your flow
+        // ---------------------------
+        $debugStep = 'questions_query';
+        $questionsSql = "
+            SELECT 
+                id,
+                question_title,
+                question_type,
+                answer_a,
+                answer_b,
+                answer_c,
+                answer_d,
+                correct_answer,
+                hint,
+                explanation,
+                image
+            FROM tbl_quaestion_bank
+            WHERE subtopic_id = {$quizMgmtId}
+            ORDER BY RAND()
+            LIMIT {$limit}
+        ";
+
+        $rs = $db->query($questionsSql);
+        if (!$rs) {
+            throw new Exception("Questions query failed. SQL: {$questionsSql}");
+        }
+
+        $debugStep = 'questions_fetchAll';
+        $rows = $db->fetchAll($rs);
+        if (!is_array($rows) || empty($rows)) {
+            throw new Exception("No questions found for quizMgmtId={$quizMgmtId}");
+        }
+
+        $debugStep = 'format_questions';
+        $formattedQuestions = [];
+        foreach ($rows as $q) {
+            $formattedQuestions[] = [
+                "id"          => $q['id'] ?? 0,
+                "text"        => $q['question_title'] ?? '',
+                "type"        => $q['question_type'] ?? '',
+                "options"     => array_values(array_filter([
+                    $q['answer_a'] ?? '',
+                    $q['answer_b'] ?? '',
+                    $q['answer_c'] ?? '',
+                    $q['answer_d'] ?? '',
+                ])),
+                "answer"      => array_values(array_filter(array_map(
+                    'trim',
+                    explode(",", (string)($q['correct_answer'] ?? ''))
+                ))),
+                "hint"        => $q['hint'] ?? '',
+                "explanation" => $q['explanation'] ?? '',
+                "image"       => $q['image'] ?? '',
+            ];
+        }
+
+        // ---------------------------
+        // 2) Resolve subject properly:
+        // quiz_management.id (57)
+        // -> quiz_setup_id (33)
+        // -> quiz_setup.subject_id (8)
+        // -> course_subjects.subject ("Math")
+        // ---------------------------
+        $setupId = 0;
+        $subjectId = 0;
+        $subjectName = '';
+
+        $debugStep = 'get_setup_id';
+        $rs = $db->query("SELECT quiz_setup_id FROM tbl_quiz_management WHERE id = {$quizMgmtId} LIMIT 1");
+        if (!$rs) {
+            throw new Exception("Failed to query tbl_quiz_management for id={$quizMgmtId}");
+        }
+        $row = $db->fetch($rs);
+        $setupId = (int)($row['quiz_setup_id'] ?? 0);
+
+        if ($setupId > 0) {
+            $debugStep = 'get_subject_id';
+            $rs = $db->query("SELECT subject_id FROM tbl_quiz_setup WHERE id = {$setupId} LIMIT 1");
+            if (!$rs) {
+                throw new Exception("Failed to query tbl_quiz_setup for id={$setupId}");
+            }
+            $row = $db->fetch($rs);
+            $subjectId = (int)($row['subject_id'] ?? 0);
+        }
+
+        if ($subjectId > 0) {
+            $debugStep = 'get_subject_name';
+            $rs = $db->query("SELECT subject FROM course_subjects WHERE id = {$subjectId} LIMIT 1");
+            if (!$rs) {
+                throw new Exception("Failed to query course_subjects for id={$subjectId}");
+            }
+            $row = $db->fetch($rs);
+            $subjectName = (string)($row['subject'] ?? '');
+        }
+
+        $debugStep = 'math_check';
+        $isMathSubject = (preg_match('/\bmaths?\b/i', $subjectName) === 1);
+
+        restore_error_handler();
+
+        $debugStep = 'success_return';
+        FatUtility::dieJsonSuccess([
+            'success' => true,
+            'data'    => $formattedQuestions,
+            'meta'    => [
+                'subjectName'   => $subjectName,
+                'isMathSubject' => $isMathSubject,
+                'quizMgmtId'    => $quizMgmtId,
+                'setupId'       => $setupId,
+                'subjectId'     => $subjectId,
+                'debug' => [
+                    'step'  => $debugStep,
+                    'limit' => $limit,
+                    'count' => count($formattedQuestions),
+                ],
+            ],
+        ]);
+
+    } catch (Throwable $e) {
+        restore_error_handler();
+
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'debug'   => ['step' => $debugStep],
+        ]);
+        die;
     }
+}
+
+
 
     public function getQuizizzList()
     {

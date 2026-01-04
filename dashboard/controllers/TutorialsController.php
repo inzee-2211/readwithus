@@ -1250,6 +1250,7 @@ private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
     $subtopicName = (string)$metaRow['subtopic_name'];
     $topicName    = (string)$metaRow['topic_name'];
     $subjectName  = (string)$metaRow['subject'];
+      $isMathQuiz = $this->isMathSubject($subjectName);
 
     // 2) Pull random questions from tbl_quaestion_bank (linked by subtopic_id = qm.id)
     $qSql = "
@@ -1319,9 +1320,22 @@ private function getQuizQuestionsBySubtopic($subtopicId, $langId = 0)
         'quiz_duration'        => 0,
         'quiz_user_id'         => 0,
         'questions'            => $rows,
+           'is_math'              => $isMathQuiz, // Add this flag
+        'subject_name'         => $subjectName, // Also pass su
     ];
 }
-
+private function isMathSubject(string $subjectName): bool
+{
+    $subjectName = strtolower(trim($subjectName));
+    $mathKeywords = ['math', 'mathematics', 'maths'];
+    
+    foreach ($mathKeywords as $keyword) {
+        if (strpos($subjectName, $keyword) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /* ============================
  * 1) Render the start screen
