@@ -21,7 +21,7 @@ class TeacherSearch extends YocoachSearch
         $this->table = 'tbl_users';
         $this->alias = 'teacher';
         parent::__construct($langId, $userId, $userType);
-        $this->joinTable('tbl_teacher_stats', 'INNER JOIN', 'testat.testat_user_id = teacher.user_id', 'testat');
+        $this->joinTable('tbl_teacher_stats', 'LEFT JOIN', 'testat.testat_user_id = teacher.user_id', 'testat');
     }
 
     /**
