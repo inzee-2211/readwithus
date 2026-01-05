@@ -62,15 +62,12 @@ class ContactController extends MyAppController
         $contactEmails = explode(',', FatApp::getConfig("CONF_CONTACT_EMAIL"));
         $mail = new FatMailer($this->siteLangId, 'contact_us');
         $mail->setVariables($vars);
-      if (!$mail->sendMail($contactEmails)) {
-    // show detailed message only on localhost (safe)
-    if ($isLocalhost) {
-        FatUtility::dieJsonError('Email failed: ' . $mail->getError());
+        if (!$mail->sendMail($contactEmails)) {
+              FatUtility::dieJsonError('Email failed: ' . $mail->getError());
+            // FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
+        }
+        FatUtility::dieJsonSuccess(Label::getLabel('MSG_YOUR_MESSAGE_SENT_SUCCESSFULLY'));
     }
-    FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
-}
-    }
-
 
     /**
      * Get Contact Us Form
