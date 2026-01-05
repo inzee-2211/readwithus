@@ -137,7 +137,7 @@ $course['active_subscriptions'] = ($subjectId > 0) ? (int)($subjectCounts[$subje
 $activeSubRow = ($this->siteUserId > 0) ? UserSubscription::getActiveByUser($this->siteUserId) : null;
 if ($activeSubRow) { $hasActiveSub = true; }
 
-$pricingUrl = MyUtility::makeUrl('Subscription', 'pricing');
+$pricingUrl = MyUtility::makeUrl('pricing', 'index');
 $manageUrl  = MyUtility::makeUrl('Subscription', 'manageSubjects');
 
         // $this->sets([
@@ -275,7 +275,7 @@ $subscriptionMode = true; // turn on subscription UI on the detail page
 $gate = $this->subGateForCourse($course['course_id']); // already there
 
 $hasActiveSub = !empty($gate['hasActive']); // true/false
-$pricingUrl = $gate['pricingUrl'] ?? MyUtility::makeUrl('Subscription', 'pricing');
+$pricingUrl = $gate['pricingUrl'] ?? MyUtility::makeUrl('pricing', 'index');
 $manageUrl  = $gate['manageUrl']  ?? MyUtility::makeUrl('Subscription', 'manageSubjects');
 
 
@@ -632,7 +632,7 @@ private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
         return [
             'access' => true,
             'reason' => 'no_subject',
-            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'pricingUrl' => MyUtility::makeUrl('pricing', 'index'),
             'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
             'hasActive'  => false,
         ];
@@ -643,7 +643,7 @@ private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
         return [
             'access' => false,
             'reason' => 'guest',
-            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'pricingUrl' => MyUtility::makeUrl('pricing', 'index'),
             'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
             'hasActive'  => false,
         ];
@@ -655,7 +655,7 @@ private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
         return [
             'access' => false,
             'reason' => 'no_active_sub',
-            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'pricingUrl' => MyUtility::makeUrl('pricing', 'index'),
             'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
             'hasActive'  => false,
         ];
@@ -669,7 +669,7 @@ private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
         return [
             'access' => false,
             'reason' => 'subject_not_selected',
-            'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+            'pricingUrl' => MyUtility::makeUrl('pricing', 'index'),
             'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
             'hasActive'  => true,
         ];
@@ -678,7 +678,7 @@ private function subGateForCourse(?int $courseId, ?int $subjectId = null): array
     return [
         'access' => true,
         'reason' => 'ok',
-        'pricingUrl' => MyUtility::makeUrl('Subscription', 'pricing'),
+        'pricingUrl' => MyUtility::makeUrl('pricing', 'index'),
         'manageUrl'  => MyUtility::makeUrl('Subscription', 'manageSubjects'),
         'hasActive'  => true,
     ];

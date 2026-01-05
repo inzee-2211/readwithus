@@ -52,6 +52,7 @@ class ContactController extends MyAppController
         if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
+        
         $captcha = FatApp::getPostedData('g-recaptcha-response', FatUtility::VAR_STRING, '');
         if (!CommonHelper::verifyCaptcha($captcha)) {
             FatUtility::dieJsonError(Label::getLabel('MSG_INVALID_CAPTCHA'));
@@ -61,11 +62,15 @@ class ContactController extends MyAppController
         $contactEmails = explode(',', FatApp::getConfig("CONF_CONTACT_EMAIL"));
         $mail = new FatMailer($this->siteLangId, 'contact_us');
         $mail->setVariables($vars);
-        if (!$mail->sendMail($contactEmails)) {
-            FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
-        }
-        FatUtility::dieJsonSuccess(Label::getLabel('MSG_YOUR_MESSAGE_SENT_SUCCESSFULLY'));
+      if (!$mail->sendMail($contactEmails)) {
+    // show detailed message only on localhost (safe)
+    if ($isLocalhost) {
+        FatUtility::dieJsonError('Email failed: ' . $mail->getError());
     }
+    FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
+}
+    }
+
 
     /**
      * Get Contact Us Form
