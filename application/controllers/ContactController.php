@@ -63,8 +63,8 @@ class ContactController extends MyAppController
         $mail = new FatMailer($this->siteLangId, 'contact_us');
         $mail->setVariables($vars);
         if (!$mail->sendMail($contactEmails)) {
-              FatUtility::dieJsonError('Email failed: ' . $mail->getError());
-            // FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
+            //   FatUtility::dieJsonError('Email failed: ' . $mail->getError());
+            FatUtility::dieJsonError(Label::getLabel('MSG_EMAIL_NOT_SENT_SERVER_ISSUE'));
         }
         FatUtility::dieJsonSuccess(Label::getLabel('MSG_YOUR_MESSAGE_SENT_SUCCESSFULLY'));
     }

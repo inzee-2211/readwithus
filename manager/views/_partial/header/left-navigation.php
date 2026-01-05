@@ -84,12 +84,12 @@
                 $objPrivilege->canViewCourseReviews(true)
             ) { ?>
 
-<li class="haschild"><a href="javascript:void(0);">Courses</a>
+<!-- <li class="haschild"><a href="javascript:void(0);">Courses</a>
                     <ul>
                         <li><a href="<?php echo MyUtility::makeUrl('Questions'); ?>"><?php echo Label::getLabel('LBL_QUESTIONS'); ?></a></li>
                         <li><a href="<?php echo MyUtility::makeUrl('Quizzes'); ?>"><?php echo Label::getLabel('LBL_QUIZZES'); ?></a></li>
                     </ul>
-                </li>
+                </li> -->
                 <li class="haschild">
                     <a href="javascript:void(0);"><?php echo Label::getLabel('LBL_MANAGE_COURSES'); ?></a>
                     <ul>

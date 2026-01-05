@@ -193,12 +193,10 @@ if (empty($trendingCourses)) {
 <section class="rwu-trending">
   <div class="wrap">
     <div class="pill">Trending Courses</div>
-    <h2 class="title">Perfect <span style="color:#1D9CFD">Online Courses</span> for your career</h2>
+    <h2 class="title">Start  <span style="color:#1D9CFD">your child’s </span> learning journey today</h2>
     <div class="sub" style=" margin:auto; margin-bottom:32px;">
-      Explore career-focused online courses built by expert tutors and powered by intelligent learning tools.
-      Every course integrates video lessons, guided projects, and AI-supported feedback, making learning measurable,
-      flexible, and outcome-driven.
-    </div>
+Support Your Child’s Learning at Every Key Stage with ReadWithUs.org.uk. Our platform offers
+UK curriculum–aligned courses with video lessons, guided practice, on-demand tutors, and AI feedback. Mastery-based learning ensures your child fully understands each topic before moving on, building confidence and steady academic progress.    </div>
     <!-- FILTER BAR -->
 <div class="rwu-trending__filters" id="courseFilters">
   <button class="filter is-active" data-level-id="all">
