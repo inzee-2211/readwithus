@@ -406,7 +406,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                             
                             <div class="header__middle">
                                 <?php if (!empty($headerNav)) { ?>
-                                    <span class="overlay overlay--nav toggle--nav-js is-active"></span>
+<span class="overlay overlay--nav toggle--nav-js"></span>
                                 <nav class="menu nav--primary-offset">
   <ul>
       <li class="menu__item dropdown">
@@ -667,18 +667,62 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
 </script>
 <script src="<?= CONF_WEBROOT_URL ?>js/nav-revise.js"></script>
 <style>
-    /* Hide "Revise Your Topic" on mobile/tablet */
 @media (max-width: 991.98px){
-  /* hide the whole menu item (safest) */
+  /* hide revise topic completely */
   .menu.nav--primary-offset li.dropdown { 
     display: none !important; 
   }
 
-  /* extra safety (in case markup changes) */
-  #openSelectorNav,
   #dropDownOptionNav{
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: static !important;
+    z-index: 0 !important;
+  }
+
+  #openSelectorNav{
+    display:none !important;
+    pointer-events:none !important;
+  }
+
+  /* if overlay is stuck, don't let it block clicks */
+  .overlay.overlay--nav{
+    pointer-events: none !important;
   }
 }
+
+/* ✅ Mobile nav: ensure menu is above overlays and top items are clickable */
+@media (max-width: 991.98px){
+
+  /* the nav container */
+  /* .menu.nav--primary-offset{
+    position: relative !important;
+    z-index: 10050 !important;
+  } */
+
+  /* the UL and LI must also be above */
+  .menu.nav--primary-offset > ul{
+    position: relative !important;
+    z-index: 10060 !important;
+
+    /* ✅ small safe area so first item isn't under any header/overlay edge */
+    padding-top: 10px !important;
+  }
+
+  /* make sure the links can receive taps */
+  .menu.nav--primary-offset a{
+    position: relative !important;
+    z-index: 10070 !important;
+    pointer-events: auto !important;
+  }
+
+  /* overlay should stay below the menu */
+  /* .overlay.overlay--nav{
+    z-index: 10000 !important;
+    pointer-events: auto !important; /* allows tap outside to close menu */
+  }
+} */
 
 </style>

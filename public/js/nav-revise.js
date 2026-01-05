@@ -1,4 +1,15 @@
 // public/js/nav-revise.js
+// Disable on mobile/tablet
+if (window.matchMedia("(max-width: 991.98px)").matches) {
+  const dd = document.getElementById("dropDownOptionNav");
+  const btn = document.getElementById("openSelectorNav");
+  if (dd) { dd.style.display = "none"; dd.style.pointerEvents = "none"; }
+  if (btn) { btn.style.display = "none"; btn.style.pointerEvents = "none"; }
+  // ✅ Do nothing else on mobile
+} else {
+  
+
+
 (function () {
   // harden against globals
   const RWU = window.RWU_CONFIG || {};
@@ -239,3 +250,4 @@
     });
   });
 })();
+}
