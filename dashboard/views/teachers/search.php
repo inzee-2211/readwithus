@@ -21,7 +21,7 @@ if (count($teachers) == 0) {
         $packageOfferLabel = Label::getLabel('LBL_{percentages}%');
         $naLabel = Label::getLabel('LBL_N/A');
         foreach ($teachers as $teacher) {
-            $profileLink = MyUtility::makeUrl('Teachers', 'view', [$teacher['teacher_username']], CONF_WEBROOT_FRONTEND);
+            $profileLink = MyUtility::makeFullUrl('Teachers', 'view', [$teacher['teacher_username']], CONF_WEBROOT_FRONTEND);
         ?>
             <tr>
                 <td>
@@ -32,7 +32,7 @@ if (count($teachers) == 0) {
                                 <div class="profile-meta__media">
                                     <a title="<?php echo $teacher['teacher_full_name']; ?>" href="<?php echo $profileLink; ?>">
                                         <span class="avtar avtar--small" data-title="<?php echo CommonHelper::getFirstChar($teacher['teacher_full_name']); ?>">
-                                            <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $teacher['offpri_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $teacher['teacher_full_name'] . '"/>'; ?>
+                                            <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $teacher['offpri_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $teacher['teacher_full_name'] . '"/>'; ?>
                                         </span>
                                     </a>
                                 </div>

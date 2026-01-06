@@ -50,7 +50,7 @@ $myDate->setMonthAndWeekNames();
                             <?php if ($siteUserType == User::LEARNER) { ?>
                                 <div class="profile-meta__media">
                                     <span class="avtar" data-title="<?php echo CommonHelper::getFirstChar($package['teacher_full_name']); ?>">
-                                        <?php echo '<img src="' . MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $package['grpcls_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL) . '?t=' . time() . '" alt="' . $package['teacher_full_name'] . '" />'; ?>
+                                        <?php echo '<img src="' . MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $package['grpcls_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL) . '?t=' . time() . '" alt="' . $package['teacher_full_name'] . '" />'; ?>
                                     </span>
                                 </div>
                                 <div class="profile-meta__details">

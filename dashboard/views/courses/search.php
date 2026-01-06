@@ -8,99 +8,485 @@ if (count($courses) == 0) {
         // ✅ MUST open application pricing (front), not dashboard
         $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
         ?>
-        <div class="no-data no-data--empty">
-            <div class="no-data__img">
-                <svg class="icon icon--empty" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
-                    <circle cx="45" cy="45" r="44" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15"></circle>
-                    <path d="M27 54c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="currentColor" stroke-width="2" opacity="0.35"></path>
-                    <path d="M33 38h24" stroke="currentColor" stroke-width="2" opacity="0.35"></path>
-                </svg>
-            </div>
+            <style>
+        /* ===========================
+           RWU: No Subscription State
+           Scoped styles (safe to paste)
+        ============================ */
 
-            <h4><?php echo Label::getLabel('LBL_NO_ACTIVE_SUBSCRIPTION'); ?></h4>
-            <p class="margin-bottom-3"><?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?></p>
+        .rwu-empty-wrap {
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            padding: 28px;
+            background: linear-gradient(120deg, rgba(0, 190, 180, 0.10), rgba(255, 90, 31, 0.08), rgba(0, 0, 0, 0.02));
+            border: 1px solid rgba(0,0,0,.06);
+            box-shadow: 0 14px 38px rgba(0,0,0,.06);
+        }
 
-          <ul class="text-left" style="max-width:720px; margin:0 0 18px; line-height:1.9;">
+        .rwu-empty-wrap:before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: radial-gradient(600px 240px at 15% 10%, rgba(0,190,180,.18), transparent 60%),
+                        radial-gradient(520px 220px at 85% 0%, rgba(255,90,31,.16), transparent 55%),
+                        radial-gradient(700px 320px at 70% 90%, rgba(0,0,0,.06), transparent 60%);
+            pointer-events: none;
+        }
 
-                <li><strong>Unlimited course access</strong> for the subjects included in your plan.</li>
-                <li><strong>Structured learning path</strong> (Exam board + Tier) so you always know what to study next.</li>
-                <li><strong>Quizzes + exam practice</strong> to improve performance with real patterns.</li>
-                <li><strong>Progress tracking</strong> to stay consistent and complete faster.</li>
-                <li><strong>New content added regularly</strong> across levels and subjects.</li>
-                <li><strong>Better value</strong> than buying individual courses separately.</li>
-            </ul>
+        .rwu-empty-inner {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 20px;
+            align-items: start;
+        }
 
-<div class="buttons-group margin-top-4" style="gap:10px; display:flex; flex-wrap:wrap; justify-content:flex-start;">
-                <!-- Primary CTA -->
-                <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">
-                    <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
-                </a>
+        @media (max-width: 991px) {
+            .rwu-empty-inner { grid-template-columns: 1fr; }
+        }
 
-                <!-- Secondary CTA -->
-                <a class="btn btn--bordered color-secondary" href="javascript:void(0);" onclick="openUnlockModal();">
-                    See what you’ll unlock
-                </a>
-            </div>
-        </div>
+        .rwu-empty-hero {
+            padding: 6px 6px 10px;
+        }
 
-        <!-- ✅ Self-contained modal overlay (won't break layout if theme modal CSS differs) -->
-        <div id="unlockModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; align-items:center; justify-content:center;">
-            <div id="unlockModalBox" style="width:100%; max-width:860px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25);">
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid rgba(0,0,0,.08);">
-                    <h4 style="margin:0;">What you’ll unlock with a subscription</h4>
-                    <button type="button" aria-label="Close" onclick="closeUnlockModal();"
-                        style="border:0; background:transparent; font-size:22px; line-height:1; cursor:pointer;">&times;</button>
+        .rwu-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.75);
+            border: 1px solid rgba(0,0,0,.06);
+            backdrop-filter: blur(6px);
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: .3px;
+        }
+
+        .rwu-empty-title {
+            margin: 12px 0 6px;
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.15;
+            color: #111;
+        }
+
+        .rwu-empty-sub {
+            margin: 0 0 14px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(0,0,0,.70);
+            max-width: 720px;
+        }
+
+        .rwu-benefits {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        @media (max-width: 575px) {
+            .rwu-benefits { grid-template-columns: 1fr; }
+        }
+
+        .rwu-benefit {
+            display: flex;
+            gap: 10px;
+            padding: 12px 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.74);
+            border: 1px solid rgba(0,0,0,.06);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .rwu-benefit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(0,0,0,.08);
+            border-color: rgba(0,0,0,.10);
+        }
+
+        .rwu-dot {
+            width: 10px; height: 10px;
+            border-radius: 999px;
+            margin-top: 5px;
+            background: rgba(0, 190, 180, .95);
+            box-shadow: 0 0 0 5px rgba(0,190,180,.12);
+            flex: 0 0 auto;
+        }
+
+        .rwu-benefit strong {
+            display: block;
+            font-weight: 800;
+            color: #111;
+            margin-bottom: 2px;
+        }
+
+        .rwu-benefit span {
+            display: block;
+            color: rgba(0,0,0,.68);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .rwu-cta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .rwu-cta .btn {
+            border-radius: 12px;
+            transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+        }
+
+        .rwu-cta .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 26px rgba(0,0,0,.14);
+        }
+
+        .rwu-side {
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,.78);
+            border: 1px solid rgba(0,0,0,.06);
+            backdrop-filter: blur(6px);
+        }
+
+        .rwu-side h5 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            font-weight: 900;
+            color: #111;
+            letter-spacing: .2px;
+        }
+
+        .rwu-mini {
+            display: grid;
+            gap: 10px;
+        }
+
+        .rwu-mini-card {
+            padding: 12px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(0,0,0,.06);
+            background: #fff;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .rwu-mini-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(0,0,0,.08);
+        }
+
+        .rwu-mini-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .rwu-mini-top b {
+            font-weight: 900;
+            color: #111;
+            font-size: 13px;
+        }
+
+        .rwu-tag {
+            font-size: 11px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(0,0,0,.08);
+            background: rgba(0,0,0,.03);
+            color: rgba(0,0,0,.70);
+            white-space: nowrap;
+        }
+
+        .rwu-mini-card p {
+            margin: 0;
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: rgba(0,0,0,.68);
+        }
+
+        /* Modal polish */
+        #unlockModalOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 12, 16, .62);
+            z-index: 9999;
+            padding: 16px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #unlockModalBox {
+            width: 100%;
+            max-width: 920px;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,.35);
+            transform: translateY(10px);
+            opacity: 0;
+            transition: transform .18s ease, opacity .18s ease;
+        }
+
+        #unlockModalOverlay.is-open #unlockModalBox {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .rwu-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(0,0,0,.08);
+            background: linear-gradient(120deg, rgba(0,190,180,.10), rgba(255,90,31,.08), rgba(0,0,0,.02));
+        }
+
+        .rwu-modal-head h4 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 900;
+            color: #111;
+        }
+
+        .rwu-close {
+            border: 0;
+            background: rgba(0,0,0,.06);
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 36px;
+        }
+
+        .rwu-close:hover { background: rgba(0,0,0,.10); }
+
+        .rwu-modal-body { padding: 18px; }
+
+        .rwu-feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 767px) {
+            .rwu-feature-grid { grid-template-columns: 1fr; }
+        }
+
+        .rwu-feature {
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(0,0,0,.06);
+            background: #fff;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .rwu-feature:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(0,0,0,.08);
+        }
+
+        .rwu-feature h6 {
+            margin: 0 0 6px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #111;
+        }
+
+        .rwu-feature ul {
+            margin: 0;
+            padding-left: 18px;
+            color: rgba(0,0,0,.70);
+            line-height: 1.7;
+        }
+
+        .rwu-modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .rwu-benefit, .rwu-mini-card, .rwu-cta .btn, #unlockModalBox, .rwu-feature { transition: none !important; }
+        }
+    </style>
+     
+    <div class="rwu-empty-wrap">
+        <div class="rwu-empty-inner">
+
+            <!-- Left: Hero + Benefits -->
+            <div class="rwu-empty-hero">
+                <div class="rwu-pill">
+                    <svg class="icon icon--clock icon--small" style="width:14px;height:14px;">
+                        <use xlink:href="<?php echo CONF_WEBROOT_URL ?>images/sprite.svg#search"></use>
+                    </svg>
+                    <?php echo Label::getLabel('LBL_NO_ACTIVE_SUBSCRIPTION'); ?>
                 </div>
 
-                <div style="padding:18px;">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 style="margin-top:0;">Learning Experience</h5>
-                            <ul style="line-height:1.9; margin-bottom:0;">
-                                <li>Unlimited access to courses in your subscribed subjects</li>
-                                <li>Structured tiers (Exam board → Tier) with a clear study path</li>
-                                <li>Quizzes + exam practice to boost scores</li>
-                                <li>Progress tracking to keep you consistent</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h5 style="margin-top:0;">Value & Support</h5>
-                            <ul style="line-height:1.9; margin-bottom:0;">
-                                <li>New lessons and practice material added regularly</li>
-                                <li>Better value than purchasing courses individually</li>
-                                <li>Access from any device — learn anytime</li>
-                                <li>Clear goals and milestones to stay on track</li>
-                            </ul>
+                <div class="rwu-empty-title">Unlock Courses, Quizzes & a Structured Study Path</div>
+                <p class="rwu-empty-sub">
+                    <?php echo Label::getLabel('LBL_PLEASE_SUBSCRIBE_TO_ACCESS_COURSES'); ?>
+                    Choose a plan to access courses for your subjects and start learning with a clear roadmap.
+                </p>
+
+                <div class="rwu-benefits">
+                    <div class="rwu-benefit">
+                        <span class="rwu-dot"></span>
+                        <div>
+                            <strong>Unlimited course access</strong>
+                            <span>For the subjects included in your plan.</span>
                         </div>
                     </div>
 
-                    <div class="margin-top-4" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
-                        <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">View Plans</a>
-                        <a class="btn btn--bordered" href="javascript:void(0);" onclick="closeUnlockModal();">Not now</a>
+                    <div class="rwu-benefit">
+                        <span class="rwu-dot"></span>
+                        <div>
+                            <strong>Structured learning path</strong>
+                            <span>Exam board + tier so you always know what’s next.</span>
+                        </div>
                     </div>
+
+                    <div class="rwu-benefit">
+                        <span class="rwu-dot"></span>
+                        <div>
+                            <strong>Quizzes + exam practice</strong>
+                            <span>Improve performance with real patterns.</span>
+                        </div>
+                    </div>
+
+                    <div class="rwu-benefit">
+                        <span class="rwu-dot"></span>
+                        <div>
+                            <strong>Progress tracking</strong>
+                            <span>Stay consistent and complete faster.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rwu-cta">
+                    <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">
+                        <?php echo Label::getLabel('LBL_VIEW_PLANS'); ?>
+                    </a>
+
+                    <a class="btn btn--bordered color-secondary" href="javascript:void(0);" onclick="openUnlockModal();">
+                        See what you’ll unlock
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: Side cards (interactive) -->
+            <aside class="rwu-side">
+                <h5>What you get with subscription</h5>
+                <div class="rwu-mini">
+                    <div class="rwu-mini-card">
+                        <div class="rwu-mini-top">
+                            <b>New content regularly</b>
+                            <span class="rwu-tag">Updated</span>
+                        </div>
+                        <p>Fresh lessons and practice added across levels and subjects.</p>
+                    </div>
+
+                    <div class="rwu-mini-card">
+                        <div class="rwu-mini-top">
+                            <b>Better value</b>
+                            <span class="rwu-tag">Save</span>
+                        </div>
+                        <p>Cheaper than buying individual courses separately.</p>
+                    </div>
+
+                    <div class="rwu-mini-card">
+                        <div class="rwu-mini-top">
+                            <b>Learn anywhere</b>
+                            <span class="rwu-tag">Any device</span>
+                        </div>
+                        <p>Access your study plan and progress from any device.</p>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- ✅ Modal (upgraded UI, same functions + IDs) -->
+    <div id="unlockModalOverlay" role="dialog" aria-modal="true" aria-label="What you’ll unlock">
+        <div id="unlockModalBox">
+            <div class="rwu-modal-head">
+                <h4>What you’ll unlock with a subscription</h4>
+                <button type="button" class="rwu-close" aria-label="Close" onclick="closeUnlockModal();">&times;</button>
+            </div>
+
+            <div class="rwu-modal-body">
+                <div class="rwu-feature-grid">
+                    <div class="rwu-feature">
+                        <h6>Learning experience</h6>
+                        <ul>
+                            <li>Unlimited access to courses in your subscribed subjects</li>
+                            <li>Structured tiers (Exam board → Tier) with clear progression</li>
+                            <li>Quizzes + exam practice to boost scores</li>
+                            <li>Progress tracking to keep you consistent</li>
+                        </ul>
+                    </div>
+
+                    <div class="rwu-feature">
+                        <h6>Value & support</h6>
+                        <ul>
+                            <li>New lessons and practice material added regularly</li>
+                            <li>Better value than purchasing courses individually</li>
+                            <li>Access from any device — learn anytime</li>
+                            <li>Clear milestones to stay on track</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="rwu-modal-actions">
+                    <a class="btn btn--primary" href="<?php echo $pricingUrl; ?>">View Plans</a>
+                    <a class="btn btn--bordered" href="javascript:void(0);" onclick="closeUnlockModal();">Not now</a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script>
+       <script>
         function openUnlockModal() {
             var overlay = document.getElementById('unlockModalOverlay');
-            if (overlay) overlay.style.display = 'flex';
+            if (!overlay) return;
+            overlay.style.display = 'flex';
+            overlay.classList.add('is-open');
         }
+
         function closeUnlockModal() {
             var overlay = document.getElementById('unlockModalOverlay');
-            if (overlay) overlay.style.display = 'none';
+            if (!overlay) return;
+            overlay.classList.remove('is-open');
+            overlay.style.display = 'none';
         }
+
+        // close on background click
         document.addEventListener('click', function(e){
             var overlay = document.getElementById('unlockModalOverlay');
             if (!overlay || overlay.style.display !== 'flex') return;
             if (e.target === overlay) closeUnlockModal();
         });
+
+        // close on ESC
         document.addEventListener('keydown', function(e){
+            var overlay = document.getElementById('unlockModalOverlay');
+            if (!overlay || overlay.style.display !== 'flex') return;
             if (e.key === 'Escape') closeUnlockModal();
         });
-        </script>
-
+    </script>
     <?php
         return;
     }

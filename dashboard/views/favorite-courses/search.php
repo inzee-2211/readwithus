@@ -11,7 +11,7 @@ if (count($courses) == 0) {
         <div class="card-course">
             <div class="card-course__colum card-course__colum--first">
                 <div class="ratio ratio--16by9">
-                    <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL); ?>" alt="">
+                    <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL); ?>" alt="">
                 </div>
             </div>
             <div class="card-course__colum card-course__colum--second">
@@ -26,24 +26,24 @@ if (count($courses) == 0) {
                 </div>
                 <div class="card-course__body">
                     <div class="course-stats">
-                        <span class="course-stats__item">
+                        <!-- <span class="course-stats__item">
                             <strong>
                                 <?php echo CourseUtility::formatMoney($course['course_price']); ?>
-                            </strong>
+                            </strong> -->
                         </span>
                         <span class="course-stats__item">
                             <?php echo Label::getLabel('LBL_LECTURES') ?>
                             <strong><?php echo $course['course_lectures'] ?></strong>
                         </span>
-                        <?php if ($course['course_type'] > 0) { ?>
+                        <!-- <?php if ($course['course_type'] > 0) { ?>
                             <span class="course-stats__item">
                                 <strong><?php echo $courseTypes[$course['course_type']] ?></strong>
                             </span>
-                        <?php } ?>
-                        <span class="course-stats__item">
+                        <?php } ?> -->
+                        <!-- <span class="course-stats__item">
                             <?php echo Label::getLabel('LBL_STUDENTS') ?>
                             <strong><?php echo $course['course_students'] ?></strong>
-                        </span>
+                        </span> -->
                         <div class="course-stats__item">
                             <div class="ratings">
                                 <svg class="icon icon--rating">
@@ -62,7 +62,7 @@ if (count($courses) == 0) {
             </div>
             <div class="card-course__colum card-course__colum--third">
                 <div class="actions-group">
-                    <a target="_blank" href="<?php echo MyUtility::makeUrl('Courses', 'view', [$course['course_slug']], CONF_WEBROOT_FRONTEND); ?>" title="<?php echo Label::getLabel('LBL_VIEW'); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
+                    <a target="_blank" href="<?php echo MyUtility::makeFullUrl('Courses', 'view', [$course['course_slug']], CONF_WEBROOT_FRONTEND); ?>" title="<?php echo Label::getLabel('LBL_VIEW'); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                         <svg class="icon icon--enter icon--18">
                             <use xlink:href="<?php echo CONF_WEBROOT_URL; ?>images/sprite.svg#view-icon"></use>
                         </svg>
@@ -78,7 +78,7 @@ if (count($courses) == 0) {
                             <?php echo Label::getLabel('LBL_UNFAVORITE'); ?>
                         </div>
                     </a>
-                    <?php if (!$course['is_purchased']) { ?>
+                    <!-- <?php if (!$course['is_purchased']) { ?>
                         <?php if ($course['course_type'] == Course::TYPE_FREE) { ?>
                             <a href="javascript:void(0);" onclick="cart.addFreeCourse('<?php echo $course['course_id'] ?>');" title="<?php echo Label::getLabel('LBL_ENROLL_NOW'); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                                 <svg class="icon icon--heart icon--18">
@@ -98,7 +98,7 @@ if (count($courses) == 0) {
                                 </div>
                             </a>
                         <?php } ?>
-                    <?php } ?>
+                    <?php } ?> -->
                 </div>
             </div>
         </div>

@@ -30,7 +30,7 @@ if (count($students) == 0) {
                             <div class="profile-meta">
                                 <div class="profile-meta__media">
                                     <span class="avtar avtar--small" data-title="<?php echo CommonHelper::getFirstChar($student['learner_full_name']); ?>">
-                                        <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $student['offpri_learner_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL),CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $student['learner_full_name'] . '"/>'; ?>
+                                        <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $student['offpri_learner_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL),CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $student['learner_full_name'] . '"/>'; ?>
                                     </span>
                                 </div>
                                 <div class="profile-meta__details">
