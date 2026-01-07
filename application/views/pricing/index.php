@@ -337,7 +337,7 @@ if ($hasSub && $isCurrent) {
  elseif ($isQuizOnly && $isQuizCurrent) {
     // ✅ user has free quiz plan active (but no paid subscription)
     $ctaLabel = 'Quizzes active';
-    $ctaHref  = MyUtility::makeUrl('Quizizz'); // or Courses
+    // $ctaHref  = MyUtility::makeUrl('Quizizz'); // or Courses
     $ctaClass = 'rwu-plan__cta';
     $fineText = 'Free quiz plan is active' . ($quizAccessStatus ? " ({$quizAccessStatus})" : '') . '.';
   } elseif ($hasSub) {
