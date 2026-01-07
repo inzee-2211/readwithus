@@ -476,16 +476,21 @@ function updateProgress() {
     let has = false;
     const inputs = card.querySelectorAll('input[type="radio"], input[type="checkbox"]');
     inputs.forEach(function(inp){ if (inp.checked) has = true; });
-    const ta = card.querySelector('textarea');
-if (ta && ta.value.trim() !== '') has = true;
+//     const ta = card.querySelector('textarea');
+// if (ta && ta.value.trim() !== '') has = true;
 
-// ✅ NEW: math hidden input
-const mh = card.querySelector('#math_hidden_' + (card.dataset.qindex || ''));
-if (mh && mh.value.trim() !== '') has = true;
+// // ✅ NEW: math hidden input
+// const mh = card.querySelector('#math_hidden_' + (card.dataset.qindex || ''));
+// if (mh && mh.value.trim() !== '') has = true;
 
-// safer (works even if dataset missing)
-const anyHidden = card.querySelector('input[type="hidden"][id^="math_hidden_"]');
-if (anyHidden && anyHidden.value.trim() !== '') has = true;
+// // safer (works even if dataset missing)
+// const anyHidden = card.querySelector('input[type="hidden"][id^="math_hidden_"]');
+// if (anyHidden && anyHidden.value.trim() !== '') has = true;
+const idx = parseInt(card.dataset.qindex || '-1', 10);
+if (idx >= 0) {
+  if (isTextAnswered(idx)) has = true;
+}
+
 
     if (has) answered++;
   });
@@ -562,6 +567,44 @@ function renderTextarea(parent, index) {
   textarea.addEventListener('input', updateProgress);
   parent.appendChild(textarea);
 }
+function getTextAnswerValue(index) {
+  // Find the question card
+  const card = document.querySelector(`.quiz-question[data-qindex="${index}"]`);
+
+  // 1) If MathLive field exists, read latex reliably
+  if (card) {
+    const mf = card.querySelector('math-field');
+    if (mf) {
+      const v = (typeof mf.getValue === 'function')
+        ? (mf.getValue('latex') || '')
+        : (mf.value || '');
+      if (String(v).trim() !== '') return String(v).trim();
+    }
+  }
+
+  // 2) Hidden latex fallback (if RWUMath syncs it)
+  const hidden = document.getElementById(`math_hidden_${index}`);
+  if (hidden && String(hidden.value || '').trim() !== '') {
+    return String(hidden.value || '').trim();
+  }
+
+  // 3) Textarea inside THIS card (most reliable for non-math text)
+  if (card) {
+    const taLocal = card.querySelector('textarea');
+    if (taLocal && String(taLocal.value || '').trim() !== '') {
+      return String(taLocal.value || '').trim();
+    }
+  }
+
+  // 4) Last resort: global textarea by name (your original approach)
+  const ta = document.querySelector(`textarea[name="question-${index}"]`);
+  return ta ? String(ta.value || '').trim() : '';
+}
+
+function isTextAnswered(index) {
+  return getTextAnswerValue(index) !== '';
+}
+
 
 function loadAllQuestions() {
   const container = document.getElementById("quiz-options");
@@ -685,54 +728,98 @@ function loadAllQuestions() {
 }
 
 /* ------------------ VALIDATION + ANSWER BUILDING ------------------ */
-function validateAllAnswers() {
-  for (let i = 0; i < questions.length; i++) {
-    const q = questions[i];
-    const finalType = deriveType(q);
-    if (finalType === 'single') {
-      if (!document.querySelector(`input[name="question-${i}"]:checked`)) return false;
-    } else if (finalType === 'multiple') {
-      if (document.querySelectorAll(`input[name="question-${i}"]:checked`).length === 0) return false;
-    } else {
-   if (canUseMathLive()) {
-  const hidden = document.getElementById(`math_hidden_${i}`);
-  if (!hidden || hidden.value.trim() === "") return false;
-} else {
-  const input = document.querySelector(`textarea[name="question-${i}"]`);
-  if (!input || input.value.trim() === "") return false;
+function getCardTextValue(card, index) {
+  // math-field (best)
+  const mf = card.querySelector('math-field');
+  if (mf) {
+    const v = (typeof mf.getValue === 'function') ? mf.getValue('latex') : mf.value;
+    if (String(v || '').trim() !== '') return String(v || '').trim();
+  }
+
+  // hidden latex fallback
+  const hidden = card.querySelector(`#math_hidden_${index}`) || document.getElementById(`math_hidden_${index}`);
+  if (hidden && String(hidden.value || '').trim() !== '') return String(hidden.value || '').trim();
+
+  // textarea fallback
+  const ta = card.querySelector('textarea');
+  if (ta && String(ta.value || '').trim() !== '') return String(ta.value || '').trim();
+
+  return '';
 }
 
+function validateAllAnswers() {
+  const cards = document.querySelectorAll('.quiz-question');
+  for (const card of cards) {
+    const idx = parseInt(card.dataset.qindex || '-1', 10);
+    if (idx < 0) return false;
+
+    // MCQ?
+    const inputs = card.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+    if (inputs.length > 0) {
+      const anyChecked = Array.from(inputs).some(i => i.checked);
+      if (!anyChecked) return false;
+      continue;
     }
+
+    // Text/Math
+    const v = getCardTextValue(card, idx);
+    if (v === '') return false;
   }
   return true;
 }
 
+
+// function validateAllAnswers() {
+//   for (let i = 0; i < questions.length; i++) {
+//     const q = questions[i];
+//     const finalType = deriveType(q);
+//     if (finalType === 'single') {
+//       if (!document.querySelector(`input[name="question-${i}"]:checked`)) return false;
+//     } else if (finalType === 'multiple') {
+//       if (document.querySelectorAll(`input[name="question-${i}"]:checked`).length === 0) return false;
+//     } else {
+//    if (canUseMathLive()) {
+//   const hidden = document.getElementById(`math_hidden_${i}`);
+//   if (!hidden || hidden.value.trim() === "") return false;
+// } else {
+//   const input = document.querySelector(`textarea[name="question-${i}"]`);
+//   if (!input || input.value.trim() === "") return false;
+// }
+
+//     }
+//   }
+//   return true;
+// }
+
 function buildUserAnswers() {
   userAnswers = {};
-  questions.forEach((q, index) => {
-    const finalType = deriveType(q);
+
+  const cards = document.querySelectorAll('.quiz-question');
+  cards.forEach(card => {
+    const idx = parseInt(card.dataset.qindex || '-1', 10);
+    if (idx < 0) return;
+
+    const q = questions[idx];
     let answer = null;
 
-    if (finalType === 'single') {
-      const selected = document.querySelector(`input[name="question-${index}"]:checked`);
-      if (selected) answer = selected.value;
-    } else if (finalType === 'multiple') {
-      const selected = document.querySelectorAll(`input[name="question-${index}"]:checked`);
-      answer = Array.from(selected).map(el => el.value);
-    } else {
-     if (canUseMathLive()) {
-  const hidden = document.getElementById(`math_hidden_${index}`);
-  answer = hidden ? (hidden.value || '').trim() : "";
-} else {
-  const textarea = document.querySelector(`textarea[name="question-${index}"]`);
-  answer = (textarea && textarea.value) ? textarea.value.trim() : "";
-}
+    // MCQ
+    const inputs = card.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+    if (inputs.length > 0) {
+      const checked = Array.from(inputs).filter(i => i.checked).map(i => i.value);
 
+      // if radio -> single value
+      const isRadio = Array.from(inputs).some(i => i.type === 'radio');
+      answer = isRadio ? (checked[0] || null) : checked;
+
+    } else {
+      // Text/Math
+      answer = getCardTextValue(card, idx);
     }
 
-    userAnswers[index] = { questionId: q.id, answer: answer };
+    userAnswers[idx] = { questionId: q.id, answer };
   });
 }
+
 
 /* ------------------ EVENTS ------------------ */
 /* live tracking for MCQs */
