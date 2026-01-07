@@ -77,7 +77,7 @@ public function activateFreeQuizPlan($spackageId)
     'stripe_customer_id'     => null,
 
     // ✅ treat free as time-bound trial-like access
-    'usubs_status'           => 'trialing',
+    'usubs_status'           => 'free',
     'usubs_is_trial'         => 1,
 
     'usubs_start_date'       => date('Y-m-d H:i:s'),

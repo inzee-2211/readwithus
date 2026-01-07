@@ -204,12 +204,13 @@ class QuizizzController extends MyAppController
   $email = $this->getSessionQuizEmail();
 $subInfo = $this->getSubscriptionInfo($email);
 
-if (!empty($subInfo['is_subscribed'])) {
+// ✅ Unlimited only for paid active/trialing
+if (!empty($subInfo['has_unlimited'])) {
     echo json_encode([
         'status' => 1,
         'allowed' => true,
         'is_subscribed' => 1,
-        'subscription_status' => $subInfo['status'],
+        'subscription_status' => $subInfo['unlimited_status'],
         'quota' => 'unlimited',
         'attempts_left' => null,
         'attempts_used' => null,
@@ -217,12 +218,14 @@ if (!empty($subInfo['is_subscribed'])) {
     exit;
 }
 
+// ✅ Else: quota-based
+$quota = $this->resolveQuizQuota($email, $subInfo);
 
 
     
 
     // 2) Not subscribed => normal quota
-    $quota = $this->getFreeQuizQuotaByEmail($email);
+  
 
    $attempts = $this->getQuizAttemptsCount($quizUserId);
 
@@ -347,23 +350,25 @@ $sessionEmail = strtolower(trim($email)); // from post
 $subInfo = $this->getSubscriptionInfo($sessionEmail);
 
 
-    if (!empty($subInfo['is_subscribed'])) {
-        echo json_encode([
-            'status' => 1,
-            'msg' => 'Success',
-            'subtopicid' => $subtopicId,
-            'allowed' => true,
-            'is_subscribed' => 1,
-            'subscription_status' => $subInfo['status'] ?? null,
-            'quota' => 'unlimited',
-            'attempts_used' => null,
-            'attempts_left' => null,
-        ]);
-        exit;
-    }
+    // $subInfo = $this->getSubscriptionInfo($email);
 
-    // ❌ Not subscribed => normal quota
-    $quota = $this->getFreeQuizQuotaByEmail($sessionEmail);
+// ✅ Unlimited only for paid active/trialing
+if (!empty($subInfo['has_unlimited'])) {
+    echo json_encode([
+        'status' => 1,
+        'allowed' => true,
+        'is_subscribed' => 1,
+        'subscription_status' => $subInfo['unlimited_status'],
+        'quota' => 'unlimited',
+        'attempts_left' => null,
+        'attempts_used' => null,
+    ]);
+    exit;
+}
+
+// ✅ Else: quota-based
+$quota = $this->resolveQuizQuota($email, $subInfo);
+
 
 $attempts = $this->getQuizAttemptsCount($quizUserId);
 
@@ -762,7 +767,7 @@ private function getActiveSubscriptionInfoByUserId(int $userId): array
         SELECT usubs_status, usubs_current_period_end, usubs_end_date
         FROM tbl_user_subscriptions
         WHERE usubs_user_id = {$uid}
-          AND usubs_status IN ('active','trialing','trailing','free')
+          AND usubs_status IN ('active','trialing','trailing')
           AND (usubs_current_period_end IS NULL OR usubs_current_period_end >= NOW())
           AND (usubs_end_date IS NULL OR usubs_end_date >= NOW())
         ORDER BY usubs_id DESC
@@ -783,6 +788,35 @@ private function getActiveSubscriptionInfoByUserId(int $userId): array
 
     return ['is_subscribed' => false, 'status' => null];
 }
+private function getFreePlanInfoByUserId(int $userId): array
+{
+    if ($userId < 1) {
+        return ['has_free' => false, 'status' => null];
+    }
+
+    $db  = FatApp::getDb();
+    $uid = (int)$userId;
+
+    $sql = "
+        SELECT usubs_status, usubs_end_date
+        FROM tbl_user_subscriptions
+        WHERE usubs_user_id = {$uid}
+          AND usubs_status = 'free'
+          AND (usubs_end_date IS NULL OR usubs_end_date >= NOW())
+        ORDER BY usubs_id DESC
+        LIMIT 1
+    ";
+
+    $rs  = $db->query($sql);
+    $row = $rs ? $db->fetch($rs) : [];
+
+    return [
+        'has_free' => !empty($row['usubs_status']),
+        'status'   => $row['usubs_status'] ?? null,
+        'end_date' => $row['usubs_end_date'] ?? null,
+    ];
+}
+
 
 /**
  * Unified subscription resolver:
@@ -792,22 +826,60 @@ private function getActiveSubscriptionInfoByUserId(int $userId): array
 private function getSubscriptionInfo(string $email): array
 {
     $platformUserId = (int)($this->siteUserId ?? 0);
+
+    // Helper to build response for a userId
+    $build = function(int $uid, string $source): array {
+        $unlimited = $this->getActiveSubscriptionInfoByUserId($uid); // active/trialing only
+        $free      = $this->getFreePlanInfoByUserId($uid);
+
+        return [
+            'user_id'       => $uid,
+            'source'        => $source,
+
+            // Unlimited = active/trialing
+            'has_unlimited' => !empty($unlimited['is_subscribed']),
+            'unlimited_status' => $unlimited['status'] ?? null,
+
+            // Free plan (10 attempts)
+            'has_free'      => !empty($free['has_free']),
+            'free_status'   => $free['status'] ?? null,
+            'free_end_date' => $free['end_date'] ?? null,
+        ];
+    };
+
     if ($platformUserId > 0) {
-        $info = $this->getActiveSubscriptionInfoByUserId($platformUserId);
-        $info['user_id'] = $platformUserId;
-        $info['source'] = 'siteUserId';
-        return $info;
+        return $build($platformUserId, 'siteUserId');
     }
 
     $userId = $this->getRegisteredUserIdByEmail($email);
     if ($userId < 1) {
-        return ['is_subscribed' => false, 'status' => null, 'user_id' => 0, 'source' => 'email_not_registered'];
+        return [
+            'user_id' => 0,
+            'source' => 'email_not_registered',
+            'has_unlimited' => false,
+            'unlimited_status' => null,
+            'has_free' => false,
+            'free_status' => null,
+            'free_end_date' => null,
+        ];
     }
 
-    $info = $this->getActiveSubscriptionInfoByUserId($userId);
-    $info['user_id'] = $userId;
-    $info['source'] = 'email_lookup';
-    return $info;
+    return $build($userId, 'email_lookup');
+}
+private function resolveQuizQuota(string $email, array $subInfo): int
+{
+    // Unlimited handled outside
+    if (!empty($subInfo['has_free'])) {
+        return 10; // ✅ free plan activated
+    }
+
+    // Registered user (signed in / exists in tbl_users) => 5
+    if (!empty($subInfo['user_id'])) {
+        return 5;
+    }
+
+    // Guest / not registered => 3
+    return 3;
 }
 
 

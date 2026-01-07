@@ -40,7 +40,7 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                         <div class="profile-meta">
                             <div class="profile-meta__media">
                                 <span class="avtar avtar--xsmall" data-title="<?php echo CommonHelper::getFirstChar($lesson['first_name']); ?>">
-                                    <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '" />'; ?>
+                                    <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '" />'; ?>
                                 </span>
                             </div>
                             <div class="profile-meta__details"><h4 class="bold-600"><?php echo $lesson['first_name'] . ' ' . $lesson['last_name']; ?></h4></div>
@@ -103,12 +103,12 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
         </div>
     </div>
     <div class="session__body">
-        <div class="sesson-window" style="background-image:url(<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_LESSON_PAGE_IMAGE, 0, Afile::SIZE_LARGE], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') ?>)">
+        <div class="sesson-window" style="background-image:url(<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_LESSON_PAGE_IMAGE, 0, Afile::SIZE_LARGE], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') ?>)">
             <div class="sesson-window__content lessonBox" id="lessonBox">
                 <!-- session-window__frame -->
                 <div class="session-status">
                     <?php if (!is_null($lesson['user_deleted'])) { ?>
-                        <?php $link = MyUtility::makeUrl('Contact', 'index', [], CONF_WEBROOT_FRONTEND); ?>
+                        <?php $link = MyUtility::makeFullUrl('Contact', 'index', [], CONF_WEBROOT_FRONTEND); ?>
                         <p><?php echo Label::getLabel('LBL_USER_NO_MORE_EXISTS'); ?></p>
                         <a class="btn btn--secondary" href="<?php echo $link; ?>"><?php echo Label::getLabel('LBL_CONTACT_US'); ?></a>
                     <?php } elseif ($lesson['ordles_status'] != Lesson::SCHEDULED || $lesson['ordles_endtime_unix'] < $lesson['ordles_currenttime_unix']) { ?>

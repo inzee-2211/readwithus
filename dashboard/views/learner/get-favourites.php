@@ -20,7 +20,7 @@
                                     <a title="<?php echo $favourite['user_first_name'] . ' ' . $favourite['user_last_name']; ?>" href="<?php echo $teacherDetailPageUrl; ?>">
                                         <span class="avtar avtar--small" data-title="<?php echo CommonHelper::getFirstChar($favourite['user_first_name']); ?>">
                                             <?php
-                                            $img = FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $favourite['uft_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '?' . time();
+                                            $img = FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $favourite['uft_teacher_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '?' . time();
                                             echo '<img src="' . $img . '"  alt="' . $favourite['user_first_name'] . '"/>';
                                             ?>
                                         </span>

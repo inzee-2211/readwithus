@@ -22,7 +22,7 @@ $upcomingLesson = current($allLessons);
                         <?php echo Label::getLabel('LBL_WITH'); ?>
                         <div class="avtar-meta display-inline">
                             <span class="avtar avtar--xsmall display-inline margin-right-2" data-title="<?php echo CommonHelper::getFirstChar($upcomingLesson['first_name']); ?>">
-                                <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $upcomingLesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
+                                <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $upcomingLesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
                             </span>
                             <?php echo $upcomingLesson['first_name'] . ' ' . $upcomingLesson['last_name']; ?>
                         </div>
@@ -42,7 +42,7 @@ $upcomingLesson = current($allLessons);
                         <div class="timer__controls timer-js style colorDefinition size_sm" id="lessonStartTimer" timestamp="<?php echo $upcomingLesson['ordles_lesson_starttime_utc']; ?>">00:00:00:00</div>
                     </div>
                 </div>
-                <a href="<?php echo MyUtility::makeUrl('Lessons', 'view', [$upcomingLesson['ordles_id']]); ?>" class="btn bg-secondary"><?php echo Label::getLabel('LBL_ENTER_CLASSROOM') ?></a>
+                <a href="<?php echo MyUtility::makeFullUrl('Lessons', 'view', [$upcomingLesson['ordles_id']]); ?>" class="btn bg-secondary"><?php echo Label::getLabel('LBL_ENTER_CLASSROOM') ?></a>
             </div>
         </div>
     </div>

@@ -9,51 +9,97 @@ class UserSubscription
      * Get current active subscription for user.
      * Now treats both 'active' AND 'trialing' as "active", and requires end_date >= NOW().
      */
-    public static function getActiveByUser(int $userId)
-    {
-        $db     = FatApp::getDb();
-        $userId = FatUtility::int($userId);
-        if ($userId < 1) {
-            return null;
-        }
 
-        $srch = new SearchBase(self::DB_TBL, 'u');
-        $srch->addCondition('u.usubs_user_id', '=', $userId);
-        // 👇 include trialing as current subscription
-        $srch->addCondition('u.usubs_status', 'IN', ['active', 'trialing']);
-        $srch->addCondition('u.usubs_end_date', '>=', date('Y-m-d H:i:s'));
-        $srch->addOrder('u.usubs_id', 'DESC');
-        $srch->setPageSize(1);
 
-        $rs = $srch->getResultSet();
-        return $db->fetch($rs);
-    }
-/**
- * Get any subscription that grants quiz access.
- * - Includes: free, active, trialing
- * - Allows end_date NULL (free plan) OR end_date >= NOW()
+    /**
+ * Fetch latest subscription row for user that is "valid now" based on statuses.
+ * Allows end_date NULL (for free/lifetime) when $allowNullEnd = true.
  */
-public static function getQuizAccessByUser(int $userId)
+private static function getCurrentByUser(int $userId, array $statuses, bool $allowNullEnd = true)
 {
     $db     = FatApp::getDb();
     $userId = FatUtility::int($userId);
+    if ($userId < 1) return null;
 
-    if ($userId < 1) {
-        return null;
-    }
+    $now = $db->quoteVariable(date('Y-m-d H:i:s'));
+
+    $in = implode("','", array_map('addslashes', $statuses));
+
+    $endClause = $allowNullEnd
+        ? "(u.usubs_end_date IS NULL OR u.usubs_end_date >= {$now})"
+        : "(u.usubs_end_date IS NOT NULL AND u.usubs_end_date >= {$now})";
 
     $sql = "
         SELECT u.*
         FROM " . self::DB_TBL . " u
         WHERE u.usubs_user_id = " . (int)$userId . "
-          AND u.usubs_status IN ('free', 'active', 'trialing')
-          AND (u.usubs_end_date IS NULL OR u.usubs_end_date >= " . $db->quoteVariable(date('Y-m-d H:i:s')) . ")
+          AND u.usubs_status IN ('{$in}')
+          AND {$endClause}
         ORDER BY u.usubs_id DESC
         LIMIT 1
     ";
 
     return $db->fetch($db->query($sql));
 }
+
+    // public static function getActiveByUser(int $userId)
+    // {
+    //     $db     = FatApp::getDb();
+    //     $userId = FatUtility::int($userId);
+    //     if ($userId < 1) {
+    //         return null;
+    //     }
+
+    //     $srch = new SearchBase(self::DB_TBL, 'u');
+    //     $srch->addCondition('u.usubs_user_id', '=', $userId);
+    //     // 👇 include trialing as current subscription
+    //     $srch->addCondition('u.usubs_status', 'IN', ['active', 'trialing']);
+    //     $srch->addCondition('u.usubs_end_date', '>=', date('Y-m-d H:i:s'));
+    //     $srch->addOrder('u.usubs_id', 'DESC');
+    //     $srch->setPageSize(1);
+
+    //     $rs = $srch->getResultSet();
+    //     return $db->fetch($rs);
+    // }
+    public static function getActiveByUser(int $userId)
+{
+    // “Paid access still valid now” statuses
+    return self::getCurrentByUser($userId, ['active', 'trialing', 'canceled', 'past_due'], false);
+}
+
+/**
+ * Get any subscription that grants quiz access.
+ * - Includes: free, active, trialing
+ * - Allows end_date NULL (free plan) OR end_date >= NOW()
+ */
+// public static function getQuizAccessByUser(int $userId)
+// {
+//     $db     = FatApp::getDb();
+//     $userId = FatUtility::int($userId);
+
+//     if ($userId < 1) {
+//         return null;
+//     }
+
+//     $sql = "
+//         SELECT u.*
+//         FROM " . self::DB_TBL . " u
+//         WHERE u.usubs_user_id = " . (int)$userId . "
+//           AND u.usubs_status IN ('free', 'active', 'trialing')
+//           AND (u.usubs_end_date IS NULL OR u.usubs_end_date >= " . $db->quoteVariable(date('Y-m-d H:i:s')) . ")
+//         ORDER BY u.usubs_id DESC
+//         LIMIT 1
+//     ";
+
+//     return $db->fetch($db->query($sql));
+// }
+
+public static function getQuizAccessByUser(int $userId)
+{
+    // Quiz can be free, or paid states, and free may have NULL end_date
+    return self::getCurrentByUser($userId, ['free', 'active', 'trialing', 'canceled', 'past_due'], true);
+}
+
 
     /**
      * Check if user subscription allows access to this course

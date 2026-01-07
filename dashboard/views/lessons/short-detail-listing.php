@@ -17,7 +17,7 @@ foreach ($allLessons as $key => $lessons) {
                 <div class="lesson-list short-details">
                     <div class="lesson-list__left">
                         <div class="avtar avtar--small avtar--centered" data-title="<?php echo CommonHelper::getFirstChar($lesson['first_name']); ?>">
-                            <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
+                            <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
                         </div>
                     </div>
                     <div class="lesson-list__right">
@@ -26,7 +26,7 @@ foreach ($allLessons as $key => $lessons) {
                             <span><?php echo date('H:i', $lesson['ordles_starttime_unix']); ?></span><?php echo $lesson['lessonTitle']; ?>
                         </p>
                     </div>
-                    <a href="<?php echo MyUtility::makeUrl('Lessons', 'view', [$lesson['ordles_id']]); ?>" class="lesson-list__action"></a>
+                    <a href="<?php echo MyUtility::makeFullUrl('Lessons', 'view', [$lesson['ordles_id']]); ?>" class="lesson-list__action"></a>
                 </div>
             <?php } ?>
         </div>

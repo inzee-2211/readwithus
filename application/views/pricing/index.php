@@ -9,6 +9,10 @@ $symbolRight = $siteCurrency['currency_symbol_right'] ?? '';
 $levels          = $levels ?? [];
 $selectedLevelId = $selectedLevelId ?? 0;
 $hasActiveSubscription = $hasActiveSubscription ?? false;
+$hasQuizAccess        = $hasQuizAccess ?? false;
+$currentQuizPackageId = $currentQuizPackageId ?? 0;
+$quizAccessStatus     = $quizAccessStatus ?? '';
+
 $currentPackageId      = $currentPackageId ?? 0;
 $userDetail = $userDetail ?? [];
 
@@ -293,6 +297,8 @@ $isQuizOnly  = !empty($p['is_quiz_only']);
 
 // ✅ Strong current-plan detection using controller vars
 $isCurrent = !empty($p['is_current']) || ($hasSub && (int)$currentPackageId === $planId);
+$isQuizCurrent = (!empty($hasQuizAccess) && (int)$currentQuizPackageId === $planId);
+
 
 // ✅ If controller didn't provide upgrade flag, decide upgrade by price
 $isUpgrade = !empty($p['is_upgrade']);
@@ -327,7 +333,14 @@ if ($hasSub && $isCurrent) {
         ? 'Free quiz plan is active.'
         : 'Your subscription is active.';
 
-} elseif ($hasSub) {
+}
+ elseif ($isQuizOnly && $isQuizCurrent) {
+    // ✅ user has free quiz plan active (but no paid subscription)
+    $ctaLabel = 'Quizzes active';
+    $ctaHref  = MyUtility::makeUrl('Quizizz'); // or Courses
+    $ctaClass = 'rwu-plan__cta';
+    $fineText = 'Free quiz plan is active' . ($quizAccessStatus ? " ({$quizAccessStatus})" : '') . '.';
+  } elseif ($hasSub) {
 
     // ✅ User has an active subscription
 
