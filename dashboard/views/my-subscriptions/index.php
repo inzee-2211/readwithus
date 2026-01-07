@@ -703,7 +703,8 @@ if ($hasSubscription && !empty($subscription['end_date'])) {
                                             <?php echo Label::getLabel('LBL_STATUS'); ?>
                                         </span>
                                       <?php
-$status = $subscription['status'] ?? '';
+$status = $subscription['status'] ?? ($subscription['usubs_status'] ?? '');
+
 $isActiveLike = in_array($status, ['active', 'trialing'], true);
 ?>
 <?php if ($isActiveLike) { ?>

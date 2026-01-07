@@ -18,57 +18,45 @@ class MySubscriptionsController extends DashboardController
         }
     }
 
-    /**
-     * My Subscription page for learner
-     */
-    // public function index()
-    // {
-    //     $subscription = $this->getActiveSubscription($this->userId);
-    //     $subjects     = $this->getSubscriptionSubjects($subscription);
+    public function index()
+    {
+        // 1) Paid subscription (active/trialing + not expired)
+        $subscription = $this->getActiveSubscription($this->userId);
 
-    //     $this->set('subscription', $subscription);
-    //     $this->set('subjects', $subjects);
+        // 2) If no paid subscription, try quiz-only plan (free/active/trialing)
+        if (empty($subscription)) {
+            $subscription = $this->getQuizAccessSubscription($this->userId);
+        }
 
-    //     // Pricing page URL (for upgrade / browse plans)
-    //     $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
-    //     $this->set('pricingUrl', $pricingUrl);
+        // Detect plan type
+        $hasSubscription = !empty($subscription);
+        $isQuizOnlyPlan  = $hasSubscription && (int)($subscription['spackage_is_quiz_only'] ?? 0) === 1;
 
-    //     $this->_template->render(true,true);
-    // }
+        // Subjects ONLY for paid subscriptions
+        $subjects = [];
+        if ($hasSubscription && !$isQuizOnlyPlan) {
+            $subjects = $this->getSubscriptionSubjects($subscription);
+        }
 
-public function index()
-{
-    $subscription = $this->getActiveSubscription($this->userId);
-    $subjects     = $this->getSubscriptionSubjects($subscription);
+        // Pricing page URL
+        $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
 
-    $this->set('subscription', $subscription);
-    $this->set('subjects', $subjects);
+        // Free-plan detection (your "free quiz plan")
+        $status = $subscription['status'] ?? '';
+        $isFreePlan = $hasSubscription && (
+            $isQuizOnlyPlan ||
+            $status === 'free' ||
+            (int)($subscription['spackage_is_free'] ?? 0) === 1
+        );
 
-    // Pricing page URL (for upgrade / browse plans)
-    $pricingUrl = MyUtility::makeUrl('Pricing', 'index', [], CONF_WEBROOT_FRONT_URL);
-    $this->set('pricingUrl', $pricingUrl);
+        $this->set('subscription', $subscription);
+        $this->set('subjects', $subjects);
+        $this->set('pricingUrl', $pricingUrl);
+        $this->set('isFreePlan', $isFreePlan);
+        $this->set('isQuizOnlyPlan', $isQuizOnlyPlan);
 
-    /**
-     * ✅ Detect FREE plan
-     * Use whatever fields exist in your tbl_subscription_packages.
-     * This is written to be robust even if some fields are missing.
-     */
-    $isFreePlan = false;
-    if (!empty($subscription)) {
-        $title = strtolower(trim(($subscription['spackage_title'] ?? $subscription['spackage_name'] ?? '')));
-        $price = $subscription['spackage_price'] ?? $subscription['spackage_amount'] ?? null;
-
-        $isFreePlan =
-            ((int)($subscription['spackage_is_free'] ?? 0) === 1) ||
-            ($price !== null && (float)$price <= 0) ||
-            (strpos($title, 'free') !== false);
+        $this->_template->render(true, true);
     }
-
-    $this->set('isFreePlan', $isFreePlan);
-
-    $this->_template->render(true,true);
-}
-
 
     /**
      * Cancel subscription (AJAX / POST)
@@ -86,7 +74,6 @@ public function index()
 
         $db = FatApp::getDb();
 
-        // Ensure this subscription belongs to logged in user and is active
         $srch = new SearchBase('tbl_user_subscriptions', 'us');
         $srch->addMultipleFields([
             'us.usubs_id AS user_sub_id',
@@ -96,23 +83,15 @@ public function index()
         ]);
         $srch->addCondition('us.usubs_id', '=', $userSubId);
         $srch->addCondition('us.usubs_user_id', '=', $this->userId);
-        // $srch->addCondition('us.usubs_status', '=', 'active');
-        $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
+        $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing', 'free']);
 
-
-        $rs  = $srch->getResultSet();
-        $row = $db->fetch($rs);
-
+        $row = $db->fetch($srch->getResultSet());
         if (empty($row)) {
             FatUtility::dieJsonError(Label::getLabel('MSG_INVALID_OR_EXPIRED_SUBSCRIPTION'));
         }
 
         $db->startTransaction();
 
-        // If you integrate Stripe / gateway:
-        // SubscriptionBilling::cancelAtPeriodEnd($row['gateway_sub_id']);
-
-        // Your enum: 'active','trialing','past_due','canceled',...
         $updateArr = [
             'usubs_status'   => 'canceled',
             'usubs_end_date' => date('Y-m-d H:i:s'),
@@ -130,21 +109,19 @@ public function index()
             FatUtility::dieJsonError(Label::getLabel('MSG_SOMETHING_WENT_WRONG'));
         }
 
-        // Access is revoked because status != active
         $db->commitTransaction();
 
         FatUtility::dieJsonSuccess(Label::getLabel('MSG_SUBSCRIPTION_CANCELLED_SUCCESSFULLY'));
     }
 
     /**
-     * Fetch most recent active subscription for learner
+     * Paid subscription: active/trialing + not expired
      */
     private function getActiveSubscription(int $userId): array
     {
         $db   = FatApp::getDb();
         $srch = new SearchBase('tbl_user_subscriptions', 'us');
 
-        // Join with packages; adjust if your table / column names differ
         $srch->joinTable(
             'tbl_subscription_packages',
             'LEFT JOIN',
@@ -159,59 +136,83 @@ public function index()
             'us.usubs_start_date AS start_date',
             'us.usubs_end_date AS end_date',
             'us.usubs_status AS status',
-            'us.usubs_subject_ids',            // comma-separated IDs
-            'sp.*',                            // all package fields
+            'us.usubs_subject_ids',
+            'sp.*',
         ]);
 
         $srch->addCondition('us.usubs_user_id', '=', $userId);
-   $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
-$srch->addDirectCondition('us.usubs_end_date >= NOW()');
-
+        $srch->addCondition('us.usubs_status', 'IN', ['active', 'trialing']);
+        $srch->addDirectCondition('us.usubs_end_date >= NOW()');
 
         $srch->addOrder('us.usubs_start_date', 'DESC');
         $srch->setPageSize(1);
 
-        $rs  = $srch->getResultSet();
-        $row = $db->fetch($rs);
-
+        $row = $db->fetch($srch->getResultSet());
         return $row ?: [];
     }
 
     /**
-     * Get subjects from usubs_subject_ids (comma-separated IDs)
-     * and resolve titles from course_subjects table:
-     *   id, subject, level_id, created_at
+     * Quiz-only plan (free OR active/trialing) fetched with SAME JOIN + SAME aliases
+     * so your view gets spackage_name/title and start_date/end_date/status.
      */
+    private function getQuizAccessSubscription(int $userId): array
+    {
+        $db   = FatApp::getDb();
+        $srch = new SearchBase('tbl_user_subscriptions', 'us');
+
+        $srch->joinTable(
+            'tbl_subscription_packages',
+            'LEFT JOIN',
+            'sp.spackage_id = us.usubs_spackage_id',
+            'sp'
+        );
+
+        $srch->addMultipleFields([
+            'us.usubs_id AS user_sub_id',
+            'us.usubs_user_id AS user_id',
+            'us.usubs_spackage_id AS package_id',
+            'us.usubs_start_date AS start_date',
+            'us.usubs_end_date AS end_date',
+            'us.usubs_status AS status',
+            'us.usubs_subject_ids',
+            'sp.*',
+        ]);
+
+        $srch->addCondition('us.usubs_user_id', '=', $userId);
+
+        // quiz-only package
+        $srch->addCondition('sp.spackage_is_quiz_only', '=', 1);
+
+        // statuses that represent quiz access
+        $srch->addCondition('us.usubs_status', 'IN', ['free', 'active', 'trialing']);
+
+        // If your free plan has NULL end_date, allow it
+        $srch->addDirectCondition('(us.usubs_end_date IS NULL OR us.usubs_end_date = "0000-00-00 00:00:00" OR us.usubs_end_date >= NOW())');
+
+        $srch->addOrder('us.usubs_start_date', 'DESC');
+        $srch->setPageSize(1);
+
+        $row = $db->fetch($srch->getResultSet());
+        return $row ?: [];
+    }
+
     private function getSubscriptionSubjects(array $subscription): array
     {
         if (empty($subscription) || empty($subscription['usubs_subject_ids'])) {
             return [];
         }
 
-        $subjectIds = array_filter(
-            array_map('intval', explode(',', $subscription['usubs_subject_ids']))
-        );
+        $subjectIds = array_filter(array_map('intval', explode(',', $subscription['usubs_subject_ids'])));
         if (empty($subjectIds)) {
             return [];
         }
 
         $db   = FatApp::getDb();
         $srch = new SearchBase('course_subjects', 'cs');
-
-        // match IDs to course_subjects.id
-        $srch->addMultipleFields([
-            'cs.id',
-            'cs.subject',
-            'cs.level_id',
-        ]);
+        $srch->addMultipleFields(['cs.id', 'cs.subject', 'cs.level_id']);
         $srch->addCondition('cs.id', 'IN', $subjectIds);
 
-        $rs = $srch->getResultSet();
-        if (!$rs) {
-            return [];
-        }
-
-        $rows = $db->fetchAll($rs);
+        $rows = $db->fetchAll($srch->getResultSet());
         if (!$rows) {
             return [];
         }
