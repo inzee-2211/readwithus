@@ -85,7 +85,7 @@ $subscriptionLabel = Order::getTypeArr(Order::TYPE_SUBSCR);
                             <div class="profile-meta">
                                 <div class="profile-meta__media">
                                     <span class="avtar" data-title="<?php echo CommonHelper::getFirstChar($lesson['first_name']); ?>">
-                                        <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '?t=' . time(); ?>" />
+                                        <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '?t=' . time(); ?>" />
                                     </span>
                                 </div>
                                 <div class="profile-meta__details">
@@ -95,7 +95,7 @@ $subscriptionLabel = Order::getTypeArr(Order::TYPE_SUBSCR);
                             </div>
                             <div class="actions-group">
                                 <?php if ($lesson['ordles_status'] != Lesson::CANCELLED) { ?>
-                                    <a href="<?php echo MyUtility::makeUrl('Lessons', 'view', [$lesson['ordles_id']]); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
+                                    <a href="<?php echo MyUtility::makeFullUrl('Lessons', 'view', [$lesson['ordles_id']]); ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                                         <svg class="icon icon--enter icon--18"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#enter'; ?>"></use></svg>
                                         <div class="tooltip tooltip--top bg-black"><?php echo Label::getLabel('LBL_Enter_Classroom'); ?></div>
                                     </a>

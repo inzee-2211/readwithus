@@ -116,7 +116,7 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                             <svg class="icon"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#clock'; ?>"></use></svg>
                         </div>
                         <?php echo empty($lesson['statusInfoLabel']) ? '' : '<p>' . $lesson['statusInfoLabel'] . '</p>'; ?>
-                        <a href="<?php echo MyUtility::makeUrl('Lessons'); ?>" class="btn btn--primary btn--large"><?php echo Label::getLabel('LBL_GO_TO_LESSONS'); ?></a>
+                        <a href="<?php echo MyUtility::makeFullUrl('Lessons'); ?>" class="btn btn--primary btn--large"><?php echo Label::getLabel('LBL_GO_TO_LESSONS'); ?></a>
                     <?php } elseif ($lesson['canJoin']) { ?>
                         <div class="join-btns join_lesson_now">
                             <?php if ($activeMettingTool['metool_code'] == MeetingTool::ZOOM_MEETING) { ?>
