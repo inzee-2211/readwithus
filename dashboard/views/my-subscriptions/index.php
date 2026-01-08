@@ -793,19 +793,34 @@ $isActiveLike = in_array($status, ['active', 'trialing'], true);
 
                                 <div class="subs-plan-body-right">
                                     <div class="subs-stat-card">
-                                        <?php if (!empty($isFreePlan)) { ?>
-    <a
-href="<?php echo MyUtility::makeUrl('FreeQuizzes', 'index', [], CONF_WEBROOT_FRONT_URL); ?>"
-      class="btn btn--primary"
-      style="width:100%; margin-top:10px;"
-    >
-      Start Free Quizzes
-    </a>
+        <?php
+// Always go to front-side controller (application)
+$frontBase = (defined('CONF_WEBROOT_FRONT_URL') && CONF_WEBROOT_FRONT_URL) ? CONF_WEBROOT_FRONT_URL : CONF_WEBROOT_URL;
+$freeQuizUrl = MyUtility::makeUrl('FreeQuizzes', 'index', [], $frontBase);
 
-    <p class="subs-cancel-helper" style="margin-top:6px;">
-      Revise topics using the free quiz system.
-    </p>
-<?php } ?>
+// Optional: change label based on plan
+$status = $subscription['status'] ?? ($subscription['usubs_status'] ?? '');
+$isPaidLike = in_array($status, ['active', 'trialing'], true) && empty($isFreePlan);
+$btnLabel = $isPaidLike ? 'Start Quizzes' : 'Start Free Quizzes';
+
+// Optional helper text
+$helperText = $isPaidLike
+  ? 'Revise topics with quizzes included in your plan.'
+  : 'Revise topics using the free quiz system.';
+?>
+
+<a
+  href="<?php echo $freeQuizUrl; ?>"
+  class="btn btn--primary"
+  style="width:100%; margin-top:10px;"
+>
+  <?php echo $btnLabel; ?>
+</a>
+
+<p class="subs-cancel-helper" style="margin-top:6px;">
+  <?php echo $helperText; ?>
+</p>
+
 
                                         <h5><?php echo Label::getLabel('LBL_PLAN_OVERVIEW'); ?></h5>
                                         <ul>

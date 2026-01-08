@@ -69,7 +69,7 @@ class FreeQuizzesController extends MyAppController
         ]);
 
         $srch->addCondition('us.usubs_user_id', '=', $userId);
-        $srch->addCondition('sp.spackage_is_quiz_only', '=', 1);
+$srch->addDirectCondition('(sp.spackage_is_quiz_only = 1 OR sp.spackage_is_quiz_only IS NULL OR sp.spackage_is_quiz_only = 0)');
         $srch->addCondition('us.usubs_status', 'IN', ['free', 'active', 'trialing']);
         $srch->addDirectCondition('(us.usubs_end_date IS NULL OR us.usubs_end_date = "0000-00-00 00:00:00" OR us.usubs_end_date >= NOW())');
 
