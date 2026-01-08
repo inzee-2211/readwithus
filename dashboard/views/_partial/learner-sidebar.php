@@ -7,7 +7,7 @@
         <svg class="icon icon--lesson margin-right-2">
             <use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#subscription'; ?>"></use>
         </svg>
-        <span><?php echo Label::getLabel('LBL_MY_SUBSCRIPTIONS'); ?></span>
+        <span><?php echo Label::getLabel('LBL_MY_PLANS'); ?></span>
     </a>
 </li>
 
