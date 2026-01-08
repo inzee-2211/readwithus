@@ -322,20 +322,26 @@ $trendingCourses = isset($courses) && is_array($courses) ? array_slice($courses,
   <div class="rwu-request-content">
     <!-- LEFT: Text block -->
     <div class="rwu-request-left">
-      <div class="pill">Tutor Request</div>
-      <h2 class="title">
-        Request Your Tutor ...<br />
-        Get Matched with Qualified & Experienced Teachers
-      </h2>
-      <p class="desc">
-        • Learn Smarter. Get Personalized Tutoring Tailored to Your Goals.<br />
-        • Experience personalised lessons supported by smart learning insights.<br />
-        • Improve performance through real-time feedback and progress tracking.<br />
-        • Learn online, anytime, with flexible scheduling built around your routine.
-      </p>
+     <div class="pill">Need a Different Tutor?</div>
+
+<h2 class="title">
+  Browse our tutors first  <br />
+  Request one if you can’t find the right match
+</h2>
+
+<p class="desc">
+  You can directly choose a tutor from our tutor list. <br /><br />
+  If you don’t find a tutor for your subject, level, or preferred teaching style — send us a request and we’ll match you with a suitable tutor.
+  <br /><br />
+  • Subject not listed? We’ll source a tutor for it.<br />
+  • Prefer a specific exam board or tier? We’ll match accordingly.<br />
+  • Need a particular time slot? We’ll try to arrange it.
+</p>
+
 
     <a href="<?= MyUtility::makeUrl('Teachers'); ?>" class="btn-main">
-          Our Tutors
+          Browse Tutors
+
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
