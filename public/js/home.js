@@ -215,19 +215,30 @@ console.log('[home.js] loaded', {
       .then(() => renderStep(currentStep));
   } else {
     // Final step → resolve quiz setup and redirect
-    fetch("api.php?url=resolveSetup" + buildQueryString(selectedValues))
-      .then(r => r.json())
-      .then(j => {
-        if (j.status === 1 && j.data?.setup_ids) {
-          const ids = j.data.setup_ids.join(',');
-          const nextUrl = fcom.makeUrl('quizizz') + '?setup_ids=' + ids;
-          reviseModal.hide();
-          window.location.href = nextUrl;
-        } else {
-          alert("Unable to load quiz. Please try again.");
-        }
-      })
-      .catch(() => alert("Network error. Please try again."));
+  const quizizzBase = (window.RWU_CONFIG && window.RWU_CONFIG.quizizzUrl) || null;
+
+// ✅ make resolveSetup absolute (so it works from /free-quizzes/* too)
+const resolveUrl = new URL("api.php?url=resolveSetup", baseUrl).toString();
+
+fetch(resolveUrl + buildQueryString(selectedValues))
+  .then(r => r.json())
+  .then(j => {
+    if (j.status === 1 && j.data?.setup_ids) {
+      const ids = j.data.setup_ids.join(',');
+
+      // ✅ prefer front URL if provided, else fallback to old behavior (home page)
+      const nextUrl = quizizzBase
+        ? (quizizzBase + '?setup_ids=' + ids)
+        : (fcom.makeUrl('quizizz') + '?setup_ids=' + ids);
+
+      reviseModal.hide();
+      window.location.href = nextUrl;
+    } else {
+      alert("Unable to load quiz. Please try again.");
+    }
+  })
+  .catch(() => alert("Network error. Please try again."));
+
   }
 };
 

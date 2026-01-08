@@ -793,6 +793,20 @@ $isActiveLike = in_array($status, ['active', 'trialing'], true);
 
                                 <div class="subs-plan-body-right">
                                     <div class="subs-stat-card">
+                                        <?php if (!empty($isFreePlan)) { ?>
+    <a
+href="<?php echo MyUtility::makeUrl('FreeQuizzes', 'index', [], CONF_WEBROOT_FRONT_URL); ?>"
+      class="btn btn--primary"
+      style="width:100%; margin-top:10px;"
+    >
+      Start Free Quizzes
+    </a>
+
+    <p class="subs-cancel-helper" style="margin-top:6px;">
+      Revise topics using the free quiz system.
+    </p>
+<?php } ?>
+
                                         <h5><?php echo Label::getLabel('LBL_PLAN_OVERVIEW'); ?></h5>
                                         <ul>
                                             <?php if ($subjectLimit !== null) { ?>
