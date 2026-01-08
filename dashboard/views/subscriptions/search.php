@@ -29,7 +29,7 @@ if (count($subscriptions) == 0) {
                             <div class="profile-meta">
                                 <div class="profile-meta__media">
                                     <span class="avtar avtar--small" data-title="<?php echo CommonHelper::getFirstChar($subscription['first_name']); ?>">
-                                        <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $subscription['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL),CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $subscription['first_name'] . ' ' . $subscription['last_name'] . '"/>'; ?>
+                                        <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $subscription['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL),CONF_DEF_CACHE_TIME, '.jpg') . '"  alt="' . $subscription['first_name'] . ' ' . $subscription['last_name'] . '"/>'; ?>
                                     </span>
                                 </div>
                                 <div class="profile-meta__details">
@@ -83,7 +83,7 @@ if (count($subscriptions) == 0) {
                     <div class="flex-cell">
                         <div class="flex-cell__label"><?php echo $actionLabel; ?></div>
                         <div class="flex-cell__content">
-                            <a href="<?php echo MyUtility::makeUrl('Lessons') . '?ordles_status=-1&order_id=' . $subscription['order_id']; ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
+                            <a href="<?php echo MyUtility::makeFullUrl('Lessons') . '?ordles_status=-1&order_id=' . $subscription['order_id']; ?>" class="btn btn--bordered btn--shadow btn--equal margin-1 is-hover">
                                 <svg class="icon icon--cancel icon--small"><use xlink:href="<?php echo CONF_WEBROOT_URL . '/images/sprite.svg#view'; ?>"></use></svg>
                                 <div class="tooltip tooltip--top bg-black"><?php echo Label::getLabel('LBL_VIEW_LESSONS'); ?></div>
                             </a>
