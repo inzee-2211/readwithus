@@ -425,109 +425,132 @@ $yearName = $yearName ?? '';
     });
 
     // Put subtopic id into hidden field when opening modal
-    document.querySelectorAll('.btn-prnt-inner').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const subtopicId = this.getAttribute('data-subtopic-id');
-            const hiddenField = document.getElementById('subtopicIdField');
-            if (hiddenField) {
-                hiddenField.value = subtopicId;
-            }
-        });
-    });
+    // document.querySelectorAll('.btn-prnt-inner').forEach(function (button) {
+    //     button.addEventListener('click', function () {
+    //         const subtopicId = this.getAttribute('data-subtopic-id');
+    //         const hiddenField = document.getElementById('subtopicIdField');
+    //         if (hiddenField) {
+    //             hiddenField.value = subtopicId;
+    //         }
+    //     });
+    // });
+    // Always set subtopic_id when modal is about to open (most reliable)
+$('#quizSignupModal').on('show.bs.modal', function (event) {
+  const btn = event.relatedTarget; // the button that triggered the modal
+  const subtopicId = btn ? $(btn).data('subtopic-id') : '';
+
+  $('#subtopicIdField').val(subtopicId || '');
+
+  // Optional: clear previous invalid styling/messages
+  $('#quizSignupForm .form-control').removeClass('is-invalid');
+});
+
 
     // AJAX submit for quiz signup (single handler, your old logic)
     if (typeof $ !== 'undefined' && typeof fcom !== 'undefined') {
-        $('#quizSignupForm .start-quiz-btn').on('click', function () {
-            const form = $('#quizSignupForm');
-            const formData = form.serialize();
+       let quizSignupBusy = false;
 
-            // ---- FRONTEND VALIDATION ----
-            let valid = true;
-            const nameField = form.find('[name="full_name"]');
-            const emailField = form.find('[name="email"]');
-            const pEmailField = form.find('[name="parent_email"]');
-            const phoneField = form.find('[name="phone"]');
+$(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
+  e.preventDefault();
+  e.stopPropagation();
 
-            // Helper regex patterns
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const phoneRegex = /^[0-9]{10,15}$/;
+  if (quizSignupBusy) return;
 
-            // Reset previous errors
-            form.find('.form-control').removeClass('is-invalid');
+  const form = $('#quizSignupForm');
 
-            // Name
-            if (nameField.val().trim().length < 3) {
-                nameField.addClass('is-invalid');
-                valid = false;
-            }
-
-            // Student email
-            if (!emailRegex.test(emailField.val().trim())) {
-                emailField.addClass('is-invalid');
-                valid = false;
-            }
-
-            // Parent email
-            if (!emailRegex.test(pEmailField.val().trim())) {
-                pEmailField.addClass('is-invalid');
-                valid = false;
-            }
-
-            // Phone
-            if (!phoneRegex.test(phoneField.val().trim())) {
-                phoneField.addClass('is-invalid');
-                valid = false;
-            }
-
-            if (!valid) {
-                // Add a little feedback animation
-                form.addClass('shake');
-                setTimeout(() => form.removeClass('shake'), 500);
-                alert('Please enter valid information before starting the quiz.');
-                return; // stop submission
-            }
-
-            // ---- AJAX SUBMIT (same as before) ----
-           // In the AJAX success callback in your view file:
-fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
-    try {
-        if (typeof response === 'string') {
-            response = JSON.parse(response);
-        }
-
-       if (response.status == 1 && response.subtopicid) {
-
-    // ✅ SUBSCRIBED / UNLIMITED: go straight to quiz
-    if (response.is_subscribed == 1 || response.quota === 'unlimited') {
-        alert('Subscription active — unlimited quiz access.');
-        window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
-        return;
-    }
-
-    // ✅ FREE QUOTA FLOW
-    const attemptsLeft = Number(response.attempts_left);
-
-    if (!Number.isFinite(attemptsLeft) || attemptsLeft <= 0) {
-        alert('You have used all your free quizzes. Please subscribe for more.');
-        if (response.redirect_url) {
-            window.location.href = response.redirect_url;
-        } else {
-            window.location.href = FRONT_WEBROOT.replace(/\/+$/, '') + '/pricing';
-        }
-        return;
-    }
-
-    alert('You have ' + response.attempts_left + ' free quizzes left out of ' + response.quota);
-    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(response.subtopicid);
+  // ✅ Ensure subtopic_id is present
+  const subtopicId = ($('#subtopicIdField').val() || '').trim();
+  if (!subtopicId) {
+    alert('Please close the popup and click "Start quiz" again (subtopic missing).');
     return;
-}
+  }
 
-    } catch (e) {
-        console.error("Invalid JSON:", e);
-        alert("Failed to parse server response.");
+  const formData = form.serialize();
+
+  // ---- FRONTEND VALIDATION ----
+  let valid = true;
+  const nameField = form.find('[name="full_name"]');
+  const emailField = form.find('[name="email"]');
+  const pEmailField = form.find('[name="parent_email"]');
+  const phoneField = form.find('[name="phone"]');
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[0-9]{10,15}$/;
+
+  form.find('.form-control').removeClass('is-invalid');
+
+  if (nameField.val().trim().length < 3) { nameField.addClass('is-invalid'); valid = false; }
+  if (!emailRegex.test(emailField.val().trim())) { emailField.addClass('is-invalid'); valid = false; }
+  if (!emailRegex.test(pEmailField.val().trim())) { pEmailField.addClass('is-invalid'); valid = false; }
+  if (!phoneRegex.test(phoneField.val().trim())) { phoneField.addClass('is-invalid'); valid = false; }
+
+  if (!valid) {
+    form.addClass('shake');
+    setTimeout(() => form.removeClass('shake'), 500);
+    alert('Please enter valid information before starting the quiz.');
+    return;
+  }
+
+  quizSignupBusy = true;
+  const btn = $(this);
+  btn.prop('disabled', true).text('Starting...');
+
+  fcom.ajax(fcom.makeUrl('Quizizz', 'submitSignup'), formData, function (response) {
+  // always unlock UI
+  quizSignupBusy = false;
+  btn.prop('disabled', false).text('Start Quiz');
+
+  try {
+    if (typeof response === 'string') response = JSON.parse(response);
+
+    // ✅ FAIL / BLOCKED
+    if (!response || response.status != 1) {
+      alert(response?.msg || 'Signup failed. Please try again.');
+      if (response?.redirect_url) window.location.href = response.redirect_url;
+      return;
     }
+
+    // ✅ REQUIRE subtopicid
+    const subId = (response.subtopicid || '').toString().trim();
+    if (!subId) {
+      alert('Signup succeeded but subtopic is missing. Please close and click "Start quiz" again.');
+      return;
+    }
+
+    // ✅ Close modal (optional but recommended)
+    try { $('#quizSignupModal').modal('hide'); } catch (e) {}
+
+    // ✅ SUBSCRIBED / UNLIMITED
+    if (response.is_subscribed == 1 || response.quota === 'unlimited') {
+      // No quota alert for unlimited users
+      window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
+      return;
+    }
+
+    // ✅ QUOTA FLOW (submitSignup already reserved +1 attempt)
+    const attemptsLeft = Number(response.attempts_left);
+    const quota = response.quota;
+
+    // If backend says 0 left, force upgrade
+    if (!Number.isFinite(attemptsLeft) || attemptsLeft <= 0) {
+      alert(response.msg || 'Your free quiz quota is expired. Please subscribe to continue.');
+      window.location.href = response.redirect_url
+        ? response.redirect_url
+        : FRONT_WEBROOT.replace(/\/+$/, '') + '/pricing';
+      return;
+    }
+
+    // ✅ Show remaining quota THEN redirect
+    alert('You have ' + attemptsLeft + ' free quizzes left out of ' + quota + '.');
+    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
+
+  } catch (err) {
+    console.error('submitSignup response parse error:', err, response);
+    alert('Unexpected server response. Please try again.');
+  }
 });
-        });
+
+});
     }
 
     // keep your existing globals

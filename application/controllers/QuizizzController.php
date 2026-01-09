@@ -213,6 +213,7 @@ if (!empty($subInfo['has_unlimited'])) {
         'subscription_status' => $subInfo['unlimited_status'],
         'quota' => 'unlimited',
         'attempts_left' => null,
+        
         'attempts_used' => null,
     ]);
     exit;
@@ -361,6 +362,7 @@ if (!empty($subInfo['has_unlimited'])) {
         'subscription_status' => $subInfo['unlimited_status'],
         'quota' => 'unlimited',
         'attempts_left' => null,
+        'subtopicid' => $subtopicId,    
         'attempts_used' => null,
     ]);
     exit;
@@ -381,7 +383,8 @@ $attempts = $this->getQuizAttemptsCount($quizUserId);
             "attempts_used" => $attempts,
             "attempts_left" => 0,
             "quota" => $quota,
-            "is_subscribed" => 0
+            "is_subscribed" => 0,
+             "subtopicid" => $subtopicId
         ]);
         exit;
     }
