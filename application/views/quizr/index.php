@@ -1409,9 +1409,10 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                             Thank you for completing the quiz! Review your answers and keep practising to strengthen your understanding of this topic.
                         </p>
 
-                     <div class="d-grid gap-2 mb-3">
+                <div class="d-grid gap-2 mb-3">
 <?php if (!empty($resultText) && !empty($currentSubtopicId)) { ?>
 
+    <!-- Existing logic (KEEP AS-IS) -->
     <?php if ($resultText === 'pass') { ?>
         <?php
         $targetSubtopic = !empty($nextSubtopicId) ? $nextSubtopicId : $currentSubtopicId;
@@ -1427,10 +1428,27 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
         </a>
     <?php } ?>
 
+    <!-- NEW: Opposite button (below the existing one) -->
+    <?php if ($resultText === 'pass') { ?>
+        <!-- Passed => show opposite: Retake -->
+        <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
+           class="btn-pill btn-pill-danger text-center">
+            Retake Quiz
+        </a>
+    <?php } else { ?>
+        <!-- Failed => show opposite: Next Suggested -->
+        <?php
+        $targetSubtopicOpp = !empty($nextSubtopicId) ? $nextSubtopicId : $currentSubtopicId;
+        ?>
+        <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$targetSubtopicOpp; ?>"
+           class="btn-pill btn-pill-primary text-center">
+            Next Suggested Quiz
+        </a>
+    <?php } ?>
+
 <?php } ?>
-
-
 </div>
+
 
 
   <a href="<?php echo MyUtility::makeUrl('Teachers'); ?>"
