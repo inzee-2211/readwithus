@@ -9,7 +9,7 @@
             <div class="review">
                 <div class="review__media">
                     <div class="avtar" data-title="<?php echo strtoupper($review['user_first_name'][0]); ?>">
-                        <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $review['ratrev_user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONTEND); ?>" alt="<?php echo $review['user_first_name'] . ' ' . $review['user_last_name']; ?>">
+                        <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $review['ratrev_user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONTEND); ?>" alt="<?php echo $review['user_first_name'] . ' ' . $review['user_last_name']; ?>">
                     </div>
                 </div>
                 <div class="review__content">

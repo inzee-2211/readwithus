@@ -1242,7 +1242,7 @@ $levels = Course::getCourseLevels();
                     <div class="rwu-preview-modern">
                         <div class="rwu-preview-container">
                             <div class="rwu-preview-media">
-                                <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'LARGE', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>" alt="<?php echo $course['course_title']; ?>">
+                                <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'LARGE', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>" alt="<?php echo $course['course_title']; ?>">
                                 <div class="rwu-preview-overlay-modern">
                                     <a href="javascript:void(0);" onclick="showPreviewVideo('<?php echo $course['course_id']; ?>');" class="rwu-preview-play-modern">
                                         <div class="rwu-play-circle">

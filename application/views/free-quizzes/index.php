@@ -395,4 +395,4 @@
   };
 </script>
 
-<script src="<?= CONF_WEBROOT_URL ?>js/home.js"></script>
+<script src="<?= CONF_WEBROOT_URL ?>js/freequiz.js"></script>

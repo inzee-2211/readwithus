@@ -181,8 +181,8 @@ if (empty($pageTitle) && empty($pageDescription)) {
 }
 ?>
 
-        <link rel="shortcut icon" href="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_FAVICON, 0, Afile::SIZE_ORIGINAL]); ?>">
-        <link rel="apple-touch-icon" href="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_APPLE_TOUCH_ICON, 0, Afile::SIZE_LARGE]); ?>">
+        <link rel="shortcut icon" href="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_FAVICON, 0, Afile::SIZE_ORIGINAL]); ?>">
+        <link rel="apple-touch-icon" href="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_APPLE_TOUCH_ICON, 0, Afile::SIZE_LARGE]); ?>">
         <?php if (!empty($canonicalUrl)) { ?>
             <link rel="canonical" href="<?php echo $canonicalUrl; ?>" />
         <?php } ?>
@@ -369,7 +369,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                                     </svg>
                                 </a>
                                 <div class="header__logo">
-                                   <a href="<?php echo MyUtility::makeUrl(); ?>" title="<?php echo $websiteName; ?>">
+                                   <a href="<?php echo MyUtility::makeFullUrl(); ?>" title="<?php echo $websiteName; ?>">
         <img src="<?php echo CONF_WEBROOT_FRONT_URL . 'images/logo.png'; ?>"
              alt="<?php echo $websiteName; ?>">
     </a>
@@ -506,7 +506,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
                                                 <div class="teacher-profile">
                                                     <div class="teacher__media">
                                                         <div class="avtar avtar--xsmall" data-title="<?php echo CommonHelper::getFirstChar($siteUser['user_first_name']); ?>">
-                                                            <?php echo '<img src="' . MyUtility::makeUrl('Image', 'show', array(Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_SMALL)) . '?' . time() . '" alt="" />'; ?>
+                                                            <?php echo '<img src="' . MyUtility::makeFullUrl('Image', 'show', array(Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_SMALL)) . '?' . time() . '" alt="" />'; ?>
                                                         </div>
                                                     </div>
                                                     <div class="teacher__name"><?php echo $siteUser['user_first_name']; ?></div>

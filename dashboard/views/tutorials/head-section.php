@@ -67,7 +67,7 @@ $websiteName = FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility:
                 <!-- [ USER ACCOUNT ========= -->
                 <div class="account">
                     <a href="#accout-target" class="avtar avtar--small account__trigger trigger-js" data-title="S">
-                        <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_SMALL], CONF_WEBROOT_FRONTEND) . '?' . time() ?>" alt="">
+                        <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_SMALL], CONF_WEBROOT_FRONTEND) . '?' . time() ?>" alt="">
                     </a>
                     <div id="accout-target" class="account__target">
                         <nav class="menu-vertical">

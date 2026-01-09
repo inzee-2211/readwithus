@@ -77,7 +77,7 @@ $priceSorting = AppConstant::getSortbyArr();
                         <div class="course-grid__head">
                             <div class="course-media ratio ratio--16by9 11">
                                
-                                    <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>" alt="">   
+                                    <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_COURSE_IMAGE, $course['course_id'], 'MEDIUM', $siteLangId], CONF_WEBROOT_FRONT_URL) . '?=' . time(); ?>" alt="">   
                               
                                 <a href="javascript:void(0);" class="course-preview__action" onclick="showPreviewVideo('<?php echo $course['course_id']; ?>');">
                                     <span></span>
@@ -176,7 +176,7 @@ $priceSorting = AppConstant::getSortbyArr();
                                         <img src="<?php echo 'http://readwithus.org.uk/image/show/6/0/LARGE'; ?>" style="width:70%" alt="Readwithus">
                                      
                                             <!-- <span class="avtar avtar--xsmall avtar--round" data-title="<?php echo CommonHelper::getFirstChar($course['teacher_first_name']); ?>">
-                                                 <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $course['teacher_id'], Afile::SIZE_MEDIUM]), CONF_DEF_CACHE_TIME, '.jpg'); ?>" alt="<?php echo $course['teacher_first_name'] . ' ' . $course['teacher_last_name']; ?>">  
+                                                 <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $course['teacher_id'], Afile::SIZE_MEDIUM]), CONF_DEF_CACHE_TIME, '.jpg'); ?>" alt="<?php echo $course['teacher_first_name'] . ' ' . $course['teacher_last_name']; ?>">  
                                           
                                                 <img src="<?php echo '/cache/92\50341ba1c5b4fb4efd6eec3733248f.jpg'; ?>" alt="<?php echo $course['teacher_first_name'] . ' ' . $course['teacher_last_name']; ?>">
                                             </span> -->

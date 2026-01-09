@@ -35,7 +35,7 @@
             <div class="review">
                 <div class="review__media">
                     <div class="avtar" data-title="<?php echo CommonHelper::getFirstChar($review['user_first_name']); ?>">
-                        <img src="<?php echo MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $review['ratrev_user_id'], Afile::SIZE_SMALL]); ?>" alt="<?php echo $review['user_first_name']; ?>">
+                        <img src="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $review['ratrev_user_id'], Afile::SIZE_SMALL]); ?>" alt="<?php echo $review['user_first_name']; ?>">
                     </div>
                 </div>
                 <div class="review__content">

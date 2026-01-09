@@ -183,7 +183,7 @@
                         <?php } ?>
                           <?php if ($objPrivilege->canViewCategories(true)) { ?>
                             <li>
-                                <a href="<?php echo MyUtility::makeUrl('Quizvisiter'); ?>"><?php echo Label::getLabel('LBL_VISITER_DETAILS'); ?></a>
+                                <a href="<?php echo MyUtility::makeUrl('Quizvisiter'); ?>"><?php echo Label::getLabel('LBL_VISITOR_DETAILS'); ?></a>
                             </li>
                         <?php } ?>  
 

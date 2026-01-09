@@ -14,13 +14,13 @@
                 <span class="-gap"></span>
                 <h5 class="margin-bottom-4"><?php echo Label::getLabel('LBL_BROWSER_VIDEO_NOT_SUPPORTED_INFO'); ?></h5>
                 
-                <a class="btn btn--primary btn--wide" target="_blank" href="<?php echo MyUtility::makeUrl('Image', 'download', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL); ?>">
+                <a class="btn btn--primary btn--wide" target="_blank" href="<?php echo MyUtility::makeFullUrl('Image', 'download', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL); ?>">
                     <?php echo Label::getLabel('LBL_DOWNLOAD'); ?>
                 </a>
             </div>
         <?php } else { ?>
             <div class="preview-video ratio ratio--16by9">
-                <iframe src="<?php echo MyUtility::makeUrl('Image', 'showVideo', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL) . '?t=' . time(); ?>" allowfullscreen="" width="100%" height="100%" frameborder="0"></iframe>
+                <iframe src="<?php echo MyUtility::makeFullUrl('Image', 'showVideo', [Afile::TYPE_COURSE_PREVIEW_VIDEO, $courseId], CONF_WEBROOT_FRONT_URL) . '?t=' . time(); ?>" allowfullscreen="" width="100%" height="100%" frameborder="0"></iframe>
             </div>
         <?php } ?>
     </div>
