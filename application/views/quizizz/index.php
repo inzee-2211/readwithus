@@ -209,8 +209,15 @@ $yearName = $yearName ?? '';
                                                                 <div class="video-container mt-2" id="video-<?php echo $subId; ?>"
                                                                     style="display:none;">
                                                                     <div class="ratio ratio-16x9">
-                                                                        <iframe src="<?php echo $embedUrl; ?>" frameborder="0"
-                                                                            allowfullscreen></iframe>
+                                                                        <!-- <iframe src="<?php echo $embedUrl; ?>" frameborder="0"
+                                                                            allowfullscreen></iframe> -->
+                                                                            <iframe
+  src="<?php echo $embedUrl . (strpos($embedUrl, '?') === false ? '?' : '&') . 'playsinline=1'; ?>"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+  allowfullscreen
+></iframe>
+
                                                                     </div>
                                                                 </div>
                                                             <?php } else { ?>
