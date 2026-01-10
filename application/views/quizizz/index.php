@@ -421,12 +421,11 @@ $subName = rwu_safe_text($s['name']);
         </div>
     </div>
 </section>
-<script>
-    // Front webroot e.g. "http://localhost/readwithus/readwithus/public/"
-    // or "https://readwithus.org.uk/"
-    var FRONT_WEBROOT = '<?php echo CONF_WEBROOT_FRONTEND; ?>';
-</script>
 
+<script>
+  var FRONT_WEBROOT = '<?php echo rtrim(CONF_WEBROOT_FRONTEND, '/'); ?>';
+  var QUIZFOCUS_URL = FRONT_WEBROOT + '/quizfocus';
+</script>
 <script>
     // Show / hide video inside cards
     // document.querySelectorAll('.watch-video-btn').forEach(function (button) {
@@ -563,8 +562,10 @@ $(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
     // ✅ SUBSCRIBED / UNLIMITED
     if (response.is_subscribed == 1 || response.quota === 'unlimited') {
       // No quota alert for unlimited users
-      window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
-      return;
+    //   window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
+window.location.href = QUIZFOCUS_URL + '?subtopic=' + encodeURIComponent(subId);
+
+    return;
     }
 
     // ✅ QUOTA FLOW (submitSignup already reserved +1 attempt)
@@ -582,7 +583,8 @@ $(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
 
     // ✅ Show remaining quota THEN redirect
     alert('You have ' + attemptsLeft + ' free quizzes left out of ' + quota + '.');
-    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
+    // window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subId);
+window.location.href = QUIZFOCUS_URL + '?subtopic=' + encodeURIComponent(subId);
 
   } catch (err) {
     console.error('submitSignup response parse error:', err, response);
@@ -651,7 +653,9 @@ $(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
 
     if (response.is_subscribed == 1 || response.quota === 'unlimited') {
         // no quota alert for subscribed users
-        window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+        // window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+window.location.href = QUIZFOCUS_URL + '?subtopic=' + encodeURIComponent(subtopicId);
+
         return;
     }
 
@@ -659,7 +663,9 @@ $(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
         alert('You have ' + attemptsLeft + ' free quizzes left out of ' + quota);
     }
 
-    window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+    // window.location.href = 'quizfocus?subtopic=' + encodeURIComponent(subtopicId);
+window.location.href = QUIZFOCUS_URL + '?subtopic=' + encodeURIComponent(subtopicId);
+
     return;
 }
 
@@ -670,3 +676,4 @@ $(document).on('click', '#quizSignupForm .start-quiz-btn', function (e) {
 });
 
 </script>
+

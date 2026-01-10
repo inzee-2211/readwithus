@@ -188,78 +188,144 @@ class QuizizzController extends MyAppController
         $result = $db->fetch($db->query($query));
         return $result['course_id'] ?? 0;
     }
-
-
-  public function checkQuota()
+public function checkQuota()
 {
     header('Content-Type: application/json; charset=utf-8');
-
+    
     $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+    $subtopicId = FatApp::getPostedData('subtopic_id', FatUtility::VAR_STRING, '');
+    
     if ($quizUserId < 1) {
-        echo json_encode(['status' => 0, 'allowed' => false, 'msg' => 'Session expired']);
+        echo json_encode([
+            'status' => 0, 
+            'allowed' => false, 
+            'msg' => 'Session expired'
+        ]);
         exit;
     }
-
-    $db = FatApp::getDb();
-  $email = $this->getSessionQuizEmail();
-$subInfo = $this->getSubscriptionInfo($email);
-
-// ✅ Unlimited only for paid active/trialing
-if (!empty($subInfo['has_unlimited'])) {
-    echo json_encode([
-        'status' => 1,
-        'allowed' => true,
-        'is_subscribed' => 1,
-        'subscription_status' => $subInfo['unlimited_status'],
-        'quota' => 'unlimited',
-        'attempts_left' => null,
-        
-        'attempts_used' => null,
-    ]);
-    exit;
-}
-
-// ✅ Else: quota-based
-$quota = $this->resolveQuizQuota($email, $subInfo);
-
-
     
-
-    // 2) Not subscribed => normal quota
-  
-
-   $attempts = $this->getQuizAttemptsCount($quizUserId);
-
-
-    if ($attempts >= $quota) {
+    $db = FatApp::getDb();
+    $email = $this->getSessionQuizEmail();
+    $subInfo = $this->getSubscriptionInfo($email);
+    
+    // ✅ Unlimited only for paid active/trialing
+    if (!empty($subInfo['has_unlimited'])) {
+        echo json_encode([
+            'status' => 1,
+            'allowed' => true,
+            'is_subscribed' => 1,
+            'subscription_status' => $subInfo['unlimited_status'],
+            'quota' => 'unlimited',
+            'attempts_left' => null,
+            'attempts_used' => null,
+            'subtopic_id' => $subtopicId
+        ]);
+        exit;
+    }
+    
+    // ✅ Else: quota-based
+    $quota = $this->resolveQuizQuota($email, $subInfo);
+    
+    // Use locking to prevent race conditions
+    $result = $this->reserveAttemptWithLock($quizUserId, $quota);
+    
+    if (!$result['allowed']) {
         echo json_encode([
             'status' => 0,
             'allowed' => false,
             'is_subscribed' => 0,
             'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
             'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
-            'attempts_used' => $attempts,
+            'attempts_used' => $result['attempts'],
             'attempts_left' => 0,
-            'quota' => $quota
+            'quota' => $quota,
+            'subtopic_id' => $subtopicId
         ]);
         exit;
     }
-
-    // Reserve attempt here
-   $this->incrementQuizAttempts($quizUserId);
-$newAttempts = $this->getQuizAttemptsCount($quizUserId);
-
-
+    
     echo json_encode([
         'status' => 1,
         'allowed' => true,
         'is_subscribed' => 0,
-        'attempts_used' => $newAttempts,
-        'attempts_left' => max(0, $quota - $newAttempts),
-        'quota' => $quota
+        'attempts_used' => $result['attempts'],
+        'attempts_left' => max(0, $quota - $result['attempts']),
+        'quota' => $quota,
+        'subtopic_id' => $subtopicId
     ]);
     exit;
 }
+
+//   public function checkQuota()
+// {
+//     header('Content-Type: application/json; charset=utf-8');
+
+//     $quizUserId = (int)($_SESSION['quiz_user']['id'] ?? 0);
+//     if ($quizUserId < 1) {
+//         echo json_encode(['status' => 0, 'allowed' => false, 'msg' => 'Session expired']);
+//         exit;
+//     }
+
+//     $db = FatApp::getDb();
+//   $email = $this->getSessionQuizEmail();
+// $subInfo = $this->getSubscriptionInfo($email);
+
+// // ✅ Unlimited only for paid active/trialing
+// if (!empty($subInfo['has_unlimited'])) {
+//     echo json_encode([
+//         'status' => 1,
+//         'allowed' => true,
+//         'is_subscribed' => 1,
+//         'subscription_status' => $subInfo['unlimited_status'],
+//         'quota' => 'unlimited',
+//         'attempts_left' => null,
+        
+//         'attempts_used' => null,
+//     ]);
+//     exit;
+// }
+
+// // ✅ Else: quota-based
+// $quota = $this->resolveQuizQuota($email, $subInfo);
+
+
+    
+
+//     // 2) Not subscribed => normal quota
+  
+
+//    $attempts = $this->getQuizAttemptsCount($quizUserId);
+
+
+//     if ($attempts >= $quota) {
+//         echo json_encode([
+//             'status' => 0,
+//             'allowed' => false,
+//             'is_subscribed' => 0,
+//             'msg' => "Your free quiz quota is expired. Please subscribe to continue.",
+//             'redirect_url' => rtrim(CONF_WEBROOT_FRONTEND, '/') . '/pricing',
+//             'attempts_used' => $attempts,
+//             'attempts_left' => 0,
+//             'quota' => $quota
+//         ]);
+//         exit;
+//     }
+
+//     // Reserve attempt here
+//    $this->incrementQuizAttempts($quizUserId);
+// $newAttempts = $this->getQuizAttemptsCount($quizUserId);
+
+
+//     echo json_encode([
+//         'status' => 1,
+//         'allowed' => true,
+//         'is_subscribed' => 0,
+//         'attempts_used' => $newAttempts,
+//         'attempts_left' => max(0, $quota - $newAttempts),
+//         'quota' => $quota
+//     ]);
+//     exit;
+// }
 
 
 
@@ -406,7 +472,49 @@ $newAttempts = $this->getQuizAttemptsCount($quizUserId);
     ]);
     exit;
 }
-
+// Add this method to QuizizzController
+private function reserveAttemptWithLock(int $quizUserId, int $quota): array
+{
+    $db = FatApp::getDb();
+    
+    // Start transaction with locking
+    $db->startTransaction();
+    
+    try {
+        // Lock the row for this user
+        $lockQuery = "SELECT quiz_attempts_count FROM course_attempt_userdetails 
+                     WHERE id = " . (int)$quizUserId . " FOR UPDATE";
+        $db->query($lockQuery);
+        
+        // Get current count
+        $srch = new SearchBase('course_attempt_userdetails', 'u');
+        $srch->addCondition('u.id', '=', (int)$quizUserId);
+        $srch->addFld('u.quiz_attempts_count');
+        $srch->setPageSize(1);
+        $row = $db->fetch($srch->getResultSet());
+        $attempts = (int)($row['quiz_attempts_count'] ?? 0);
+        
+        // Check quota
+        if ($attempts >= $quota) {
+            $db->rollbackTransaction();
+            return ['allowed' => false, 'attempts' => $attempts];
+        }
+        
+        // Increment
+        $updateQuery = "UPDATE course_attempt_userdetails 
+                       SET quiz_attempts_count = quiz_attempts_count + 1,
+                           quiz_attempts_updated_at = NOW()
+                       WHERE id = " . (int)$quizUserId;
+        $db->query($updateQuery);
+        
+        $db->commitTransaction();
+        return ['allowed' => true, 'attempts' => $attempts + 1];
+        
+    } catch (Exception $e) {
+        $db->rollbackTransaction();
+        return ['allowed' => false, 'attempts' => 0, 'error' => $e->getMessage()];
+    }
+}
 private function getQuizAttemptsCount(int $quizUserId): int
 {
     if ($quizUserId < 1) return 0;
