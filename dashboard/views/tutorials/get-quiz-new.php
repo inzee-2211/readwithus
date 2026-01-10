@@ -13,15 +13,21 @@
 /* ====== Layout (sidebar LEFT + widened question panel) ====== */
 .qz-shell {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr); /* sidebar left, fixed width */
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 22px;
-  max-width: 1400px;            /* ~25% wider than 1120px */
+  max-width: 1400px;
   margin: 10px auto 28px;
-  padding: 0 8px;
+  padding: 0 12px;
 }
+
 @media (max-width: 1100px){
-  .qz-shell{ grid-template-columns: 1fr; }
+  .qz-shell{ grid-template-columns: 1fr; gap: 14px; }
 }
+
+@media (max-width: 520px){
+  .qz-shell{ padding: 0 10px; margin: 8px auto 18px; }
+}
+
 
 /* ====== Sidebar (sticky, fixed width, full height viewport minus header) ====== */
 .qz-side {
@@ -43,6 +49,22 @@
   background:#fff7ed; border:1px solid #fde7c7; color:#8a4b10;
   border-radius:10px; padding:10px 12px; font-weight:700;
 }
+@media (max-width: 1100px){
+  .qz-side{
+    position: relative;     /* ✅ stop sticky on small screens */
+    top: auto;
+    height: auto;           /* ✅ let it grow */
+    overflow: visible;      /* ✅ no inner scrolling */
+    width: 100%;            /* ✅ full width */
+  }
+}
+@media (max-width: 520px){
+  .quiz-container{ padding: 12px 12px 6px; border-radius: 14px; }
+  .quiz-question{ padding: 12px; }
+  .qz-qtop{ gap: 10px; }
+  .qz-qnum{ min-width: 30px; height: 30px; border-radius: 10px; }
+}
+
 /* Add to the style section in get-quiz-new.php */
 .quiz-math-wrapper {
     position: relative;
@@ -169,7 +191,9 @@
   border-radius:18px;
   border:1px solid rgba(226,232,240,.9);
   box-shadow:0 30px 80px rgba(0,0,0,.35);
-  display:none; z-index:10011;
+  /* display:none; z-index:10011; */
+   display:flex;              /* ✅ */
+  flex-direction:column;
   overflow:hidden;
 }
 .result-head{
@@ -190,6 +214,8 @@
 .result-body{
   padding:0;
   display:flex; flex-direction:column;
+    flex: 1;          /* ✅ takes remaining modal space */
+  min-height: 0;  
 }
 
 .result-summary-wrap{
@@ -270,11 +296,14 @@
 @media (max-width: 520px){ .result-search input{ min-width:160px; } }
 
 .result-list{
-  padding:10px 20px 18px;
+  padding:10px 20px 90px; /* ✅ extra bottom room so explanation never hides behind actions */
   overflow:auto;
-  max-height:55vh;
+  flex: 1;                /* ✅ takes remaining space */
+  min-height: 0;          /* ✅ critical */
+  max-height: none;       /* ✅ remove the 55vh cap */
   background:linear-gradient(180deg, #ffffff, #fbfdff);
 }
+
 
 .qz-qa{
   border:1px solid #e8edf3;
@@ -338,7 +367,16 @@
   border-top:1px solid #eef2f7;
   background:#fff;
   display:flex; justify-content:flex-end; gap:10px;
+  position: sticky; bottom: 0;  /* ✅ */
 }
+@media (max-width: 520px){
+  .result-summary-wrap{ padding: 12px 12px; }
+  .result-tools{ padding: 10px 12px; }
+  .result-list{ padding: 10px 12px 90px; }
+  .result-actions{ padding: 12px 12px; }
+  .result-search input{ min-width: 120px; }  /* prevent overflow */
+}
+
 .btn-find-tutor{
   background:#F5411F; color:#fff; border:none;
   padding:10px 18px; border-radius:12px; font-weight:900;
