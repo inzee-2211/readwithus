@@ -20,7 +20,8 @@ $mathEditorEnabled = defined('CONF_ENABLE_MATH_EDITOR') && CONF_ENABLE_MATH_EDIT
 // =========================
 // Dynamic SEO defaults
 // =========================
-$metaTitle = $pageTitle ?? (FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility::VAR_STRING, '') ?: 'Read With Us');
+$metaTitleRaw = $pageTitle ?? (FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility::VAR_STRING, '') ?: 'Read With Us');
+$metaTitleRaw = html_entity_decode($metaTitleRaw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 $metaDesc  = $pageDescription ?? FatApp::getConfig('CONF_META_DESCRIPTION', FatUtility::VAR_STRING, '');
 $canonical = $canonicalUrl ?? MyUtility::makeFullUrl();
 $robots    = $metaRobots ?? 'index,follow';
@@ -28,14 +29,14 @@ $ogImg     = $ogImage ?? (CONF_WEBROOT_FRONT_URL . 'images/logo.png');
 $twSite    = $twitterSite ?? '@read_withus';
 ?>
 
-<title><?php echo htmlspecialchars($metaTitle); ?></title>
+<title><?= htmlspecialchars($metaTitleRaw, ENT_QUOTES, 'UTF-8'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($metaDesc); ?>">
 <meta name="robots" content="<?php echo htmlspecialchars($robots); ?>">
 <link rel="canonical" href="<?php echo htmlspecialchars($canonical); ?>">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="<?php echo htmlspecialchars($metaTitle); ?>">
+<meta property="og:title" content="<?= htmlspecialchars($metaTitleRaw, ENT_QUOTES, 'UTF-8'); ?>">
 <meta property="og:description" content="<?php echo htmlspecialchars($metaDesc); ?>">
 <meta property="og:url" content="<?php echo htmlspecialchars($canonical); ?>">
 <meta property="og:image" content="<?php echo htmlspecialchars($ogImg); ?>">
@@ -43,7 +44,7 @@ $twSite    = $twitterSite ?? '@read_withus';
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="<?php echo htmlspecialchars($twSite); ?>">
-<meta name="twitter:title" content="<?php echo htmlspecialchars($metaTitle); ?>">
+<meta name="twitter:title" content="<?= htmlspecialchars($metaTitleRaw, ENT_QUOTES, 'UTF-8'); ?>">
 <meta name="twitter:description" content="<?php echo htmlspecialchars($metaDesc); ?>">
 <meta name="twitter:image" content="<?php echo htmlspecialchars($ogImg); ?>">
 
@@ -338,7 +339,9 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
             ],
             "name": "Read With Us"
         }
+        
     </script>
+        
     <meta name="google-site-verification" content="M7iSjIdNqfAi4D3JntWPkrV_C4of_m8UanLTR1ObFU0" />
     </head>
     <?php $isPreviewOn = MyUtility::isDemoUrl() ? 'is-preview-on' : ''; ?>
