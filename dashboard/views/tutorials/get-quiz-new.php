@@ -142,7 +142,9 @@
 }
 .quiz-header{ padding:2px 6px 10px; border-radius:8px 8px 0 0; }
 .quiz-body{ padding:6px 4px 2px; }
-
+@media (max-width: 520px){
+  .quiz-container{ width: 100%; padding:12px 12px 6px; border-radius:14px; }
+}
 .quiz-question{
   background:#ffffff; border:1px solid #e7edf4; border-radius:14px;
   padding:16px; margin:0 0 14px; position:relative;
