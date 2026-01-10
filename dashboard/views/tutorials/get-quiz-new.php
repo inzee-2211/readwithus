@@ -375,9 +375,20 @@
 @media (max-width: 520px){
   .result-summary-wrap{ padding: 12px 12px; }
   .result-tools{ padding: 10px 12px; }
-  .result-list{ padding: 10px 12px 90px; }
+.result-list{ padding: 10px 12px 160px; } /* ✅ explanation won't hide */
+
   .result-actions{ padding: 12px 12px; }
   .result-search input{ min-width: 120px; }  /* prevent overflow */
+}
+@media (max-width: 520px){
+  .result-modal{
+    width: 96vw;          /* a bit wider */
+    max-height: 94vh;     /* more height */
+  }
+
+  .result-body{
+    min-height: 0;        /* keep flex scrolling working */
+  }
 }
 
 .btn-find-tutor{
