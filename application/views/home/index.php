@@ -681,10 +681,7 @@ if ($hasSub && $isCurrent) {
           ?>
 
           <article class="rwu-plan" aria-labelledby="plan-<?= $planId; ?>">
-            <img class="rwu-plan__art"
-                 src="<?= $artSrc; ?>"
-                 alt=""
-                 role="presentation" />
+         
 
             <h3 id="plan-<?= $planId; ?>" class="rwu-plan__name">
               <?= htmlspecialchars($name); ?>
