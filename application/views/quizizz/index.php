@@ -1,6 +1,12 @@
 <?php
 
 defined('SYSTEM_INIT') or die('Invalid Usage.');
+function rwu_safe_text($value): string {
+    $value = (string)$value;
+    // decode existing entities first, then escape once
+    $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
 $activeTab = $_GET['tab'] ?? 'quiz';
 
 // Full list, e.g. "30,31,32"
@@ -53,12 +59,12 @@ $yearName = $yearName ?? '';
             <div class="col-lg-7 mb-3 mb-lg-0">
                 <div class="subject-header">
                     <div class="subject-badge">
-                        <?php echo strtoupper(substr($subjectNm, 0, 1)); ?>
+<?php echo strtoupper(substr(html_entity_decode((string)$subjectNm, ENT_QUOTES|ENT_HTML5, 'UTF-8'), 0, 1)); ?>
                     </div>
                     <div>
                         <!-- MAIN HEADING = SUBJECT -->
                         <h1 class="subject-title">
-                            <?php echo htmlspecialchars($subjectNm); ?>
+                            <?php echo rwu_safe_text($subjectNm); ?>
                         </h1>
 
                         <!-- PATH META: GCSE · Edexcel · Higher · Year 11 · Topic: Fractions -->
@@ -167,7 +173,7 @@ $yearName = $yearName ?? '';
                                 <?php
                                 $subs = $topic['subtopics'] ?? [];
                                 $topicId = (int) $topic['setup_id'];
-                                $topicName = htmlspecialchars($topic['topic_name']);
+$topicName = rwu_safe_text($topic['topic_name']);
                                 if (empty($subs))
                                     continue;
                                 ?>
@@ -186,7 +192,7 @@ $yearName = $yearName ?? '';
                                         <div class="row">
                                             <?php foreach ($subs as $idx => $s):
                                                 $subId = (int) $s['id'];
-                                                $subName = htmlspecialchars($s['name']);
+$subName = rwu_safe_text($s['name']);
                                                 $videoUrl = trim((string) $s['video_url']);
                                                 $videoUrl = filter_var($videoUrl, FILTER_SANITIZE_URL);
 
@@ -251,7 +257,7 @@ $yearName = $yearName ?? '';
                                 <?php
                                 $subs = $topic['subtopics'] ?? [];
                                 $topicId = (int) $topic['setup_id'];
-                                $topicName = htmlspecialchars($topic['topic_name']);
+                                $topicName = rwu_safe_text($topic['topic_name']);
                                 if (empty($subs))
                                     continue;
                                 ?>
@@ -273,7 +279,7 @@ $yearName = $yearName ?? '';
                                                     <div class="card h-100 shadow-sm">
                                                         <div class="card-body d-flex flex-column justify-content-between">
                                                             <h6 class="card-title">
-                                                                <?php echo ($idx + 1) . '. ' . htmlspecialchars($s['name']); ?>
+                                                                <?php echo ($idx + 1) . '. ' . rwu_safe_text($s['name']); ?>
                                                             </h6>
                                                             <?php if (isset($_SESSION['quiz_user']['id']) && !empty($_SESSION['quiz_user']['id'])) { ?>
                                                                 <button class="btn btn-primary mt-2 start-quiz-logged-in"
@@ -312,7 +318,7 @@ $yearName = $yearName ?? '';
                                 <?php
                                 $subs = $topic['subtopics'] ?? [];
                                 $topicId = (int) $topic['setup_id'];
-                                $topicName = htmlspecialchars($topic['topic_name']);
+                                $topicName = rwu_safe_text($topic['topic_name']);
                                 if (empty($subs))
                                     continue;
                                 ?>
@@ -343,7 +349,7 @@ $yearName = $yearName ?? '';
 
                                                 $hasPaper = true;
                                                 $cardIndex++;
-                                                $paperTitle = htmlspecialchars($s['name']);
+                                                $paperTitle = rwu_safe_text($s['name']);
 
                                                 $questionPdfPath = $questionPdfRaw !== '' ? htmlspecialchars($questionPdfRaw) : '#';
                                                 $answerPdfPath = $answerPdfRaw !== '' ? htmlspecialchars($answerPdfRaw) : '#';
