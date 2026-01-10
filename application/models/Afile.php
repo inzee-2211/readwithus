@@ -1052,107 +1052,244 @@ class Afile extends FatModel
     //     }
     //     echo $fileData;
     // }
-    public function showVideo(int $recordId, int $subRecordId = 0)
+//     public function showVideo(int $recordId, int $subRecordId = 0)
+// {
+//     // Clean all output buffers (important for Range/streaming)
+//     while (ob_get_level() > 0) {
+//         @ob_end_clean();
+//     }
+
+//     // IMPORTANT: getFile() 2nd param is $universal (bool) not subRecordId.
+//     // Use universal=true so it can fallback to lang_id=0 when needed.
+//     $file = $this->getFile($recordId, true);
+
+//     if (empty($file) || empty($file['file_path'])) {
+//         FatUtility::exitWithErrorCode(404);
+//     }
+
+//     $filePath = CONF_UPLOADS_PATH . $file['file_path'];
+//     if (!file_exists($filePath)) {
+//         FatUtility::exitWithErrorCode(404);
+//     }
+
+//     $fileSize = filesize($filePath);
+//     $mtime = filemtime($filePath);
+
+//     $fileExt = strtolower(pathinfo($file['file_name'] ?? $filePath, PATHINFO_EXTENSION));
+//     $mime = static::getContentType($fileExt);
+//     if ($mime === '') {
+//         $mime = 'application/octet-stream';
+//     }
+
+//     $headers = FatApp::getApacheRequestHeaders();
+//     $rangeHeader = $headers['Range'] ?? ($_SERVER['HTTP_RANGE'] ?? '');
+
+//     // Cache headers
+//     header('Content-Type: ' . $mime);
+//     header('Accept-Ranges: bytes');
+//     header('Cache-Control: public');
+//     header('Pragma: public');
+//     header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
+//     header("Expires: " . gmdate('D, d M Y H:i:s', time() + 2592000) . ' GMT'); // 30 days
+
+//     // Only send 304 when it's NOT a range request (range + 304 can confuse some clients)
+//     if (empty($rangeHeader) && strtotime($headers['If-Modified-Since'] ?? '') == $mtime) {
+//         header($_SERVER['SERVER_PROTOCOL'] . ' 304 Not Modified');
+//         exit;
+//     }
+
+//     // Handle byte-range requests (iOS Safari needs this)
+//     if (!empty($rangeHeader) && preg_match('/bytes=(\d*)-(\d*)/i', $rangeHeader, $m)) {
+//         $start = ($m[1] !== '') ? (int)$m[1] : 0;
+//         $end   = ($m[2] !== '') ? (int)$m[2] : ($fileSize - 1);
+
+//         // Validate range
+//         if ($start > $end || $start >= $fileSize) {
+//             header($_SERVER['SERVER_PROTOCOL'] . ' 416 Range Not Satisfiable');
+//             header("Content-Range: bytes */{$fileSize}");
+//             exit;
+//         }
+//         if ($end >= $fileSize) {
+//             $end = $fileSize - 1;
+//         }
+
+//         $length = ($end - $start) + 1;
+
+//         header($_SERVER['SERVER_PROTOCOL'] . ' 206 Partial Content');
+//         header("Content-Range: bytes {$start}-{$end}/{$fileSize}");
+//         header("Content-Length: {$length}");
+
+//         $fp = fopen($filePath, 'rb');
+//         if ($fp === false) {
+//             FatUtility::exitWithErrorCode(500);
+//         }
+
+//         fseek($fp, $start);
+
+//         $chunkSize = 1024 * 256; // 256 KB chunks
+//         while (!feof($fp) && $length > 0) {
+//             $read = ($length > $chunkSize) ? $chunkSize : $length;
+//             $buffer = fread($fp, $read);
+//             if ($buffer === false) break;
+
+//             echo $buffer;
+//             flush();
+
+//             $length -= strlen($buffer);
+//             if (connection_status() != CONNECTION_NORMAL) {
+//                 break;
+//             }
+//         }
+//         fclose($fp);
+//         exit;
+//     }
+
+//     // No Range: stream the whole file (DON'T load into memory)
+//     header("Content-Length: {$fileSize}");
+//     $fp = fopen($filePath, 'rb');
+//     if ($fp === false) {
+//         FatUtility::exitWithErrorCode(500);
+//     }
+//     fpassthru($fp);
+//     fclose($fp);
+//     exit;
+// }
+
+public function showVideo(int $recordId, int $subRecordId = 0)
 {
-    // Clean all output buffers (important for Range/streaming)
-    while (ob_get_level() > 0) {
-        @ob_end_clean();
-    }
-
-    // IMPORTANT: getFile() 2nd param is $universal (bool) not subRecordId.
-    // Use universal=true so it can fallback to lang_id=0 when needed.
-    $file = $this->getFile($recordId, true);
-
+    // Clean ALL output buffers
+    while (@ob_end_clean());
+    
+    // Use getFile() correctly - second param should be $universal
+    $file = $this->getFile($recordId, true); // true = universal (fallback to lang 0)
+    
     if (empty($file) || empty($file['file_path'])) {
+        // Log error for debugging
+        error_log("Video not found: Type={$this->type}, Record={$recordId}, SubRecord={$subRecordId}");
         FatUtility::exitWithErrorCode(404);
     }
 
     $filePath = CONF_UPLOADS_PATH . $file['file_path'];
+    
     if (!file_exists($filePath)) {
+        error_log("Video file missing: " . $filePath);
         FatUtility::exitWithErrorCode(404);
     }
 
     $fileSize = filesize($filePath);
     $mtime = filemtime($filePath);
-
+    
+    // Get file extension and MIME type
     $fileExt = strtolower(pathinfo($file['file_name'] ?? $filePath, PATHINFO_EXTENSION));
     $mime = static::getContentType($fileExt);
-    if ($mime === '') {
-        $mime = 'application/octet-stream';
+    
+    // Default to MP4 if unknown (iOS expects this)
+    if ($mime === '' || $fileExt === '') {
+        $mime = 'video/mp4';
     }
 
-    $headers = FatApp::getApacheRequestHeaders();
+    // Get headers - use $_SERVER for wider compatibility
+    $headers = $this->getAllHeaders();
     $rangeHeader = $headers['Range'] ?? ($_SERVER['HTTP_RANGE'] ?? '');
 
-    // Cache headers
+    // ESSENTIAL for iOS: Always send Content-Type
     header('Content-Type: ' . $mime);
     header('Accept-Ranges: bytes');
-    header('Cache-Control: public');
+    header('Cache-Control: public, max-age=31536000'); // 1 year cache
     header('Pragma: public');
     header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
-    header("Expires: " . gmdate('D, d M Y H:i:s', time() + 2592000) . ' GMT'); // 30 days
+    header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
+    header('Access-Control-Allow-Origin: *'); // Important if served from different domain
 
-    // Only send 304 when it's NOT a range request (range + 304 can confuse some clients)
-    if (empty($rangeHeader) && strtotime($headers['If-Modified-Since'] ?? '') == $mtime) {
-        header($_SERVER['SERVER_PROTOCOL'] . ' 304 Not Modified');
-        exit;
+    // Handle 304 Not Modified (only for non-range requests)
+    if (empty($rangeHeader)) {
+        $ifModifiedSince = $headers['If-Modified-Since'] ?? '';
+        if ($ifModifiedSince && strtotime($ifModifiedSince) == $mtime) {
+            header($_SERVER['SERVER_PROTOCOL'] . ' 304 Not Modified');
+            exit;
+        }
     }
 
-    // Handle byte-range requests (iOS Safari needs this)
-    if (!empty($rangeHeader) && preg_match('/bytes=(\d*)-(\d*)/i', $rangeHeader, $m)) {
-        $start = ($m[1] !== '') ? (int)$m[1] : 0;
-        $end   = ($m[2] !== '') ? (int)$m[2] : ($fileSize - 1);
-
+    // Handle Range requests (iOS Safari sends these)
+    if ($rangeHeader && preg_match('/bytes=(\d*)-(\d*)/i', $rangeHeader, $matches)) {
+        $start = isset($matches[1]) && $matches[1] !== '' ? (int)$matches[1] : 0;
+        $end = isset($matches[2]) && $matches[2] !== '' ? (int)$matches[2] : ($fileSize - 1);
+        
         // Validate range
-        if ($start > $end || $start >= $fileSize) {
+        if ($start >= $fileSize || $end >= $fileSize || $start > $end) {
             header($_SERVER['SERVER_PROTOCOL'] . ' 416 Range Not Satisfiable');
             header("Content-Range: bytes */{$fileSize}");
             exit;
         }
+        
         if ($end >= $fileSize) {
             $end = $fileSize - 1;
         }
-
+        
         $length = ($end - $start) + 1;
-
+        
         header($_SERVER['SERVER_PROTOCOL'] . ' 206 Partial Content');
         header("Content-Range: bytes {$start}-{$end}/{$fileSize}");
         header("Content-Length: {$length}");
-
-        $fp = fopen($filePath, 'rb');
+        
+        $fp = @fopen($filePath, 'rb');
         if ($fp === false) {
+            error_log("Failed to open file: " . $filePath);
             FatUtility::exitWithErrorCode(500);
         }
-
+        
         fseek($fp, $start);
-
-        $chunkSize = 1024 * 256; // 256 KB chunks
+        
+        // Stream in chunks
+        $chunkSize = 8192; // 8KB chunks
         while (!feof($fp) && $length > 0) {
-            $read = ($length > $chunkSize) ? $chunkSize : $length;
+            $read = min($chunkSize, $length);
             $buffer = fread($fp, $read);
             if ($buffer === false) break;
-
+            
             echo $buffer;
             flush();
-
-            $length -= strlen($buffer);
+            
+            $length -= $read;
+            
+            // Check connection status
             if (connection_status() != CONNECTION_NORMAL) {
                 break;
             }
         }
+        
         fclose($fp);
         exit;
     }
-
-    // No Range: stream the whole file (DON'T load into memory)
+    
+    // No range request - serve entire file
     header("Content-Length: {$fileSize}");
-    $fp = fopen($filePath, 'rb');
+    
+    $fp = @fopen($filePath, 'rb');
     if ($fp === false) {
+        error_log("Failed to open file for streaming: " . $filePath);
         FatUtility::exitWithErrorCode(500);
     }
+    
     fpassthru($fp);
     fclose($fp);
     exit;
+}
+
+// Helper method to get all headers
+private function getAllHeaders()
+{
+    if (function_exists('getallheaders')) {
+        return getallheaders();
+    }
+    
+    $headers = [];
+    foreach ($_SERVER as $name => $value) {
+        if (substr($name, 0, 5) == 'HTTP_') {
+            $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+        }
+    }
+    return $headers;
 }
 
     /**
@@ -1165,7 +1302,9 @@ class Afile extends FatModel
     public function showPdf(int $recordId, int $subRecordId = 0)
     {
         ob_end_clean();
-        $file = $this->getFile($recordId, $subRecordId);
+        // $file = $this->getFile($recordId, $subRecordId);
+        $file = $this->getFile($recordId, true);
+
         $filePath = CONF_UPLOADS_PATH . $file['file_path'];
         $fileExt = strtolower(pathinfo($file['file_name'], PATHINFO_EXTENSION));
         header("Content-Type: " . static::getContentType($fileExt));
