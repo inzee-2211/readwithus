@@ -188,6 +188,8 @@ $yearName = $yearName ?? '';
                                                 $subId = (int) $s['id'];
                                                 $subName = htmlspecialchars($s['name']);
                                                 $videoUrl = trim((string) $s['video_url']);
+                                                $videoUrl = filter_var($videoUrl, FILTER_SANITIZE_URL);
+
                                                 $embedUrl = '';
                                                 if (
                                                     !empty($videoUrl) &&
@@ -203,22 +205,22 @@ $yearName = $yearName ?? '';
                                                                 <?php echo ($idx + 1) . '. ' . $subName; ?>
                                                             </h6>
                                                             <?php if ($embedUrl) { ?>
-                                                                <button class="watch-video-btn" data-target="#video-<?php echo $subId; ?>">
-                                                                    Watch video
-                                                                </button>
+                                                               <button type="button" class="watch-video-btn" data-target="#video-<?php echo $subId; ?>">
+    Watch video
+</button>
+
                                                                 <div class="video-container mt-2" id="video-<?php echo $subId; ?>"
                                                                     style="display:none;">
-                                                                    <div class="ratio ratio-16x9">
-                                                                        <!-- <iframe src="<?php echo $embedUrl; ?>" frameborder="0"
-                                                                            allowfullscreen></iframe> -->
-                                                                            <iframe
-  src="<?php echo $embedUrl . (strpos($embedUrl, '?') === false ? '?' : '&') . 'playsinline=1'; ?>"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-  allowfullscreen
-></iframe>
+                                                                 <div class="ratio ratio-16x9">
+  <iframe
+    data-src="<?php echo $embedUrl . (strpos($embedUrl, '?') === false ? '?' : '&') . 'playsinline=1'; ?>"
+    src=""
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+    allowfullscreen
+  ></iframe>
+</div>
 
-                                                                    </div>
                                                                 </div>
                                                             <?php } else { ?>
                                                                 <p class="text-muted mb-0">No video found for <?php echo $subName; ?>.</p>
@@ -421,15 +423,40 @@ $yearName = $yearName ?? '';
 
 <script>
     // Show / hide video inside cards
+    // document.querySelectorAll('.watch-video-btn').forEach(function (button) {
+    //     button.addEventListener('click', function () {
+    //         const target = document.querySelector(this.getAttribute('data-target'));
+    //         if (!target) return;
+    //         const show = (target.style.display === 'none' || !target.style.display);
+    //         target.style.display = show ? 'block' : 'none';
+    //         this.textContent = show ? 'Hide video' : 'Watch video';
+    //     });
+    // });
     document.querySelectorAll('.watch-video-btn').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const target = document.querySelector(this.getAttribute('data-target'));
-            if (!target) return;
-            const show = (target.style.display === 'none' || !target.style.display);
-            target.style.display = show ? 'block' : 'none';
-            this.textContent = show ? 'Hide video' : 'Watch video';
-        });
-    });
+  button.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const target = document.querySelector(this.getAttribute('data-target'));
+    if (!target) return;
+
+    const iframe = target.querySelector('iframe');
+    const show = (target.style.display === 'none' || !target.style.display);
+
+    if (show) {
+      // set src only once
+      if (iframe && !iframe.getAttribute('src')) {
+        iframe.setAttribute('src', iframe.getAttribute('data-src') || '');
+      }
+      target.style.display = 'block';
+      this.textContent = 'Hide video';
+    } else {
+      target.style.display = 'none';
+      this.textContent = 'Watch video';
+    }
+  });
+});
+
 
     // Put subtopic id into hidden field when opening modal
     // document.querySelectorAll('.btn-prnt-inner').forEach(function (button) {
