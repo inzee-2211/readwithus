@@ -191,11 +191,12 @@
   border-radius:18px;
   border:1px solid rgba(226,232,240,.9);
   box-shadow:0 30px 80px rgba(0,0,0,.35);
-  /* display:none; z-index:10011; */
-   display:flex;              /* ✅ */
-  flex-direction:column;
+  display:none;               /* ✅ MUST be none */
+  z-index:10011;
+  flex-direction:column;      /* ✅ keep */
   overflow:hidden;
 }
+
 .result-head{
   padding:18px 20px;
   background:linear-gradient(90deg, rgba(20,160,163,.10), rgba(14,165,233,.10));
@@ -927,7 +928,8 @@ function buildAndShowResultModal(r, isPass){
 
   // Show modal
   $('#resultBackdrop').show();
-  $('#resultModal').show();
+  // $('#resultModal').show();
+$('#resultModal').css('display','flex');
 
   // Accordion toggle
   $('#resultList').off('click').on('click', '.qz-qa__head', function(){
