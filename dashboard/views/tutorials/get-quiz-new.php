@@ -530,7 +530,7 @@
             
           </div>
         <?php } ?>
-
+<button class="qz-btn-primary" onclick="submitLectureQuiz()"><?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?></button>
         <!-- bottom submit bar intentionally removed; submit via sidebar only -->
       </form>
     </div>
