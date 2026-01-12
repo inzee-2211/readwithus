@@ -1,5 +1,7 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
+$webroot = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : '/';
+
 if ($lecture) {
     $containerClass = (count($resources) > 0) ? 'col-xl-7' : 'col-xl-12';
     $lectures = json_decode($progData['crspro_covered'], true);
@@ -40,10 +42,14 @@ if ($lecture) {
                                 </a>
                             <?php } ?>
                         </div>
+
                     </div>
                 </div>
             </div>
         <?php } ?>
+        <button class="btn btn-primary" onclick="window.location.href='<?php echo $webroot; ?>teachers';">
+    <?php echo Label::getLabel('LBL_FIND_A_TUTOR'); ?>
+  </button>
     </div>
     <div class="page-directions border-top">
         <div class="row justify-content-between">
@@ -53,7 +59,7 @@ if ($lecture) {
 
 
 
-
+  
           
 
             <div class="col-sm-auto">
