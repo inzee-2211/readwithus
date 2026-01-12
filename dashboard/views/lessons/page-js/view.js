@@ -2,21 +2,51 @@
 (function () {
     joinLesson = function (lessonId, joinFromApp) {
         var data = {lessonId: lessonId, joinFromApp: joinFromApp};
+        // fcom.ajax(fcom.makeUrl('Lessons', 'joinMeeting'), data, function (response) {
+        //     var res = JSON.parse(response);
+        //     var meToolCode = res.meeting.metool_code;
+        //     var meet = JSON.parse(res.meeting.meet_details);
+        //     $('#endL').removeClass('d-none');
+        //     if (meToolCode != ATOM_CHAT) {
+        //         if (joinFromApp) {
+        //             window.open(meet.appUrl, "_blank");
+        //         } else {
+        //             loadIframe(meet.joinUrl);
+        //         }
+        //     } else {
+        //         createCometChatBox(meet, "#lessonBox");
+        //     }
+        // });
         fcom.ajax(fcom.makeUrl('Lessons', 'joinMeeting'), data, function (response) {
-            var res = JSON.parse(response);
-            var meToolCode = res.meeting.metool_code;
-            var meet = JSON.parse(res.meeting.meet_details);
-            $('#endL').removeClass('d-none');
-            if (meToolCode != ATOM_CHAT) {
-                if (joinFromApp) {
-                    window.open(meet.appUrl, "_blank");
-                } else {
-                    loadIframe(meet.joinUrl);
-                }
-            } else {
-                createCometChatBox(meet, "#lessonBox");
-            }
-        });
+    var res = JSON.parse(response);
+    var meToolCode = res.meeting.metool_code;
+    var meet = JSON.parse(res.meeting.meet_details);
+
+    $('#endL').removeClass('d-none');
+
+    if (meToolCode != ATOM_CHAT) {
+        if (joinFromApp) {
+            window.open(meet.appUrl, "_blank");
+        } else {
+            loadIframe(meet.joinUrl);
+        }
+    } else {
+        createCometChatBox(meet, "#lessonBox");
+    }
+
+    // ✅ Start end timer AFTER join (was missing)
+    $('#lessonEndTimer').removeClass('d-none');
+    $("#lessonEndTimer").yocoachTimer({
+        recordId: lessonId,
+        recordType: 'LESSON',
+        callback: function () {
+            $(".join-btns").addClass('d-none');
+        }
+    });
+
+    checkLessonStatus(lessonId, lessonStatus);
+});
+
     };
     endLesson = function (lessonId) {
         if (confirm(endLessonConfirmMsg)) {

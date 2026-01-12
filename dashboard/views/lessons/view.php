@@ -75,10 +75,26 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                 </div>
                 <div class="col-xl-4 col-lg-4 col-sm-12">
                     <div class="session-infobar__action">
-                        <?php if ($lesson['ordles_status'] == Lesson::SCHEDULED && $lesson['ordles_endtime_unix'] > $lesson['ordles_currenttime_unix'] && $lesson['ordles_starttime_unix'] <= $lesson['ordles_currenttime_unix']) { ?>
+                        <!-- <?php if ($lesson['ordles_status'] == Lesson::SCHEDULED && $lesson['ordles_endtime_unix'] > $lesson['ordles_currenttime_unix'] && $lesson['ordles_starttime_unix'] <= $lesson['ordles_currenttime_unix']) { ?>
                             <?php $endTimer = true; ?>
                             <span class="btn btn--live" id="lessonEndTimer" timestamp="<?php echo $lesson['ordles_lesson_endtime_utc'] ?>"> 00:00:00:00 </span>
-                        <?php } ?>
+                        <?php } ?> -->
+
+                        <?php
+$isLive = (
+    $lesson['ordles_status'] == Lesson::SCHEDULED
+    && $lesson['ordles_endtime_unix'] > $lesson['ordles_currenttime_unix']
+    && $lesson['ordles_starttime_unix'] <= $lesson['ordles_currenttime_unix']
+);
+?>
+<span
+  class="btn btn--live <?php echo $isLive ? '' : 'd-none'; ?>"
+  id="lessonEndTimer"
+  timestamp="<?php echo $lesson['ordles_lesson_endtime_utc']; ?>"
+>
+  00:00:00:00
+</span>
+
                         <button class="btn bg-red end_lesson_now <?php echo (!$lesson['canEnd']) ? 'd-none' : ''; ?> " id="endL" onclick="endLesson(<?php echo $lesson['ordles_id']; ?>);"><?php echo Label::getLabel('LBL_End_Lesson'); ?></button>
                         <?php if ($lesson['canCancelLesson']) { ?>
                             <button onclick="cancelForm('<?php echo $lesson['ordles_id']; ?>');" class="btn btn--bordered color-third cancel-lesson--js"><?php echo Label::getLabel('LBL_Cancel'); ?></button>
