@@ -1,4 +1,6 @@
-<?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
+<?php defined('SYSTEM_INIT') or die('Invalid Usage.');
+$webroot = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : '/';
+ ?>
 <style>
 /* ====== Layout ====== */
 .qz-wrap {
@@ -159,8 +161,13 @@
 
     <div class="qz-actions" role="group" aria-label="Quiz actions">
       <button class="qz-btn-primary" onclick="beginQuizNow()"><?php echo Label::getLabel('LBL_START_QUIZ'); ?></button>
+      <button class="qz-btn-secondary" onclick="window.location.href='<?php echo $webroot; ?>teachers';">
+        <?php echo Label::getLabel('LBL_FIND_A_TUTOR'); ?>
+      </button>
       <button class="qz-btn-secondary" onclick="loadLecture(<?php echo (int)$lectureId; ?>)"><?php echo Label::getLabel('LBL_GO_BACK'); ?></button>
+    
     </div>
+
 
     <input type="hidden" id="qzStart_courseId" value="<?php echo (int)$courseId; ?>">
     <input type="hidden" id="qzStart_lectureId" value="<?php echo (int)$lectureId; ?>">
