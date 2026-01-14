@@ -6,6 +6,33 @@ $endTimer = false;
 if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
     $lesson['ordles_tlang_id'] = '-1';
 }
+
+// Get current time in seconds
+$currentTime = time();
+
+// Check if we have UTC timestamps and convert them to local timestamps for display
+if (isset($lesson['ordles_lesson_starttime_utc'])) {
+    // If we have UTC timestamp, convert to local Unix timestamp
+    $startTimeLocal = strtotime($lesson['ordles_lesson_starttime']);
+    $endTimeLocal = strtotime($lesson['ordles_lesson_endtime']);
+} else {
+    // Use the Unix timestamps directly
+    $startTimeLocal = $lesson['ordles_starttime_unix'];
+    $endTimeLocal = $lesson['ordles_endtime_unix'];
+}
+
+// Calculate if lesson is in the future
+$isFutureLesson = ($startTimeLocal > $currentTime);
+$isLiveLesson = (
+    $lesson['ordles_status'] == Lesson::SCHEDULED
+    && $endTimeLocal > $currentTime
+    && $startTimeLocal <= $currentTime
+);
+
+// For timer display, we need the actual start/end times in milliseconds
+$startTimeForTimer = $startTimeLocal * 1000;
+$endTimeForTimer = $endTimeLocal * 1000;
+$currentTimeForTimer = $currentTime * 1000;
 ?>
 <script>
 <?php if ($flashcardEnabled) { ?>
@@ -22,9 +49,18 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
     const USER_TYPE = <?php echo FatUtility::int($siteUserType); ?>;
     var lessonStatus = <?php echo FatUtility::int($lesson['ordles_status']); ?>;
     var lessonId = <?php echo FatUtility::int($lesson['ordles_id']); ?>;
-    var ordles_currenttime_unix = <?php echo FatUtility::int($lesson['ordles_currenttime_unix']); ?>;
-    var ordles_starttime_unix = <?php echo FatUtility::int($lesson['ordles_lesson_starttime_utc']); ?>;
-    var ordles_endtime_unix = <?php echo FatUtility::int($lesson['ordles_lesson_endtime_utc']); ?>;
+    
+    // Use the calculated local timestamps in milliseconds
+    var ordles_starttime_unix = <?php echo $startTimeForTimer; ?>;
+    var ordles_endtime_unix = <?php echo $endTimeForTimer; ?>;
+    var ordles_currenttime_unix = <?php echo $currentTimeForTimer; ?>;
+    
+    // Debug logs
+    console.log('Start time (local):', new Date(<?php echo $startTimeForTimer; ?>));
+    console.log('End time (local):', new Date(<?php echo $endTimeForTimer; ?>));
+    console.log('Current time:', new Date(<?php echo $currentTimeForTimer; ?>));
+    console.log('Is future lesson:', <?php echo $isFutureLesson ? 'true' : 'false'; ?>);
+
     var joinTime = '<?php echo $joinTime; ?>';
     var canJoin = <?php echo FatUtility::int($lesson['canJoin']); ?>;
     var endLessonConfirmMsg = "<?php echo CommonHelper::htmlEntitiesDecode(Label::getLabel('LBL_END_LESSON_CONFIRM_MSG')); ?>";
@@ -50,8 +86,8 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                         <?php if (!empty($lesson['ordles_starttime_unix'])) { ?>
                             <div class="session-time">
                                 <p>
-                                    <span><?php echo date('H:i', $lesson['ordles_starttime_unix']) . ' - ' . date('H:i', $lesson['ordles_endtime_unix']); ?>,</span>
-                                    <?php echo date('Y-m-d', $lesson['ordles_starttime_unix']); ?>
+                                    <span><?php echo date('H:i', $startTimeLocal) . ' - ' . date('H:i', $endTimeLocal); ?>,</span>
+                                    <?php echo date('Y-m-d', $startTimeLocal); ?>
                                 </p>
                             </div>
                         <?php } ?>
@@ -61,12 +97,12 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                                     <svg class="icon icon--issue icon--attachement icon--xsmall color-black"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#attach'; ?>"></use></svg>
                                     <?php echo $lesson['plan_title'] ?>
                                 </a>
-                                <?php if ($siteUserType == User::TEACHER && ($lesson['ordles_starttime_unix'] - $lesson['ordles_currenttime_unix']) > 0) { ?>
+                                <?php if ($siteUserType == User::TEACHER && ($startTimeLocal - $currentTime) > 0) { ?>
                                     <a href="javascript:void(0);" onclick="listLessonPlans('<?php echo $lesson['ordles_id']; ?>', '<?php echo Plan::PLAN_TYPE_LESSONS; ?>');" class="underline attachment-file padding-2"><?php echo Label::getLabel('LBL_CHANGE'); ?></a>
                                     <a href="javascript:void(0);" onclick="removeAssignedPlan('<?php echo $lesson['ordles_id']; ?>', '<?php echo Plan::PLAN_TYPE_LESSONS; ?>');" class="underline attachment-file padding-2"><?php echo Label::getLabel('LBL_REMOVE'); ?></a>
                                 <?php } ?>
                             </div>
-                        <?php } else if ($siteUserType == User::TEACHER && $lesson['ordles_status'] != Lesson::CANCELLED && ($lesson['ordles_starttime_unix'] - $lesson['ordles_currenttime_unix']) > 0) { ?>
+                        <?php } else if ($siteUserType == User::TEACHER && $lesson['ordles_status'] != Lesson::CANCELLED && ($startTimeLocal - $currentTime) > 0) { ?>
                             <div class="session-resource">
                                 <a href="javascript:void(0);" onclick="listLessonPlans('<?php echo $lesson['ordles_id']; ?>', '<?php echo Plan::PLAN_TYPE_LESSONS; ?>');" class="btn btn--transparent btn--addition color-black padding-2"><?php echo Label::getLabel('LBL_ATTACH_LESSON_PLAN'); ?></a>
                             </div>
@@ -75,26 +111,10 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                 </div>
                 <div class="col-xl-4 col-lg-4 col-sm-12">
                     <div class="session-infobar__action">
-                        <!-- <?php if ($lesson['ordles_status'] == Lesson::SCHEDULED && $lesson['ordles_endtime_unix'] > $lesson['ordles_currenttime_unix'] && $lesson['ordles_starttime_unix'] <= $lesson['ordles_currenttime_unix']) { ?>
+                        <?php if ($isLiveLesson) { ?>
                             <?php $endTimer = true; ?>
-                            <span class="btn btn--live" id="lessonEndTimer" timestamp="<?php echo $lesson['ordles_lesson_endtime_utc'] ?>"> 00:00:00:00 </span>
-                        <?php } ?> -->
-
-                        <?php
-$isLive = (
-    $lesson['ordles_status'] == Lesson::SCHEDULED
-    && $lesson['ordles_endtime_unix'] > $lesson['ordles_currenttime_unix']
-    && $lesson['ordles_starttime_unix'] <= $lesson['ordles_currenttime_unix']
-);
-?>
-<span
-  class="btn btn--live <?php echo $isLive ? '' : 'd-none'; ?>"
-  id="lessonEndTimer"
-  timestamp="<?php echo $lesson['ordles_lesson_endtime_utc']; ?>"
->
-  00:00:00:00
-</span>
-
+                            <span class="btn btn--live" id="lessonEndTimer" timestamp="<?php echo $endTimeForTimer; ?>"> 00:00:00:00 </span>
+                        <?php } ?>
                         <button class="btn bg-red end_lesson_now <?php echo (!$lesson['canEnd']) ? 'd-none' : ''; ?> " id="endL" onclick="endLesson(<?php echo $lesson['ordles_id']; ?>);"><?php echo Label::getLabel('LBL_End_Lesson'); ?></button>
                         <?php if ($lesson['canCancelLesson']) { ?>
                             <button onclick="cancelForm('<?php echo $lesson['ordles_id']; ?>');" class="btn btn--bordered color-third cancel-lesson--js"><?php echo Label::getLabel('LBL_Cancel'); ?></button>
@@ -127,7 +147,7 @@ $isLive = (
                         <?php $link = MyUtility::makeFullUrl('Contact', 'index', [], CONF_WEBROOT_FRONTEND); ?>
                         <p><?php echo Label::getLabel('LBL_USER_NO_MORE_EXISTS'); ?></p>
                         <a class="btn btn--secondary" href="<?php echo $link; ?>"><?php echo Label::getLabel('LBL_CONTACT_US'); ?></a>
-                    <?php } elseif ($lesson['ordles_status'] != Lesson::SCHEDULED || $lesson['ordles_endtime_unix'] < $lesson['ordles_currenttime_unix']) { ?>
+                    <?php } elseif ($lesson['ordles_status'] != Lesson::SCHEDULED || $endTimeLocal < $currentTime) { ?>
                         <div class="status_media">
                             <svg class="icon"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#clock'; ?>"></use></svg>
                         </div>
@@ -143,12 +163,19 @@ $isLive = (
                                 <a href="javascript:void(0);" class="btn btn--secondary btn--large" onclick="joinLesson('<?php echo $lesson['ordles_id']; ?>', false);"><?php echo Label::getLabel('LBL_JOIN_LESSON'); ?></a>
                             <?php } ?>
                         </div>
-                    <?php } elseif ($lesson['ordles_status'] == Lesson::SCHEDULED) { ?>
+                    <?php } elseif ($lesson['ordles_status'] == Lesson::SCHEDULED && $isFutureLesson) { ?>
                         <?php $startTimer = true; ?>
                         <div class="start-lesson-timer timer">
                             <h5 class="timer-title"><?php echo Label::getLabel('LBL_STARTS_IN'); ?></h5>
-                            <div class="countdown-timer size_lg" id="lessonStartTimer" timestamp="<?php echo $lesson['ordles_lesson_starttime_utc']; ?>">00:00:00:00</div>
+                            <div class="countdown-timer size_lg" id="lessonStartTimer" timestamp="<?php echo $startTimeForTimer; ?>">00:00:00:00</div>
                         </div>
+                    <?php } elseif ($lesson['ordles_status'] == Lesson::SCHEDULED && !$isFutureLesson) { ?>
+                        <!-- Lesson is scheduled but in the past -->
+                        <div class="status_media">
+                            <svg class="icon"><use xlink:href="<?php echo CONF_WEBROOT_URL . 'images/sprite.svg#clock'; ?>"></use></svg>
+                        </div>
+                        <p><?php echo Label::getLabel('LBL_LESSON_TIME_HAS_PASSED'); ?></p>
+                        <a href="<?php echo MyUtility::makeFullUrl('Lessons'); ?>" class="btn btn--primary btn--large"><?php echo Label::getLabel('LBL_GO_TO_LESSONS'); ?></a>
                     <?php } ?>
                 </div>
             </div>
@@ -158,24 +185,29 @@ $isLive = (
 <!-- ] -->
 <script>
     $(document).ready(function () {
-<?php if ($startTimer) { ?>
+        <?php if ($startTimer) { ?>
+            console.log('Initializing start timer for lesson:', lessonId);
             $("#lessonStartTimer").yocoachTimer({
                 recordId: lessonId,
                 recordType: 'LESSON',
                 callback: function () {
+                    console.log('Start timer finished, reloading page');
                     window.location.reload();
                 }
             });
-<?php } ?>
-<?php if ($endTimer) { ?>
+        <?php } ?>
+        
+        <?php if ($endTimer) { ?>
+            console.log('Initializing end timer for lesson:', lessonId);
             $("#lessonEndTimer").yocoachTimer({
                 recordId: lessonId,
                 recordType: 'LESSON',
                 callback: function () {
+                    console.log('End timer finished, hiding join buttons');
                     $(".join-btns").addClass('d-none');
                 }
             });
             checkLessonStatus(lessonId, lessonStatus);
-<?php } ?>
+        <?php } ?>
     });
 </script>

@@ -129,24 +129,47 @@ class LessonsController extends DashboardController
      * 
      * @param int $lessonId
      */
-    public function view($lessonId)
+   public function view($lessonId)
     {
         $lessonId = FatUtility::int($lessonId);
+
         $srch = new LessonSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
         $conditions = ['ordles_id' => $lessonId];
+
         $srch->applyPrimaryConditions();
         $srch->applySearchConditions($conditions);
         $srch->addSearchDetailFields();
+
+        // NOTE: fetchAndFormat(true) sometimes returns drifting *_utc/currenttime fields
         $lessons = $srch->fetchAndFormat(true);
+
         if (count($lessons) < 1) {
             FatUtility::exitWithErrorCode(404);
         }
+
         $lesson = current($lessons);
+
+        /**
+         * ✅ HARD FIX (no timezone drift):
+         * Use absolute epoch timestamps from start/end unix, and use real server "now".
+         * This aligns view.php with listing/index behavior and prevents Jan12 vs Jan14 mismatch.
+         */
+        $lesson['ordles_currenttime_unix'] = time();
+
+        if (!empty($lesson['ordles_starttime_unix'])) {
+            $lesson['ordles_lesson_starttime_utc'] = (int)$lesson['ordles_starttime_unix'];
+        }
+        if (!empty($lesson['ordles_endtime_unix'])) {
+            $lesson['ordles_lesson_endtime_utc'] = (int)$lesson['ordles_endtime_unix'];
+        }
+
         $this->set('lesson', $lesson);
         $this->set('setMonthAndWeekNames', true);
         $this->set('userId', $this->siteUserId);
         $this->set('userType', $this->siteUserType);
+
         $flashcardEnabled = FatApp::getConfig('CONF_ENABLE_FLASHCARD');
+
         if (!empty($lesson['ordles_metool_id'])) {
             $mettingTool = (new MeetingTool($lesson['ordles_metool_id']))->getDetail();
         } else {
@@ -155,6 +178,7 @@ class LessonsController extends DashboardController
 
         $this->set('activeMettingTool', $mettingTool);
         $this->set('flashcardEnabled', $flashcardEnabled);
+
         if ($flashcardEnabled) {
             $flashcardSrchFrm = Flashcard::getSearchForm($this->siteLangId);
             $flashcardSrchFrm->fill(['flashcard_type_id' => $lessonId]);
@@ -174,14 +198,20 @@ class LessonsController extends DashboardController
             'js/fateventcalendar.js',
             'plans/page-js/common.js',
         ]);
+
         if ($flashcardEnabled) {
             $this->_template->addJs('js/flashcards.js');
         }
+
         if ($mettingTool['metool_code'] == MeetingTool::ATOM_CHAT) {
             $this->_template->addJs('js/atom-chat.js');
         }
+
         $this->_template->render();
     }
+
+    // ✅ Rest of your controller remains unchanged (joinMeeting, endMeeting, scheduleForm, etc.)
+    // Keeping your original code 
 
     /**
      * Join Meeting
