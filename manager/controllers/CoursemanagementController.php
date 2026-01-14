@@ -1321,9 +1321,19 @@ $frm->addTextBox('Option A', 'answer_a', $row['answer_a'] ?? '');
 $frm->addTextBox('Option B', 'answer_b', $row['answer_b'] ?? '');
 $frm->addTextBox('Option C', 'answer_c', $row['answer_c'] ?? '');
 $frm->addTextBox('Option D', 'answer_d', $row['answer_d'] ?? '');
-$frm->addSelectBox('Correct Answer', 'correct_answer', ['A'=>'A','B'=>'B','C'=>'C','D'=>'D'], $row['correct_answer'] ?? '');
+$frm->addSelectBox(
+  'Correct Answer (MCQ)',
+  'correct_answer',
+  ['A'=>'A','B'=>'B','C'=>'C','D'=>'D'],
+  $row['correct_answer'] ?? ''
+);
 $frm->addHtml('', '', '</div>');
-
+$frm->addTextArea(
+  'Correct Answer (Story/Short)',
+  'correct_answer_text',
+  ($row['question_type'] ?? '') === 'Multiple-Choice' ? '' : ($row['correct_answer'] ?? ''),
+  ['rows' => 3]
+);
 /* Text answer for Story/Short */
 // $frm->addHtml('', '', '<div class="text-answer-field">');
 // $frm->addTextArea('Answer (text)', 'answer_text', ($currType === 'Multiple-Choice') ? '' : ($row['answer_a'] ?? ''), ['rows'=>3]);
@@ -1383,18 +1393,24 @@ public function saveQuestion()
             FatUtility::dieJsonError('Correct answer must be A, B, C or D.');
         }
         $data['question_type'] = 'Multiple-Choice';
-    } else {
-        // Story/Short – store single text answer in answer_a
-        $textAns = trim($post['answer_text'] ?? '');
-        if ($textAns === '') {
-            FatUtility::dieJsonError('Please provide the text answer.');
-        }
-        $data['answer_a'] = $textAns;
-        $data['answer_b'] = $data['answer_c'] = $data['answer_d'] = '';
-        $data['correct_answer'] = '';
-        if (stripos($type, 'story') !== false) $data['question_type'] = 'Story-Based';
-        elseif (stripos($type, 'short') !== false) $data['question_type'] = 'Short';
+   } else {
+    // Story/Short – ONLY keep correct answer text, clear options
+    $textAns = trim($post['correct_answer_text'] ?? '');
+    if ($textAns === '') {
+        FatUtility::dieJsonError('Please provide the correct answer for Story/Short.');
     }
+
+    $data['answer_a'] = '';
+    $data['answer_b'] = '';
+    $data['answer_c'] = '';
+    $data['answer_d'] = '';
+
+    $data['correct_answer'] = $textAns; // ✅ store ONLY here (matches CSV behavior)
+
+    if (stripos($type, 'story') !== false) $data['question_type'] = 'Story-Based';
+    elseif (stripos($type, 'short') !== false) $data['question_type'] = 'Short';
+}
+
 
     // optional image
     $imagePath = $post['existing_image'] ?? '';
