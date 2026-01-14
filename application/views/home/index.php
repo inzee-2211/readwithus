@@ -1,6 +1,21 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
 
 <?php
+function rwu_safe_text($value): string {
+    $value = (string)$value;
+
+    // 1) decode any stored entities (&rsquo;, &ndash;, &amp; etc)
+    $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    // 2) strip tags (titles/cats/excerpts should not contain HTML)
+    $value = strip_tags($value);
+
+    // 3) normalize whitespace
+    $value = preg_replace('/\s+/', ' ', trim($value));
+
+    // 4) escape ONCE for safe HTML output
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
 function asset_css($file){
   $abs = CONF_APPLICATION_PATH . 'public/' . ltrim($file,'/');
   return CONF_WEBROOT_URL . $file . '?v=' . (@filemtime($abs) ?: time());
@@ -855,10 +870,10 @@ if ($hasSub && $isCurrent) {
         if (mb_strlen($excerpt) > 120) { $excerpt = mb_substr($excerpt, 0, 120) . '…'; }
       ?>
       <article class="rb-card">
-        <a href="<?php echo $detailUrl; ?>" class="rb-media" aria-label="<?php echo htmlspecialchars($title); ?>">
+        <a href="<?php echo $detailUrl; ?>" class="rb-media" aria-label="<?php echo rwu_safe_text($title); ?>">
           <img
             src="<?php echo $img; ?>"
-            alt="<?php echo htmlspecialchars($title); ?>"
+            alt="<?php echo rwu_safe_text($title); ?>"
             loading="lazy"
             onerror="this.src='<?= CONF_WEBROOT_URL ?>images/defaults/blog-4by3.jpg';"
           >
@@ -866,17 +881,17 @@ if ($hasSub && $isCurrent) {
 
         <div class="rb-content">
           <div class="rb-meta">
-            <?php if ($cat) { ?><span class="rb-chip"><?php echo htmlspecialchars($cat); ?></span><?php } ?>
+            <?php if ($cat) { ?><span class="rb-chip"><?php echo rwu_safe_text($cat); ?></span><?php } ?>
             <?php if ($dateStr) { ?>
               <span class="rb-date" aria-label="Published on"><?php echo $dateStr; ?></span>
             <?php } ?>
           </div>
 
           <h3 class="rb-h4">
-            <a href="<?php echo $detailUrl; ?>"><?php echo htmlspecialchars($title); ?></a>
+            <a href="<?php echo $detailUrl; ?>"><?php echo rwu_safe_text($title); ?></a>
           </h3>
 
-          <p class="rb-excerpt"><?php echo htmlspecialchars($excerpt); ?></p>
+          <p class="rb-excerpt"><?php echo rwu_safe_text($excerpt); ?></p>
 
           <div class="rb-footer">
             <a class="rb-link" href="<?php echo $detailUrl; ?>">Read More →</a>
