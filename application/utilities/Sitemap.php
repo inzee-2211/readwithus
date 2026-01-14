@@ -172,9 +172,17 @@ class Sitemap
             'url' => self::normalizeUrl(MyUtility::makeFullUrl('Blog', 'index', [], CONF_WEBROOT_FRONT_URL)),
         ];
 
-        // Blog posts (published only)
+        /**
+         * Blog posts (published only)
+         * IMPORTANT: Your DB uses:
+         *  - tbl_blog_post.post_identifier (NOT post_slug)
+         *  - tbl_blog_post_lang.postlang_post_title
+         */
         if (class_exists('BlogPost')) {
-            $srch = BlogPost::getSearchObject($langId, false, true, false); // joinCategory=false, post_published=true
+            // joinCategory=false, post_published=true
+            $srch = BlogPost::getSearchObject($langId, false, true, false);
+
+            // Join language table for title
             $srch->joinTable(
                 BlogPost::DB_LANG_TBL,
                 'INNER JOIN',
@@ -182,28 +190,31 @@ class Sitemap
                 'bp_l'
             );
 
-            // We need slug + title
-            $srch->addMultipleFields([
-                'bp.post_id',
-                'bp.post_slug',
-                'IFNULL(bp_l.post_title, bp.post_title) as post_title',
-            ]);
+            // Select correct fields based on your DB schema
+        $srch->addMultipleFields([
+    'bp.post_id',
+    'bp.post_identifier AS post_slug',
+    'IFNULL(bp_l.post_title, bp.post_identifier) AS post_title',
+]);
 
-            $srch->doNotCalculateRecords();
-            $srch->setPageSize(5000);
+$srch->doNotCalculateRecords();
+$srch->setPageSize(5000);
 
-            $rs = $srch->getResultSet();
-            while ($row = FatApp::getDb()->fetch($rs)) {
-                if (empty($row['post_slug'])) {
-                    continue;
-                }
-                $u = MyUtility::makeFullUrl('Blog', 'view', [$row['post_slug']], CONF_WEBROOT_FRONT_URL);
-                $blogUrls[] = [
-                    'value' => $row['post_title'] ?? $row['post_slug'],
-                    'frequency' => 'weekly',
-                    'url' => self::normalizeUrl($u),
-                ];
-            }
+$rs = $srch->getResultSet();
+while ($row = FatApp::getDb()->fetch($rs)) {
+    if (empty($row['post_slug'])) {
+        continue;
+    }
+
+    $u = MyUtility::makeFullUrl('Blog', 'view', [$row['post_slug']], CONF_WEBROOT_FRONT_URL);
+
+    $blogUrls[] = [
+        'value' => $row['post_title'] ?? $row['post_slug'],
+        'frequency' => 'weekly',
+        'url' => self::normalizeUrl($u),
+    ];
+}
+
         }
 
         $sitemapUrls = array_merge($sitemapUrls, [Label::getLabel('LBL_BLOGS') => $blogUrls]);
