@@ -78,12 +78,15 @@ margin-left: 4%;
     gap: 0.9vw;
     width: 100%;            /* full width on small screens */
     max-width: none;
+    justify-items: center;
+    margin-left: 0;
   }
+
 }
 .rw-pill{
   display:inline-flex; align-items:center; justify-content:center; gap:0.7vw;
   padding:0.9vw 1vw; border-radius:10px; border:1.5px solid #CDEAFF; background:#fff;
-  color:#0A033C; font-weight:600;margin: 2%; width:100%;padding: 4%; cursor:pointer;
+  color:#0A033C; font-weight:600; width:100%;padding: 4%; cursor:pointer;
 }
 .rw-pill .arrow{ width:1.2vw; height:1.2vw; min-width:16px; min-height:16px; }
 .rw-input{
