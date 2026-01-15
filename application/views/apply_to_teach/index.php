@@ -8,7 +8,7 @@ function asset_css($f){
 ?>
 <link rel="stylesheet" href="<?= asset_css('css/apply-tutor.page.css') ?>"/>
 
-<<section class="tutor-hero">
+<section class="tutor-hero">
   <div class="tutor-hero__inner">
     <div class="tutor-hero__copy">
       <h1 class="tutor-hero__title">
