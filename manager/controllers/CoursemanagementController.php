@@ -127,9 +127,22 @@ private function getForm(int $id = 0): Form
     }
 
     $posted      = FatApp::getPostedData();
-    $subjectId   = FatUtility::int($posted['subject_id']   ?? 0);
-    $examboardId = FatUtility::int($posted['examboard_id'] ?? 0);
-    $tierId      = FatUtility::int($posted['tier_id']      ?? 0);
+    if ($id > 0 && empty($posted)) {
+    $row = $db->fetch("SELECT qm.quiz_setup_id, qs.subject_id, qs.examboard_id, qs.tier_id
+                         FROM tbl_quiz_management qm
+                   INNER JOIN tbl_quiz_setup qs ON qs.id = qm.quiz_setup_id
+                        WHERE qm.id = ?", [$id]);
+    if ($row) {
+        $subjectId   = (int)$row['subject_id'];
+        $examboardId = (int)$row['examboard_id'];
+        $tierId      = (int)$row['tier_id'];
+    }
+}
+
+    $subjectId   = FatUtility::int($posted['subject_id']   ?? ($subjectId   ?? 0));
+$examboardId = FatUtility::int($posted['examboard_id'] ?? ($examboardId ?? 0));
+$tierId      = FatUtility::int($posted['tier_id']      ?? ($tierId      ?? 0));
+
 
     // Subject (pass placeholder in the LAST param, not inside options)
     $fldSubj = $frm->addSelectBox('Subject', 'subject_id', $subjectList, $subjectId, [], Label::getLabel('LBL_SELECT_SUBJECT'));
@@ -589,145 +602,265 @@ public function topicsBySubject()
         }
         return strcasecmp(trim($row['level_name']), 'gcse') === 0;
     }
-
-
 public function uploadQuestionBank()
 {
     $post = FatApp::getPostedData();
     $subtopicId = FatUtility::int($post['subtopic_id'] ?? 0);
-    $courseId = FatUtility::int($post['course_id'] ?? 0);
+    $courseId   = FatUtility::int($post['course_id'] ?? 0);
 
     if ($subtopicId <= 0) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_SUBTOPIC_OR_COURSE'));
     }
 
-    if (!isset($_FILES['question_csv']) || $_FILES['question_csv']['error'] !== UPLOAD_ERR_OK) {
+    if (empty($_FILES['question_csv']['tmp_name']) || $_FILES['question_csv']['error'] !== UPLOAD_ERR_OK) {
         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_OR_MISSING_CSV_FILE'));
     }
 
     $file = $_FILES['question_csv'];
-    $allowedMimeTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
-    $fileMimeType = mime_content_type($file['tmp_name']);
-    $fileExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
 
-    if (!in_array($fileMimeType, $allowedMimeTypes) || strtolower($fileExtension) !== 'csv') {
+    // Extension check (mime is unreliable on many servers)
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if ($fileExtension !== 'csv') {
         FatUtility::dieJsonError(Label::getLabel('LBL_ONLY_CSV_FILES_ARE_ALLOWED'));
-    }
-$zipBag = null;
-try {
-    $zipBag = $this->initZipBagFromUpload('question_images_zip');
-    if (!$zipBag) {
-        $zipBag = $this->initZipBagFromUpload('quiz_images_zip');
-    }
-} catch (Exception $e) {
-    FatUtility::dieJsonError($e->getMessage());
-}
-
-
-    $csvData = file_get_contents($file['tmp_name']);
-    $lines = array_map('str_getcsv', explode(PHP_EOL, $csvData));
-    $lines = array_filter($lines); // Remove empty rows
-
-    if (count($lines) < 2) {
-        FatUtility::dieJsonError(Label::getLabel('LBL_CSV_FILE_HAS_NO_VALID_DATA'));
     }
 
     $db = FatApp::getDb();
-    $db->startTransaction();
+    $zipBag = null;
 
-    // Delete old questions for this subtopic
-    $sql = "DELETE FROM tbl_quaestion_bank WHERE subtopic_id = $subtopicId";
-    if (!$db->query($sql)) {
+    try {
+        // Optional zip (supports either field name)
+        $zipBag = $this->initZipBagFromUpload('question_images_zip')
+            ?: $this->initZipBagFromUpload('quiz_images_zip');
+
+        $lines = $this->readCsvRows($file['tmp_name']);
+        if (count($lines) < 2) {
+            throw new Exception(Label::getLabel('LBL_CSV_FILE_HAS_NO_VALID_DATA'));
+        }
+
+        $db->startTransaction();
+
+        $sql = "DELETE FROM tbl_quaestion_bank WHERE subtopic_id = " . (int)$subtopicId;
+        if (!$db->query($sql)) {
+            throw new Exception(Label::getLabel('LBL_FAILED_TO_CLEAR_OLD_QUESTIONS'));
+        }
+
+        unset($lines[0]); // header
+        $insertedCount = 0;
+
+        $uploadDir = 'uploads/question_images/';
+        if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0775, true); }
+
+        foreach ($lines as $rowIndex => $line) {
+            $line = array_pad($line, 16, '');
+
+            [
+                $question_text, $answer_a, $answer_b, $answer_c, $answer_d,
+                $correct_answer, $difficulty, $examboardName, $topic, $subtopicName,
+                $levelName, $question_type, $tier, $hint, $explanation, $image_url
+            ] = $line;
+
+            if (trim($question_text) === '' || trim($correct_answer) === '') {
+                continue;
+            }
+
+            // Keep newlines consistent
+            $explanation = str_replace(["\r\n", "\r"], "\n", (string)$explanation);
+
+            $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+
+            $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
+            $examboardId  = $examboardRow ? (int)$examboardRow['id'] : 0;
+
+            $levelRow = $db->fetch("SELECT id FROM course_levels WHERE level_name = ?", [$levelName]);
+            $levelId  = $levelRow ? (int)$levelRow['id'] : 0;
+
+            $questionData = [
+                'question_title'    => trim($question_text),
+                'answer_a'          => trim($answer_a),
+                'answer_b'          => trim($answer_b),
+                'answer_c'          => trim($answer_c),
+                'answer_d'          => trim($answer_d),
+                'correct_answer'    => trim($correct_answer),
+                'difficult_level'   => trim($difficulty),
+                'examboard_id'      => $examboardId,
+                'subtopic_id'       => $subtopicId,
+                'course_id'         => $courseId,
+                'level_id'          => $levelId,
+                'topic'             => trim($topic),
+                'subtopic'          => trim($subtopicName),
+                'tier'              => trim($tier),
+                'hint'              => trim($hint),
+                'question_type'     => trim($question_type),
+                'category'          => '',
+                'subcategory'       => '',
+                'explanation'       => trim($explanation),
+                'image'             => $imagePath,
+                'question_added_on' => date('Y-m-d H:i:s'),
+            ];
+
+            if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
+                throw new Exception("Row #" . ($rowIndex + 1) . " insert failed: " . $db->getError());
+            }
+
+            $insertedCount++;
+        }
+
+        $db->commitTransaction();
+
+        FatUtility::dieJsonSuccess([
+            'msg'    => "✅ {$insertedCount} questions uploaded successfully!",
+            'status' => 1
+        ]);
+
+    } catch (Exception $e) {
+        // Some Fatbit DB wrappers don’t have inTransaction(); rollback is safe anyway
         $db->rollbackTransaction();
-        FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_CLEAR_OLD_QUESTIONS'));
+        FatUtility::dieJsonError($e->getMessage());
+    } finally {
+        if ($zipBag) { $zipBag->cleanup(); }
     }
-
-    $header = $lines[0];
-    unset($lines[0]); // Remove header row
-
-    $insertedCount = 0;
-    $uploadDir = 'uploads/question_images/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-    foreach ($lines as $line) {
-        // Pad to at least 16 fields to handle all columns including explanation and image
-        $line = array_pad($line, 16, '');
-
-        [
-            $question_text,
-            $answer_a,
-            $answer_b,
-            $answer_c,
-            $answer_d,
-            $correct_answer,
-            $difficulty,
-            $examboardName,
-            $topic,
-            $subtopicName,
-            $levelName,
-            $question_type,
-            $tier,
-            $hint,
-            $explanation,    // NEW FIELD
-            $image_url       // NEW FIELD
-        ] = $line;
-
-        if (empty($question_text) || empty($correct_answer)) {
-            continue; // Skip incomplete rows
-        }
-
-        // Handle image upload from URL
-       $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
-
-
-        // Resolve Examboard ID
-        $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
-        $examboardId = $examboardRow ? $examboardRow['id'] : 0;
-
-        // Resolve Level ID
-        $levelRow = $db->fetch("SELECT id FROM tbl_courses WHERE name = ?", [$levelName]);
-        $levelId = $levelRow ? $levelRow['id'] : 0;
-
-        $questionData = [
-            'question_title'    => trim($question_text),
-            'answer_a'          => trim($answer_a),
-            'answer_b'          => trim($answer_b),
-            'answer_c'          => trim($answer_c),
-            'answer_d'          => trim($answer_d),
-            'correct_answer'    => trim($correct_answer),
-            'difficult_level'   => trim($difficulty),
-            'examboard_id'      => $examboardId,
-            'subtopic_id'       => $subtopicId,
-            'course_id'         => $courseId,
-            'level_id'          => $levelId,
-            'topic'             => trim($topic),
-            'subtopic'          => trim($subtopicName),
-            'tier'              => trim($tier),
-            'hint'              => trim($hint),
-            'question_type'     => trim($question_type),
-            'category'          => '',
-            'subcategory'       => '',
-            'explanation'       => trim($explanation), // NEW FIELD
-            'image'             => $imagePath,        // NEW FIELD
-            'question_added_on' => date('Y-m-d H:i:s'),
-        ];
-
-        if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
-            $db->rollbackTransaction();
-            FatUtility::dieJsonError('❌ Error inserting question: ' . $db->getError());
-        }
-
-        $insertedCount++;
-    }
-if ($zipBag) $zipBag->cleanup();
-
-    $db->commitTransaction();
-
-    FatUtility::dieJsonSuccess([
-        'msg' => "✅ {$insertedCount} questions uploaded successfully!",
-        'status' => '1'
-    ]);
 }
+
+
+// public function uploadQuestionBank()
+// {
+//     $post = FatApp::getPostedData();
+//     $subtopicId = FatUtility::int($post['subtopic_id'] ?? 0);
+//     $courseId = FatUtility::int($post['course_id'] ?? 0);
+
+//     if ($subtopicId <= 0) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_SUBTOPIC_OR_COURSE'));
+//     }
+
+//     if (!isset($_FILES['question_csv']) || $_FILES['question_csv']['error'] !== UPLOAD_ERR_OK) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_OR_MISSING_CSV_FILE'));
+//     }
+
+//     $file = $_FILES['question_csv'];
+//     $allowedMimeTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
+//     $fileMimeType = mime_content_type($file['tmp_name']);
+//     $fileExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
+
+//     if (!in_array($fileMimeType, $allowedMimeTypes) || strtolower($fileExtension) !== 'csv') {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_ONLY_CSV_FILES_ARE_ALLOWED'));
+//     }
+// $zipBag = null;
+// try {
+//     $zipBag = $this->initZipBagFromUpload('question_images_zip');
+//     if (!$zipBag) {
+//         $zipBag = $this->initZipBagFromUpload('quiz_images_zip');
+//     }
+// } catch (Exception $e) {
+//     FatUtility::dieJsonError($e->getMessage());
+// }
+
+
+//     // $csvData = file_get_contents($file['tmp_name']);
+//     // $lines = array_map('str_getcsv', explode(PHP_EOL, $csvData));
+//     // $lines = array_filter($lines); // Remove empty rows
+//     $lines = $this->readCsvRows($file['tmp_name']);
+
+
+//     if (count($lines) < 2) {
+//         FatUtility::dieJsonError(Label::getLabel('LBL_CSV_FILE_HAS_NO_VALID_DATA'));
+//     }
+
+//     $db = FatApp::getDb();
+//     $db->startTransaction();
+
+//     // Delete old questions for this subtopic
+//     $sql = "DELETE FROM tbl_quaestion_bank WHERE subtopic_id = $subtopicId";
+//     if (!$db->query($sql)) {
+//         $db->rollbackTransaction();
+//         FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_CLEAR_OLD_QUESTIONS'));
+//     }
+
+//     $header = $lines[0];
+//     unset($lines[0]); // Remove header row
+
+//     $insertedCount = 0;
+//     $uploadDir = 'uploads/question_images/';
+//     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+//     foreach ($lines as $line) {
+//         // Pad to at least 16 fields to handle all columns including explanation and image
+//         $line = array_pad($line, 16, '');
+
+//         [
+//             $question_text,
+//             $answer_a,
+//             $answer_b,
+//             $answer_c,
+//             $answer_d,
+//             $correct_answer,
+//             $difficulty,
+//             $examboardName,
+//             $topic,
+//             $subtopicName,
+//             $levelName,
+//             $question_type,
+//             $tier,
+//             $hint,
+//             $explanation,    // NEW FIELD
+//             $image_url       // NEW FIELD
+//         ] = $line;
+
+//         if (empty($question_text) || empty($correct_answer)) {
+//             continue; // Skip incomplete rows
+//         }
+
+//         // Handle image upload from URL
+//        $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+
+
+//         // Resolve Examboard ID
+//         $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
+//         $examboardId = $examboardRow ? $examboardRow['id'] : 0;
+
+//         // Resolve Level ID
+//         $levelRow = $db->fetch("SELECT id FROM tbl_courses WHERE name = ?", [$levelName]);
+//         $levelId = $levelRow ? $levelRow['id'] : 0;
+
+//         $questionData = [
+//             'question_title'    => trim($question_text),
+//             'answer_a'          => trim($answer_a),
+//             'answer_b'          => trim($answer_b),
+//             'answer_c'          => trim($answer_c),
+//             'answer_d'          => trim($answer_d),
+//             'correct_answer'    => trim($correct_answer),
+//             'difficult_level'   => trim($difficulty),
+//             'examboard_id'      => $examboardId,
+//             'subtopic_id'       => $subtopicId,
+//             'course_id'         => $courseId,
+//             'level_id'          => $levelId,
+//             'topic'             => trim($topic),
+//             'subtopic'          => trim($subtopicName),
+//             'tier'              => trim($tier),
+//             'hint'              => trim($hint),
+//             'question_type'     => trim($question_type),
+//             'category'          => '',
+//             'subcategory'       => '',
+//             'explanation'       => trim($explanation), // NEW FIELD
+//             'image'             => $imagePath,        // NEW FIELD
+//             'question_added_on' => date('Y-m-d H:i:s'),
+//         ];
+
+//         if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
+//             $db->rollbackTransaction();
+//             FatUtility::dieJsonError('❌ Error inserting question: ' . $db->getError());
+//         }
+
+//         $insertedCount++;
+//     }
+// if ($zipBag) $zipBag->cleanup();
+
+//     $db->commitTransaction();
+
+//     FatUtility::dieJsonSuccess([
+//         'msg' => "✅ {$insertedCount} questions uploaded successfully!",
+//         'status' => '1'
+//     ]);
+// }
 public function setup()
 {
     $db   = FatApp::getDb();
@@ -1036,7 +1169,7 @@ if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === 
 
         try {
             // Delete from tbl_question_bank
-            $sql1 = "DELETE FROM tbl_question_bank WHERE subtopic_id = $quotedValue";
+            $sql1 = "DELETE FROM tbl_quaestion_bank WHERE subtopic_id = $quotedValue";
             $db->query($sql1);
 
                 $sql2 = "DELETE FROM course_subtopics WHERE id = $quotedValue";

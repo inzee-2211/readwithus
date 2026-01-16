@@ -34,6 +34,10 @@ class ZipImageBag
         if (!is_dir($this->extractDir) && !mkdir($this->extractDir, 0775, true)) {
             throw new Exception('Unable to create temp directory for ZIP extraction.');
         }
+        if (!class_exists('ZipArchive')) {
+    throw new Exception('ZIP feature is not available on this server (ZipArchive missing).');
+}
+
 
         $this->extractZipSafely($zipTmpPath);
         $this->indexFiles();
