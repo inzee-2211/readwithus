@@ -1,4 +1,5 @@
 <?php
+require_once CONF_APPLICATION_PATH . 'library/ZipImageBag.php';
 
 /**
  * Courses Controller is used for course handling
@@ -164,6 +165,8 @@ private function getForm(int $id = 0): Form
     $frm->addFileUpload('Upload Past Paper PDF', 'pdf_path', ['accept' => '.pdf']);
     $frm->addFileUpload('Upload Answer Paper PDF', 'answer_pdf_path', ['accept' => '.pdf']);
     $frm->addFileUpload('Upload Quiz CSV', 'quiz_csv', ['accept' => '.csv']);
+    $frm->addFileUpload('Upload Images ZIP (optional)', 'quiz_images_zip', ['accept' => '.zip']);
+
 
     // Hidden fields
     $frm->addHiddenField('', 'id', $id);
@@ -610,6 +613,16 @@ public function uploadQuestionBank()
     if (!in_array($fileMimeType, $allowedMimeTypes) || strtolower($fileExtension) !== 'csv') {
         FatUtility::dieJsonError(Label::getLabel('LBL_ONLY_CSV_FILES_ARE_ALLOWED'));
     }
+$zipBag = null;
+try {
+    $zipBag = $this->initZipBagFromUpload('question_images_zip');
+    if (!$zipBag) {
+        $zipBag = $this->initZipBagFromUpload('quiz_images_zip');
+    }
+} catch (Exception $e) {
+    FatUtility::dieJsonError($e->getMessage());
+}
+
 
     $csvData = file_get_contents($file['tmp_name']);
     $lines = array_map('str_getcsv', explode(PHP_EOL, $csvData));
@@ -664,19 +677,8 @@ public function uploadQuestionBank()
         }
 
         // Handle image upload from URL
-        $imagePath = '';
-        if (!empty($image_url)) {
-            $imageContent = @file_get_contents(trim($image_url));
-            if ($imageContent !== false) {
-                $ext = pathinfo(parse_url($image_url, PHP_URL_PATH), PATHINFO_EXTENSION);
-                if (empty($ext)) {
-                    $ext = 'jpg'; // Default extension
-                }
-                $imageName = uniqid('qimg_') . '.' . $ext;
-                $imagePath = $uploadDir . $imageName;
-                file_put_contents($imagePath, $imageContent);
-            }
-        }
+       $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+
 
         // Resolve Examboard ID
         $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
@@ -717,6 +719,7 @@ public function uploadQuestionBank()
 
         $insertedCount++;
     }
+if ($zipBag) $zipBag->cleanup();
 
     $db->commitTransaction();
 
@@ -796,56 +799,115 @@ if (!empty($_FILES['answer_pdf_path']['tmp_name']) && $_FILES['answer_pdf_path']
     }
 
     // UPDATED CSV PROCESSING WITH EXPLANATION AND IMAGE SUPPORT
-    if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
-        $csvData = array_map('str_getcsv', file($_FILES['quiz_csv']['tmp_name']));
-        $uploadDir = 'uploads/question_images/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    // if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
+    //     $csvData = array_map('str_getcsv', file($_FILES['quiz_csv']['tmp_name']));
+    //     $uploadDir = 'uploads/question_images/';
+    //     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
         
-        foreach ($csvData as $i => $row) {
-            if ($i === 0 || count($row) < 11) continue; // Skip header and incomplete rows
+    //     foreach ($csvData as $i => $row) {
+    //         if ($i === 0 || count($row) < 11) continue; // Skip header and incomplete rows
             
-            // Pad to at least 11 fields to handle optional fields
-            $row = array_pad($row, 11, '');
+    //         // Pad to at least 11 fields to handle optional fields
+    //         $row = array_pad($row, 11, '');
             
-            list($question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint, $explanation, $image_url) = $row;
+    //         list($question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint, $explanation, $image_url) = $row;
 
-            // Handle image upload from URL
-            $imagePath = '';
-            if (!empty($image_url)) {
-                $imageContent = @file_get_contents(trim($image_url));
-                if ($imageContent !== false) {
-                    $ext = pathinfo(parse_url($image_url, PHP_URL_PATH), PATHINFO_EXTENSION);
-                    if (empty($ext)) {
-                        $ext = 'jpg'; // Default extension
-                    }
-                    $imageName = uniqid('qimg_') . '.' . $ext;
-                    $imagePath = $uploadDir . $imageName;
-                    file_put_contents($imagePath, $imageContent);
-                }
-            }
+    //         // Handle image upload from URL
+    //         $imagePath = '';
+    //         if (!empty($image_url)) {
+    //             $imageContent = @file_get_contents(trim($image_url));
+    //             if ($imageContent !== false) {
+    //                 $ext = pathinfo(parse_url($image_url, PHP_URL_PATH), PATHINFO_EXTENSION);
+    //                 if (empty($ext)) {
+    //                     $ext = 'jpg'; // Default extension
+    //                 }
+    //                 $imageName = uniqid('qimg_') . '.' . $ext;
+    //                 $imagePath = $uploadDir . $imageName;
+    //                 file_put_contents($imagePath, $imageContent);
+    //             }
+    //         }
 
-            $qData = [
-                'subtopic_id'       => $subtopicId,
-                'question_title'    => trim($question_text),
-                'answer_a'          => trim($a),
-                'answer_b'          => trim($b),
-                'answer_c'          => trim($c),
-                'answer_d'          => trim($d),
-                'correct_answer'    => trim($correct),
-                'difficult_level'   => $difficulty !== '' ? trim($difficulty) : 'Medium',
-                'question_type'     => $question_type !== '' ? trim($question_type) : 'MCQ',
-                'hint'              => trim($hint),
-                'explanation'       => trim($explanation), // NEW FIELD
-                'image'             => $imagePath,        // NEW FIELD
-                'question_added_on' => date('Y-m-d H:i:s'),
-            ];
+    //         $qData = [
+    //             'subtopic_id'       => $subtopicId,
+    //             'question_title'    => trim($question_text),
+    //             'answer_a'          => trim($a),
+    //             'answer_b'          => trim($b),
+    //             'answer_c'          => trim($c),
+    //             'answer_d'          => trim($d),
+    //             'correct_answer'    => trim($correct),
+    //             'difficult_level'   => $difficulty !== '' ? trim($difficulty) : 'Medium',
+    //             'question_type'     => $question_type !== '' ? trim($question_type) : 'MCQ',
+    //             'hint'              => trim($hint),
+    //             'explanation'       => trim($explanation), // NEW FIELD
+    //             'image'             => $imagePath,        // NEW FIELD
+    //             'question_added_on' => date('Y-m-d H:i:s'),
+    //         ];
             
-            if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
-                $db->rollbackTransaction();
-                FatUtility::dieJsonError('Error inserting question: ' . $db->getError());
-            }
+    //         if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
+    //             $db->rollbackTransaction();
+    //             FatUtility::dieJsonError('Error inserting question: ' . $db->getError());
+    //         }
+    //     }
+    // }
+    // UPDATED CSV PROCESSING WITH EXPLANATION + IMAGE (URL OR ZIP) SUPPORT
+if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === UPLOAD_ERR_OK) {
+
+    // optional ZIP for images (NEW - backward compatible)
+    $zipBag = null;
+    try {
+        $zipBag = $this->initZipBagFromUpload('quiz_images_zip'); // field added in getForm()
+    } catch (Exception $e) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($e->getMessage());
+    }
+
+    $uploadDir = 'uploads/question_images/';
+    if (!is_dir($uploadDir)) @mkdir($uploadDir, 0775, true);
+
+    // robust CSV read
+    $csvData = $this->readCsvRows($_FILES['quiz_csv']['tmp_name']);
+
+    foreach ($csvData as $i => $row) {
+        if ($i === 0) continue; // header row
+
+        // Keep your current 11-col format fully supported
+        $row = array_pad($row, 11, '');
+
+        [$question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint, $explanation, $image_url] = $row;
+
+        if (trim($question_text) === '' || trim($correct) === '') {
+            continue;
+        }
+
+        // NEW: image from URL OR ZIP filename/path
+        $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+
+        $qData = [
+            'subtopic_id'       => $subtopicId,
+            'question_title'    => trim($question_text),
+            'answer_a'          => trim($a),
+            'answer_b'          => trim($b),
+            'answer_c'          => trim($c),
+            'answer_d'          => trim($d),
+            'correct_answer'    => trim($correct),
+            'difficult_level'   => $difficulty !== '' ? trim($difficulty) : 'Medium',
+            'question_type'     => $question_type !== '' ? trim($question_type) : 'MCQ',
+            'hint'              => trim($hint),
+            'explanation'       => trim($explanation),
+            'image'             => $imagePath,
+            'question_added_on' => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
+            if ($zipBag) $zipBag->cleanup();
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError('Error inserting question: ' . $db->getError());
         }
     }
+
+    if ($zipBag) $zipBag->cleanup();
+}
+
 
     $db->commitTransaction();
     FatUtility::dieJsonSuccess(['msg' => '✅ Subtopic and questions saved successfully!']);
@@ -1456,6 +1518,99 @@ public function deleteQuestion(int $id)
     FatUtility::dieJsonSuccess(['status'=>1,'msg'=>'Deleted']);
 }
 
+private function initZipBagFromUpload(string $fieldName): ?ZipImageBag
+{
+    if (empty($_FILES[$fieldName]['tmp_name']) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $ext = strtolower(pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION));
+    if ($ext !== 'zip') {
+        throw new Exception('Invalid ZIP file. Please upload a .zip.');
+    }
+
+    // adjust path to wherever you added ZipImageBag.php
+    require_once CONF_APPLICATION_PATH . 'library/ZipImageBag.php';
+
+    return new ZipImageBag($_FILES[$fieldName]['tmp_name']);
+}
+
+/**
+ * Backwards compatible image handling:
+ * - If imageRef is URL => download (your existing behavior)
+ * - Else if zipBag exists => resolve file from zip and save
+ * - Else => empty
+ */
+private function resolveAndSaveQuestionImage(string $imageRef, ?ZipImageBag $zipBag, string $uploadDir): string
+{
+    $imageRef = trim($imageRef);
+    if ($imageRef === '') return '';
+
+    if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0775, true); }
+
+    // 1) URL (existing behavior)
+    if (preg_match('~^https?://~i', $imageRef)) {
+        $imageContent = @file_get_contents($imageRef);
+        if ($imageContent === false) return '';
+
+        $ext = strtolower(pathinfo(parse_url($imageRef, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+        if (!in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) $ext = 'jpg';
+
+        $imageName = uniqid('qimg_') . '.' . $ext;
+        $imagePath = rtrim($uploadDir, '/\\') . '/' . $imageName;
+        @file_put_contents($imagePath, $imageContent);
+        return $imagePath;
+    }
+
+    // 2) ZIP filename/path
+    if ($zipBag) {
+        try {
+            $extracted = $zipBag->resolve($imageRef);
+        } catch (Exception $e) {
+            // Make it a proper user-facing validation error
+            throw new Exception($e->getMessage());
+        }
+
+        if ($extracted) {
+            $ext = strtolower(pathinfo($extracted, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) return '';
+
+            $imageName = uniqid('qimg_') . '.' . $ext;
+            $imagePath = rtrim($uploadDir, '/\\') . '/' . $imageName;
+
+            if (!@copy($extracted, $imagePath)) return '';
+            return $imagePath;
+        }
+    }
+
+    return '';
+}
+
+
+/**
+ * More robust CSV reader than file()+str_getcsv:
+ * supports quoted newlines and BOM.
+ */
+private function readCsvRows(string $tmpPath): array
+{
+    $rows = [];
+    $fh = fopen($tmpPath, 'rb');
+    if (!$fh) return $rows;
+
+    $first = true;
+    while (($row = fgetcsv($fh)) !== false) {
+        if ($first && isset($row[0])) {
+            // strip UTF-8 BOM if present
+            $row[0] = preg_replace('/^\xEF\xBB\xBF/', '', $row[0]);
+            $first = false;
+        }
+        // skip empty lines
+        if (count($row) === 1 && trim((string)$row[0]) === '') continue;
+        $rows[] = $row;
+    }
+    fclose($fh);
+    return $rows;
+}
 
 
 }
