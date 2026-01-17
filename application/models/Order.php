@@ -69,11 +69,31 @@ class Order extends MyAppModel
             return true;
         }
         foreach ($lessons as $lesson) {
+            // $lessonObj = new Lesson(0, $this->userId, User::LEARNER);
+            // if (!$lesson = $lessonObj->getLessonPrice($lesson)) {
+            //     $this->error = Label::getLabel('LBL_LESSON_NOT_AVAILABLE');
+            //     return false;
+            // }
             $lessonObj = new Lesson(0, $this->userId, User::LEARNER);
-            if (!$lesson = $lessonObj->getLessonPrice($lesson)) {
-                $this->error = Label::getLabel('LBL_LESSON_NOT_AVAILABLE');
-                return false;
-            }
+
+/* First try strict pricing */
+$pricedLesson = $lessonObj->getLessonPrice($lesson);
+
+if (!$pricedLesson) {
+    /* Fallback: allow incomplete profile tutors (same as Cart.php behavior) */
+    $pricedLesson = $this->getLessonPriceLenient($lesson);
+
+    if (!$pricedLesson) {
+        $this->error = $lessonObj->getError();
+        if (empty($this->error)) {
+            $this->error = Label::getLabel('LBL_LESSON_NOT_AVAILABLE');
+        }
+        return false;
+    }
+}
+
+$lesson = $pricedLesson;
+
             $comm = Commission::getCommission($lesson['ordles_teacher_id']);
             $lessonData = [
                 'ordles_type' => $lesson['ordles_type'],
@@ -1246,5 +1266,64 @@ class Order extends MyAppModel
         return true;
     }
     
+/**
+ * Lenient lesson pricing (fallback)
+ * Allows order placement even if teacher profile flags are incomplete.
+ * Used ONLY when strict Lesson::getLessonPrice() fails.
+ */
+private function getLessonPriceLenient(array $lesson)
+{
+    $teacherId = FatUtility::int($lesson['ordles_teacher_id'] ?? 0);
+    $tlangId   = FatUtility::int($lesson['ordles_tlang_id'] ?? 0);
+    $duration  = FatUtility::int($lesson['ordles_duration'] ?? 0);
+    $type      = FatUtility::int($lesson['ordles_type'] ?? 0);
+
+    if ($teacherId < 1 || $duration < 1 || $type < 1) {
+        return false;
+    }
+
+    $srch = new SearchBase(User::DB_TBL, 'teacher');
+    $srch->joinTable(UserTeachLanguage::DB_TBL, 'INNER JOIN', 'utlang.utlang_user_id = teacher.user_id', 'utlang');
+    $srch->joinTable(TeachLangPrice::DB_TBL, 'INNER JOIN', 'ustelgpr.ustelgpr_utlang_id = utlang.utlang_id', 'ustelgpr');
+
+    $srch->addCondition('teacher.user_id', '=', $teacherId);
+    $srch->addDirectCondition('teacher.user_deleted IS NULL');
+    $srch->addCondition('teacher.user_active', '=', AppConstant::ACTIVE);
+    $srch->addCondition('teacher.user_is_teacher', '=', AppConstant::YES);
+
+    // keep consistent with your platform filters (optional but recommended)
+    $srch->addDirectCondition('teacher.user_verified IS NOT NULL');
+
+    if ($tlangId > 0) {
+        $srch->addCondition('utlang.utlang_tlang_id', '=', $tlangId);
+    }
+
+    $srch->addCondition('ustelgpr.ustelgpr_price', '>', 0);
+
+    $srch->addMultipleFields([
+        'teacher.user_id AS ordles_teacher_id',
+        (($tlangId > 0) ? $tlangId : 'utlang.utlang_tlang_id') . ' AS ordles_tlang_id',
+        $duration . ' AS ordles_duration',
+        $type . ' AS ordles_type',
+        'MIN(ustelgpr.ustelgpr_price) AS ordles_amount'
+    ]);
+
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row = FatApp::getDb()->fetch($srch->getResultSet());
+    if (empty($row) || FatUtility::float($row['ordles_amount'] ?? 0) <= 0) {
+        return false;
+    }
+
+    // normalize fields expected by OfferPrice::applyLessonOffer + order pipeline
+    $lesson['ordles_teacher_id'] = $teacherId;
+    $lesson['ordles_tlang_id']   = FatUtility::int($row['ordles_tlang_id'] ?? $tlangId);
+    $lesson['ordles_duration']   = $duration;
+    $lesson['ordles_type']       = $type;
+    $lesson['ordles_amount']     = FatUtility::float($row['ordles_amount']);
+
+    return $lesson;
+}
 
 }
