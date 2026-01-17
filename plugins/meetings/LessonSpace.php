@@ -155,7 +155,7 @@ $data = [
         'Accept: application/json',
         'Content-Type: application/json',
         'Content-Length: ' . strlen($postfields),
-        'Authorization: Organisation ' . $this->settings['api_key'],
+        'Authorization: Organization ' . $this->settings['api_key'],
     ];
 
     $curl = curl_init($url);
