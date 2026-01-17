@@ -8,10 +8,9 @@ class LessonSpace extends FatModel
 
     const BASE_URL = "https://api.thelessonspace.com/v2/";
 
-    // How many seconds before/after lesson to allow joining (safety buffer)
-    // Helps when server time is slightly drifted or user joins a bit early/late.
-    const JOIN_BUFFER_BEFORE = 900; // 15 minutes
-    const JOIN_BUFFER_AFTER  = 1800; // 30 minutes
+    // Buffers for join window (seconds)
+    const JOIN_BUFFER_BEFORE = 900;  // 15 min
+    const JOIN_BUFFER_AFTER  = 1800; // 30 min
 
     public function __construct()
     {
@@ -58,43 +57,51 @@ class LessonSpace extends FatModel
             return false;
         }
 
-        // Resolve a safe timezone to use (user tz preferred; fallback to system)
-        $userTz = (string)($user['user_timezone'] ?? '');
-        $sysTz  = (string)MyUtility::getSystemTimezone();
-        $tzName = $this->pickValidTimezone($userTz, $sysTz);
-
-        // Compute timestamps from meeting start/end
-        $startRaw = (string)($meeting['starttime'] ?? '');
-        $endRaw   = (string)($meeting['endtime'] ?? '');
-        if ($startRaw === '' || $endRaw === '') {
-            $this->error = "LessonSpace missing meeting start/end times";
-            return false;
-        }
-
         // Build user name (must not be empty)
         $fullName = trim((string)($user['user_first_name'] ?? '') . ' ' . (string)($user['user_last_name'] ?? ''));
         if ($fullName === '') {
             $fullName = 'User';
         }
 
-        // Keep only fields that existed in the ORIGINAL payload by default.
-        $profilePic = (string)($user['user_image'] ?? '');
+        $isTeacher = ((int)($user['user_type'] ?? 0) === User::TEACHER);
 
-        // Try payload variants in this order:
-        // 1) ORIGINAL STYLE (offset format using timezone offset) + buffer
-        // 2) ISO8601 "c" (system/user tz) + buffer
-        // 3) UTC "Z" + buffer
-        //
-        // Reason: local worked with original offset style; live may need different normalization.
-        $variants = ['offset', 'iso_c', 'utc_z'];
+        // Keep original fields (backward compatible)
+        $profilePic = trim((string)($user['user_image'] ?? ''));
+        $email      = trim((string)($user['user_email'] ?? ''));
+
+        // Lesson raw times (only for logging/diagnostics)
+        $startRaw = (string)($meeting['starttime'] ?? '');
+        $endRaw   = (string)($meeting['endtime'] ?? '');
+
+        // Duration in seconds (fallback 30 mins)
+        $durationMin = (int)($meeting['duration'] ?? 30);
+        if ($durationMin <= 0) {
+            $durationMin = 30;
+        }
+        $durationSec = $durationMin * 60;
+
+        // --- The KEY FIX for LIVE: compute a safe "join window" based on SERVER NOW ---
+        // This avoids DB timezone drift / server clock issues breaking the API validation.
+        $now = time();
+        $notBeforeUnix = $now - self::JOIN_BUFFER_BEFORE;
+        $notAfterUnix  = $now + $durationSec + self::JOIN_BUFFER_AFTER;
+
+        // Some providers require a minimum future window; ensure at least +30 min
+        if ($notAfterUnix <= $now + 1800) {
+            $notAfterUnix = $now + 1800;
+        }
+
+        // We'll attempt 2 payload styles:
+        // 1) UTC Z (most robust across servers)
+        // 2) ISO8601 with system timezone offset (fallback if their API expects offset)
+        $variants = ['utc_z', 'iso_c'];
 
         $lastError = '';
         foreach ($variants as $idx => $variant) {
             $attemptId = $this->makeAttemptId($baseId, $idx);
 
-            $timeouts = $this->buildTimeouts($startRaw, $endRaw, $tzName, $variant);
+            $timeouts = $this->formatTimeouts($notBeforeUnix, $notAfterUnix, $variant);
             if ($timeouts === false) {
-                // buildTimeouts sets $this->error
                 $lastError = $this->error;
                 continue;
             }
@@ -103,7 +110,7 @@ class LessonSpace extends FatModel
                 'id' => $attemptId,
                 'user' => [
                     'name' => $fullName,
-                    'leader' => ((int)($user['user_type'] ?? 0) === User::TEACHER),
+                    'leader' => $isTeacher,
                 ],
                 'timeouts' => $timeouts,
                 'features' => [
@@ -115,40 +122,45 @@ class LessonSpace extends FatModel
                 ],
             ];
 
-            // Only include profile_picture if we have a non-empty URL/string (avoid null)
-            if ($profilePic !== '') {
-                $payload['user']['profile_picture'] = $profilePic;
-            }
-
-            // OPTIONAL (safe): include email ONLY if it exists and is not empty.
-            // Some LessonSpace accounts enforce email, but we never send null.
-            $email = trim((string)($user['user_email'] ?? ''));
+            // Only include these if non-empty (avoid nulls)
             if ($email !== '') {
                 $payload['user']['email'] = $email;
             }
 
-            $url = static::BASE_URL . 'spaces/launch/';
-            $response = $this->exeCurlRequest($url, $payload, [
+            // IMPORTANT: profile_picture can cause live-only issues if the URL is blocked/403/private.
+            // So include ONLY if it's a public http(s) URL.
+            if ($profilePic !== '' && preg_match('~^https?://~i', $profilePic)) {
+                $payload['user']['profile_picture'] = $profilePic;
+            }
+
+            $meta = [
                 'variant' => $variant,
-                'tz_used' => $tzName,
-                'start_raw' => $startRaw,
-                'end_raw' => $endRaw,
-                'server_now_unix' => time(),
-                'server_now_iso' => gmdate('c'),
-            ]);
+                'server_now_unix' => $now,
+                'server_now_utc'  => gmdate('c', $now),
+                'join_not_before_unix' => $notBeforeUnix,
+                'join_not_after_unix'  => $notAfterUnix,
+                'join_not_before_utc'  => gmdate('c', $notBeforeUnix),
+                'join_not_after_utc'   => gmdate('c', $notAfterUnix),
+                'lesson_start_raw' => $startRaw,
+                'lesson_end_raw'   => $endRaw,
+                'duration_min'     => $durationMin,
+                'user_tz'          => (string)($user['user_timezone'] ?? ''),
+                'system_tz'        => (string)MyUtility::getSystemTimezone(),
+            ];
+
+            $url = static::BASE_URL . 'spaces/launch/';
+            $response = $this->exeCurlRequest($url, $payload, $meta);
 
             if ($response === false) {
                 $lastError = $this->error;
                 continue;
             }
 
-            // Success requires client_url
             if (!empty($response['client_url'])) {
                 $this->meeting = $response;
                 return $this->meeting;
             }
 
-            // Some APIs might return "url" instead of "client_url"
             if (!empty($response['url'])) {
                 $response['client_url'] = $response['url'];
                 $this->meeting = $response;
@@ -188,85 +200,34 @@ class LessonSpace extends FatModel
     }
 
     /**
-     * Build timeouts with buffers and different formats.
-     *
-     * Variants:
-     * - offset : 2026-01-17T19:30:00+05:00   (closest to original)
-     * - iso_c  : 2026-01-17T19:30:00+05:00   via DateTime::format('c')
-     * - utc_z  : 2026-01-17T14:30:00Z        (UTC Z)
+     * Format timeouts based on unix timestamps.
      */
-    private function buildTimeouts(string $startRaw, string $endRaw, string $tzName, string $variant)
+    private function formatTimeouts(int $notBeforeUnix, int $notAfterUnix, string $variant)
     {
-        try {
-            $tz = new DateTimeZone($tzName);
-
-            // Interpret raw DB times as being in $tzName (this matches original intent most closely)
-            $startDt = new DateTime($startRaw, $tz);
-            $endDt   = new DateTime($endRaw, $tz);
-
-            // Apply buffer to tolerate minor drift and allow early join
-            $startDt->modify('-' . self::JOIN_BUFFER_BEFORE . ' seconds');
-            $endDt->modify('+' . self::JOIN_BUFFER_AFTER . ' seconds');
-
-            if ($endDt->getTimestamp() <= $startDt->getTimestamp()) {
-                $this->error = "LessonSpace invalid timeouts: end <= start after buffers";
-                return false;
-            }
-
-            if ($variant === 'utc_z') {
-                $utc = new DateTimeZone('UTC');
-                $startDt->setTimezone($utc);
-                $endDt->setTimezone($utc);
-
-                return [
-                    'not_before' => $startDt->format('Y-m-d\TH:i:s\Z'),
-                    'not_after'  => $endDt->format('Y-m-d\TH:i:s\Z'),
-                ];
-            }
-
-            if ($variant === 'iso_c') {
-                return [
-                    'not_before' => $startDt->format('c'),
-                    'not_after'  => $endDt->format('c'),
-                ];
-            }
-
-            // default: offset (explicit like original)
-            return [
-                'not_before' => $startDt->format('Y-m-d\TH:i:sP'),
-                'not_after'  => $endDt->format('Y-m-d\TH:i:sP'),
-            ];
-
-        } catch (Exception $e) {
-            $this->error = "LessonSpace DateTime error: " . $e->getMessage();
+        if ($notAfterUnix <= $notBeforeUnix) {
+            $this->error = "LessonSpace invalid timeouts (unix): not_after <= not_before";
             return false;
         }
-    }
 
-    /**
-     * Pick a valid timezone string.
-     */
-    private function pickValidTimezone(string $preferred, string $fallback): string
-    {
-        $preferred = trim($preferred);
-        $fallback  = trim($fallback);
-
-        if ($preferred !== '' && $this->isValidTimezone($preferred)) {
-            return $preferred;
+        if ($variant === 'utc_z') {
+            return [
+                'not_before' => gmdate('Y-m-d\TH:i:s\Z', $notBeforeUnix),
+                'not_after'  => gmdate('Y-m-d\TH:i:s\Z', $notAfterUnix),
+            ];
         }
-        if ($fallback !== '' && $this->isValidTimezone($fallback)) {
-            return $fallback;
-        }
-        // Safe final fallback
-        return 'UTC';
-    }
 
-    private function isValidTimezone(string $tz): bool
-    {
+        // iso_c (system timezone offset)
         try {
-            new DateTimeZone($tz);
-            return true;
+            $sysTz = new DateTimeZone((string)MyUtility::getSystemTimezone());
+            $before = (new DateTime('@' . $notBeforeUnix))->setTimezone($sysTz)->format('c');
+            $after  = (new DateTime('@' . $notAfterUnix))->setTimezone($sysTz)->format('c');
+
+            return [
+                'not_before' => $before,
+                'not_after'  => $after,
+            ];
         } catch (Exception $e) {
+            $this->error = "LessonSpace timezone error: " . $e->getMessage();
             return false;
         }
     }
@@ -279,7 +240,7 @@ class LessonSpace extends FatModel
         $suffix = bin2hex(random_bytes(4)) . '_' . $attemptIndex;
         $id = $baseId . '_' . $suffix;
 
-        // Keep it safely short (some APIs enforce max lengths)
+        // Keep safe length
         if (strlen($id) > 64) {
             $id = substr(hash('sha256', $id), 0, 64);
         }
@@ -288,11 +249,6 @@ class LessonSpace extends FatModel
 
     /**
      * Execute Curl Request with strict headers + rich logs.
-     *
-     * @param string $url
-     * @param array $params
-     * @param array $meta
-     * @return array|false
      */
     private function exeCurlRequest(string $url, array $params, array $meta = [])
     {
@@ -312,7 +268,7 @@ class LessonSpace extends FatModel
         curl_setopt($curl, CURLOPT_POSTFIELDS, $postfields);
         curl_setopt($curl, CURLOPT_TIMEOUT, 30);
 
-        // On LIVE: should be true. If live server lacks CA bundle, you'd get cURL SSL error (not HTTP 400).
+        // Live should be TRUE. If CA bundle missing, you'd get curl error (not HTTP 400).
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
 
         $curlResult = curl_exec($curl);
@@ -323,10 +279,9 @@ class LessonSpace extends FatModel
             curl_close($curl);
             return false;
         }
-
         curl_close($curl);
 
-        // Log full request/response (helps diagnose LIVE-only issues)
+        // Logging (this is your proof for vendor support too)
         error_log("LessonSpace META=" . json_encode($meta));
         error_log("LessonSpace HTTP={$httpcode} URL={$url}");
         error_log("LessonSpace PAYLOAD={$postfields}");
@@ -350,7 +305,6 @@ class LessonSpace extends FatModel
             return false;
         }
 
-        // Success
         return $response;
     }
 }
