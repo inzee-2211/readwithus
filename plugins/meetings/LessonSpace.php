@@ -101,13 +101,11 @@ class LessonSpace extends FatModel
     $data = [
         "id" => $launchId,
         "user" => [
-            "name" => $fullName,
+            "name" => $fullName?? null,
             "leader" => ((int)($user['user_type'] ?? 0) === User::TEACHER),
             "profile_picture" => $user['user_image'] ?? null,
 
-            // These two are harmless if LessonSpace ignores them, helpful if required:
-            "email" => $user['user_email'] ?? null,
-            "id"    => (string)($user['user_id'] ?? ''),
+        
         ],
         "timeouts" => [
             "not_before" => $notBefore,
