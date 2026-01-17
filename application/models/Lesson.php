@@ -184,7 +184,7 @@ class Lesson extends MyAppModel
         }
         /** check Learner slot availability */
         $availability = new Availability($this->userId);
-        if (!$availability->isUserAvailable($post['ordles_lesson_endtime'], $post['ordles_lesson_endtime'])) {
+        if (!$availability->isUserAvailable($post['ordles_lesson_starttime'], $post['ordles_lesson_endtime'])) {
             $this->error = $availability->getError();
             return false;
         }

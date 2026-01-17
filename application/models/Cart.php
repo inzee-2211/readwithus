@@ -62,11 +62,31 @@ class Cart extends FatModel
     {
         $this->clear();
         /* Validate Lesson Data */
+        // $lessonObj = new Lesson(0, $this->userId, User::LEARNER);
+        // if (!$lesson = $lessonObj->getLessonPrice($lesson)) {
+        //     $this->error = $lessonObj->getError();
+        //     return false;
+        // }
         $lessonObj = new Lesson(0, $this->userId, User::LEARNER);
-        if (!$lesson = $lessonObj->getLessonPrice($lesson)) {
-            $this->error = $lessonObj->getError();
-            return false;
+
+/* First try the standard (strict) pricing */
+$pricedLesson = $lessonObj->getLessonPrice($lesson);
+
+if (!$pricedLesson) {
+    /* Fallback: allow incomplete profile tutors to be added to cart */
+    $pricedLesson = $this->getLessonPriceLenient($lesson);
+
+    if (!$pricedLesson) {
+        $this->error = $lessonObj->getError(); // keep original error if possible
+        if (empty($this->error)) {
+            $this->error = Label::getLabel('LBL_LESSON_NOT_AVAILABLE');
         }
+        return false;
+    }
+}
+
+$lesson = $pricedLesson;
+
         /* Create Item Unique Key */
         $key = implode('_', [
             $lesson['ordles_teacher_id'], $lesson['ordles_tlang_id'], $lesson['ordles_duration'],
@@ -674,6 +694,71 @@ class Cart extends FatModel
         $frm->addButton(Label::getLabel('LBL_CONFIRM_PAYMENT'), 'submit', Label::getLabel('LBL_CONFIRM_PAYMENT'));
         return $frm;
     }
+/**
+ * Lenient lesson pricing (fallback)
+ * Allows adding lesson to cart even if teacher profile flags are incomplete.
+ * This is ONLY used when strict Lesson::getLessonPrice() fails.
+ */
+private function getLessonPriceLenient(array $lesson)
+{
+    $teacherId = FatUtility::int($lesson['ordles_teacher_id'] ?? 0);
+    $tlangId   = FatUtility::int($lesson['ordles_tlang_id'] ?? 0);
+    $duration  = FatUtility::int($lesson['ordles_duration'] ?? 0);
+    $type      = FatUtility::int($lesson['ordles_type'] ?? 0);
+
+    if ($teacherId < 1 || $duration < 1 || $type < 1) {
+        return false;
+    }
+
+    $srch = new SearchBase(User::DB_TBL, 'teacher');
+    $srch->joinTable('tbl_user_settings', 'LEFT JOIN', 'us.user_id = teacher.user_id', 'us');
+    $srch->joinTable(UserTeachLanguage::DB_TBL, 'INNER JOIN', 'utlang.utlang_user_id = teacher.user_id', 'utlang');
+    $srch->joinTable(TeachLangPrice::DB_TBL, 'INNER JOIN', 'ustelgpr.ustelgpr_utlang_id = utlang.utlang_id', 'ustelgpr');
+
+    $srch->addCondition('teacher.user_id', '=', $teacherId);
+    $srch->addCondition('teacher.user_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+    $srch->addCondition('teacher.user_active', '=', AppConstant::ACTIVE);
+    $srch->addCondition('teacher.user_is_teacher', '=', AppConstant::YES);
+
+    // optional, keep if your platform requires verified teachers
+    $srch->addDirectCondition('teacher.user_verified IS NOT NULL');
+
+    if ($tlangId > 0) {
+        $srch->addCondition('utlang.utlang_tlang_id', '=', $tlangId);
+    }
+
+    $srch->addCondition('ustelgpr.ustelgpr_price', '>', 0);
+
+    $srch->addMultipleFields([
+        'teacher.user_id AS ordles_teacher_id',
+        (($tlangId > 0) ? $tlangId : 'utlang.utlang_tlang_id') . ' AS ordles_tlang_id',
+        $duration . ' AS ordles_duration',
+        $type . ' AS ordles_type',
+        'MIN(ustelgpr.ustelgpr_price) AS ordles_amount'
+    ]);
+
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+
+    $row = FatApp::getDb()->fetch($srch->getResultSet());
+
+    if (empty($row) || FatUtility::float($row['ordles_amount'] ?? 0) <= 0) {
+        return false;
+    }
+
+    $lesson['ordles_teacher_id'] = $teacherId;
+    $lesson['ordles_tlang_id']   = FatUtility::int($row['ordles_tlang_id'] ?? $tlangId);
+    $lesson['ordles_duration']   = $duration;
+    $lesson['ordles_type']       = $type;
+    $lesson['ordles_amount']     = FatUtility::float($row['ordles_amount']);
+
+    $lesson['lessons'] = $lesson['lessons'] ?? [[
+        'ordles_starttime' => $lesson['ordles_starttime'] ?? null,
+        'ordles_endtime'   => $lesson['ordles_endtime'] ?? null,
+    ]];
+
+    return $lesson;
+}
 
     /**
      * Get Checkout Steps
@@ -689,5 +774,6 @@ class Cart extends FatModel
             4 => Label::getLabel('LBL_4')
         ];
     }
+    
 
 }
