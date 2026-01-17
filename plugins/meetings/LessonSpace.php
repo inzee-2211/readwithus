@@ -62,7 +62,7 @@ class LessonSpace extends FatModel
             "user" => [
                 'name' => $user['user_first_name'] . ' ' . $user['user_last_name'],
                 'leader' => ($user['user_type'] == User::TEACHER),
-                'profile_picture' => $user['user_image'],
+                // 'profile_picture' => $user['user_image'],
             ],
             'timeouts' => ["not_before" => $unixStarttime, "not_after" => $unixEndtime],
             "features" => [
