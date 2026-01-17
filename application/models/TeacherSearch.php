@@ -66,11 +66,11 @@ public function applyPrimaryConditions(): void
     $this->addDirectCondition('teacher.user_verified IS NOT NULL');
 
     // ❌ remove these “profile completion” restrictions
-    // $this->addCondition('testat.testat_teachlang', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_speaklang', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_preference', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_availability', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_qualification', '=', AppConstant::YES);
+    $this->addCondition('testat.testat_teachlang', '=', AppConstant::YES);
+    $this->addCondition('testat.testat_speaklang', '=', AppConstant::YES);
+    $this->addCondition('testat.testat_preference', '=', AppConstant::YES);
+    $this->addCondition('testat.testat_availability', '=', AppConstant::YES);
+    $this->addCondition('testat.testat_qualification', '=', AppConstant::YES);
 
     // ❌ remove username requirement (we’ll handle link fallback)
     $this->addCondition('teacher.user_username', '!=', "");
