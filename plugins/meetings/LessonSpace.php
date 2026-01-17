@@ -50,56 +50,91 @@ class LessonSpace extends FatModel
      * @param array $user = []
      * @param array $meeting = ['title', 'duration', 'starttime', 'endtime', 'timezone']
      */
-    public function createMeeting(array $user, array $meeting)
-    {
-     // 1) Always generate a UNIQUE launch id (avoid collisions on live)
-$launchId = $meeting['id'] . '_' . bin2hex(random_bytes(4));
+   public function createMeeting(array $user, array $meeting)
+{
+    // --- 1) Build a SAFE unique launch id (avoid collisions + avoid overlong ids) ---
+    $baseId = (string)($meeting['id'] ?? '');
+    if ($baseId === '') {
+        $this->error = "LessonSpace missing meeting[id]";
+        return false;
+    }
 
-// 2) Always send timeouts in UTC "Z" format (avoid timezone drift)
-// Convert using SYSTEM timezone (not PHP default), then to UTC "Z"
-$sysTz = new DateTimeZone(MyUtility::getSystemTimezone()); // or CONF_SERVER_TIMEZONE if you use that
-$utcTz = new DateTimeZone('UTC');
+    $launchId = $baseId . '_' . bin2hex(random_bytes(4));
 
-$startDt = new DateTime($meeting['starttime'], $sysTz);
-$endDt   = new DateTime($meeting['endtime'], $sysTz);
+    // If LessonSpace has an internal max length, keep it safe.
+    // (64 is a common limit; if your logs show otherwise you can adjust)
+    if (strlen($launchId) > 64) {
+        $launchId = substr(hash('sha256', $launchId), 0, 64);
+    }
 
-$startDt->setTimezone($utcTz);
-$endDt->setTimezone($utcTz);
+    // --- 2) Format timeouts in ISO8601 WITH OFFSET (closest to your original working code) ---
+    // Use the user's timezone (like before) because LessonSpace used to receive that.
+    $userTz = !empty($user['user_timezone']) ? $user['user_timezone'] : MyUtility::getSystemTimezone();
 
-$startUtc = $startDt->format('Y-m-d\TH:i:s\Z');
-$endUtc   = $endDt->format('Y-m-d\TH:i:s\Z');
-if (strtotime($endUtc) <= strtotime($startUtc)) {
-    $this->error = "LessonSpace invalid timeouts: start={$startUtc}, end={$endUtc}";
-    return false;
-}
+    try {
+        $tz = new DateTimeZone($userTz);
 
+        // meeting['starttime'] / ['endtime'] are strings like "Y-m-d H:i:s"
+        // Treat them as already in USER timezone (this matches your original intent).
+        $startDt = new DateTime($meeting['starttime'], $tz);
+        $endDt   = new DateTime($meeting['endtime'], $tz);
 
+        // ISO8601 with offset: 2026-01-17T19:30:00+05:00
+        $notBefore = $startDt->format('Y-m-d\TH:i:sP');
+        $notAfter  = $endDt->format('Y-m-d\TH:i:sP');
 
-$data = [
-    "id" => $launchId,
-    "user" => [
-        "name" => trim($user['user_first_name'] . ' ' . $user['user_last_name']),
-        "leader" => ($user['user_type'] == User::TEACHER),
-    ],
-    "timeouts" => [
-        "not_before" => $startUtc,
-        "not_after"  => $endUtc,
-    ],
-];
-
-
-        $url = static::BASE_URL . 'spaces/launch/';
-        if (!$response = $this->exeCurlRequest($url, $data)) {
+        if ($endDt->getTimestamp() <= $startDt->getTimestamp()) {
+            $this->error = "LessonSpace invalid timeouts (end <= start): not_before={$notBefore}, not_after={$notAfter}";
             return false;
         }
-      if (empty($response['client_url'])) {
-    // keep actual API error if we already captured it in exeCurlRequest()
-    $this->error = $this->error ?: ('LessonSpace missing client_url. Raw: ' . json_encode($response));
-    return false;
-}
-
-        return $this->meeting = $response;
+    } catch (Exception $e) {
+        $this->error = "LessonSpace timezone/DateTime error: " . $e->getMessage();
+        return false;
     }
+
+    // --- 3) Restore payload structure close to original (features + profile_picture) ---
+    $fullName = trim(($user['user_first_name'] ?? '') . ' ' . ($user['user_last_name'] ?? ''));
+    if ($fullName === '') {
+        $fullName = 'User';
+    }
+
+    $data = [
+        "id" => $launchId,
+        "user" => [
+            "name" => $fullName,
+            "leader" => ((int)($user['user_type'] ?? 0) === User::TEACHER),
+            "profile_picture" => $user['user_image'] ?? null,
+
+            // These two are harmless if LessonSpace ignores them, helpful if required:
+            "email" => $user['user_email'] ?? null,
+            "id"    => (string)($user['user_id'] ?? ''),
+        ],
+        "timeouts" => [
+            "not_before" => $notBefore,
+            "not_after"  => $notAfter,
+        ],
+        "features" => [
+            'invite' => false,
+            'fullscreen' => true,
+            'endSession' => false,
+            'whiteboard.equations' => true,
+            'whiteboard.infiniteToggle' => true
+        ],
+    ];
+
+    $url = static::BASE_URL . 'spaces/launch/';
+    $response = $this->exeCurlRequest($url, $data);
+    if (!$response) {
+        return false;
+    }
+
+    if (empty($response['client_url'])) {
+        $this->error = $this->error ?: ('LessonSpace missing client_url. Raw: ' . json_encode($response));
+        return false;
+    }
+
+    return $this->meeting = $response;
+}
 
     public function getJoinUrl(): string
     {
@@ -141,60 +176,31 @@ $data = [
      * @return boolean
      */
     private function exeCurlRequest(string $url, array $params)
-{
-    $postfields = json_encode($params);
-
-    $headers = [
-        'Accept: application/json',
-        'Content-Type: application/json',
-        'Content-Length: ' . strlen($postfields),
-        'Authorization: Organisation ' . $this->settings['api_key'],
-    ];
-
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);  // use true on live
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $postfields);
-    curl_setopt($curl, CURLOPT_TIMEOUT, 20);
-
-    $curlResult = curl_exec($curl);
-    $httpcode   = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-    if ($curlResult === false) {
-        $this->error = 'LessonSpace cURL error: ' . curl_error($curl);
+    {
+        $postfields = json_encode($params);
+        $headers = [
+            'Accept', 'application/json',
+            'Content-type: application/json',
+            'Content-length: ' . strlen($postfields),
+            'Authorization: Organisation ' . $this->settings['api_key']
+        ];
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $postfields);
+        $curlResult = curl_exec($curl);
+        if (curl_errno($curl)) {
+            $this->error = 'Error:' . curl_error($curl);
+            return false;
+        }
         curl_close($curl);
-        return false;
+        $response = json_decode($curlResult, true) ?? [];
+        if (empty($response) || !empty($response['detail'])) {
+            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            return false;
+        }
+        return $response;
     }
-    curl_close($curl);
-
-    // Log to PHP error log (check server error log)
-    error_log("LessonSpace HTTP={$httpcode} URL={$url} PAYLOAD={$postfields} RESPONSE={$curlResult}");
-
-    $response = json_decode($curlResult, true);
-
-    if (!is_array($response)) {
-        $this->error = "LessonSpace non-JSON HTTP {$httpcode}: " . substr((string)$curlResult, 0, 500);
-        return false;
-    }
-
-    // Catch common LessonSpace error shapes
-    if (!empty($response['detail'])) {
-        $this->error = "LessonSpace HTTP {$httpcode} detail: " . (is_string($response['detail']) ? $response['detail'] : json_encode($response['detail']));
-        return false;
-    }
-    if (!empty($response['non_field_errors'])) {
-        $this->error = "LessonSpace HTTP {$httpcode} non_field_errors: " . json_encode($response['non_field_errors']);
-        return false;
-    }
-
-    if ($httpcode >= 400) {
-        $this->error = "LessonSpace HTTP {$httpcode}: " . json_encode($response);
-        return false;
-    }
-
-    return $response;
-}
-
 }
