@@ -205,7 +205,7 @@ class ZoomMeeting extends FatModel
             return false;
         }
         if (empty($response['id'])) {
-            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            $this->error = Label::getLabel('LBL_CONTACTZOOM_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
             return false;
         }
         return $response;
