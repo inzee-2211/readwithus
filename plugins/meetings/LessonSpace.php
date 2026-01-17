@@ -78,22 +78,15 @@ if (strtotime($endUtc) <= strtotime($startUtc)) {
 $data = [
     "id" => $launchId,
     "user" => [
-        'name' => trim($user['user_first_name'] . ' ' . $user['user_last_name']),
-        'leader' => ($user['user_type'] == User::TEACHER),
-        // 'profile_picture' => $user['user_image'],
+        "name" => trim($user['user_first_name'] . ' ' . $user['user_last_name']),
+        "leader" => ($user['user_type'] == User::TEACHER),
     ],
-    'timeouts' => [
+    "timeouts" => [
         "not_before" => $startUtc,
-        "not_after"  => $endUtc
+        "not_after"  => $endUtc,
     ],
-    "features" => [
-        'invite' => false,
-        'fullscreen' => true,
-        'endSession' => false,
-        'whiteboard.equations' => true,
-        'whiteboard.infiniteToggle' => true
-    ]
 ];
+
 
         $url = static::BASE_URL . 'spaces/launch/';
         if (!$response = $this->exeCurlRequest($url, $data)) {
@@ -155,7 +148,7 @@ $data = [
         'Accept: application/json',
         'Content-Type: application/json',
         'Content-Length: ' . strlen($postfields),
-        'Authorization: Organization ' . $this->settings['api_key'],
+        'Authorization: Organisation ' . $this->settings['api_key'],
     ];
 
     $curl = curl_init($url);
