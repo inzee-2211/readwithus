@@ -25,21 +25,76 @@ class UserSetting extends FatModel
      * @param array $data
      * @return bool
      */
+    // public function saveData(array $data = []): bool
+    // {
+    //     if ($this->userId < 1) {
+    //         $this->error = Label::getLabel('ERR_INVALID_REQUEST');
+    //         return false;
+    //     }
+    //     $data['user_id'] = $this->userId;
+    //     $record = new TableRecord(static::DB_TBL);
+    //     $record->assignValues($data);
+    //     if (!$record->addNew([], $record->getFlds())) {
+    //         $this->error = $record->getError();
+    //         return false;
+    //     }
+    //     return true;
+    // }
     public function saveData(array $data = []): bool
-    {
-        if ($this->userId < 1) {
-            $this->error = Label::getLabel('ERR_INVALID_REQUEST');
-            return false;
-        }
-        $data['user_id'] = $this->userId;
-        $record = new TableRecord(static::DB_TBL);
-        $record->assignValues($data);
-        if (!$record->addNew([], $record->getFlds())) {
-            $this->error = $record->getError();
+{
+    if ($this->userId < 1) {
+        $this->error = Label::getLabel('ERR_INVALID_REQUEST');
+        return false;
+    }
+
+    $db = FatApp::getDb();
+
+    /**
+     * IMPORTANT:
+     * tbl_user_settings.user_dashboard is NOT NULL and has NO DEFAULT.
+     * So every INSERT must include a value for user_dashboard.
+     *
+     * Decide a safe fallback:
+     * - if you're in teacher dashboard: 1
+     * - otherwise: 0
+     *
+     * Adjust these values if your system uses different meaning.
+     */
+    if (!isset($data['user_dashboard']) || $data['user_dashboard'] === '' || $data['user_dashboard'] === null) {
+        $role = $_SESSION['RWU_DASHBOARD_ROLE'] ?? '';
+        $data['user_dashboard'] = ($role === 'teacher') ? 1 : 0;
+    }
+
+    $data['user_id'] = $this->userId;
+
+    // If settings row already exists, UPDATE instead of INSERT
+    $srch = new SearchBase(static::DB_TBL);
+    $srch->addCondition('user_id', '=', $this->userId);
+    $srch->addFld('user_id');
+    $srch->doNotCalculateRecords();
+    $srch->setPageSize(1);
+    $row = $db->fetch($srch->getResultSet());
+
+    if (!empty($row)) {
+        // UPDATE
+        if (!$db->updateFromArray(static::DB_TBL, $data, ['smt' => 'user_id = ?', 'vals' => [$this->userId]])) {
+            $this->error = $db->getError();
             return false;
         }
         return true;
     }
+
+    // INSERT
+    $record = new TableRecord(static::DB_TBL);
+    $record->assignValues($data);
+    if (!$record->addNew([], $record->getFlds())) {
+        $this->error = $record->getError();
+        return false;
+    }
+
+    return true;
+}
+
 
     /**
      * Get Settings

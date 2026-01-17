@@ -65,12 +65,30 @@ public function applyPrimaryConditions(): void
     // OPTIONAL: if you want to show unverified teachers too, remove this
     $this->addDirectCondition('teacher.user_verified IS NOT NULL');
 
-    // ❌ remove these “profile completion” restrictions
-    // $this->addCondition('testat.testat_teachlang', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_speaklang', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_preference', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_availability', '=', AppConstant::YES);
-    // $this->addCondition('testat.testat_qualification', '=', AppConstant::YES);
+// If you want a strict filter sometimes, pass 1 in request like: ?completed_only=1
+$completedOnly = (int)FatApp::getQueryStringData('completed_only') === 1;
+
+// SAME conditions, but used as a computed field (for ordering) when not filtering
+$completeExpr = "
+(
+    IFNULL(testat.testat_teachlang, 0) = " . AppConstant::YES . " AND
+    IFNULL(testat.testat_speaklang, 0) = " . AppConstant::YES . " AND
+    IFNULL(testat.testat_preference, 0) = " . AppConstant::YES . " AND
+    IFNULL(testat.testat_availability, 0) = " . AppConstant::YES . " AND
+    IFNULL(testat.testat_qualification, 0) = " . AppConstant::YES . "
+)
+";
+
+// add a field so you can sort complete profiles first
+$this->addFld($completeExpr . " AS teacher_profile_complete");
+
+// ✅ Default behavior: show ALL teachers, but complete profiles come first
+if (!$completedOnly) {
+    $this->addOrder('teacher_profile_complete', 'DESC');
+} else {
+    // ✅ Strict behavior: show ONLY complete profiles (conditions kept)
+    $this->addDirectCondition($completeExpr);
+}
 
     // ❌ remove username requirement (we’ll handle link fallback)
     $this->addCondition('teacher.user_username', '!=', "");
