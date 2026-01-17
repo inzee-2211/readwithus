@@ -144,11 +144,32 @@ class LessonSpace extends FatModel
             return false;
         }
         curl_close($curl);
-        $response = json_decode($curlResult, true) ?? [];
-        if (empty($response) || !empty($response['detail'])) {
-            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
-            return false;
-        }
-        return $response;
+        // $response = json_decode($curlResult, true) ?? [];
+        // if (empty($response) || !empty($response['detail'])) {
+        //     $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+        //     return false;
+        // }
+        // return $response;
+        $response = json_decode($curlResult, true);
+
+if (!is_array($response)) {
+    // Not JSON => show first part of raw response for debugging
+    $this->error = 'LessonSpace raw response: ' . substr((string)$curlResult, 0, 300);
+    return false;
+}
+
+if (!empty($response['detail'])) {
+    // LessonSpace returns useful detail, show it
+    $this->error = 'LessonSpace error: ' . (is_string($response['detail']) ? $response['detail'] : json_encode($response['detail']));
+    return false;
+}
+
+if (empty($response)) {
+    $this->error = 'LessonSpace empty response';
+    return false;
+}
+
+return $response;
+
     }
 }
