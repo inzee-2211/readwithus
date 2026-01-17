@@ -56,8 +56,24 @@ class LessonSpace extends FatModel
 $launchId = $meeting['id'] . '_' . bin2hex(random_bytes(4));
 
 // 2) Always send timeouts in UTC "Z" format (avoid timezone drift)
-$startUtc = gmdate('Y-m-d\TH:i:s\Z', strtotime($meeting['starttime']));
-$endUtc   = gmdate('Y-m-d\TH:i:s\Z', strtotime($meeting['endtime']));
+// Convert using SYSTEM timezone (not PHP default), then to UTC "Z"
+$sysTz = new DateTimeZone(MyUtility::getSystemTimezone()); // or CONF_SERVER_TIMEZONE if you use that
+$utcTz = new DateTimeZone('UTC');
+
+$startDt = new DateTime($meeting['starttime'], $sysTz);
+$endDt   = new DateTime($meeting['endtime'], $sysTz);
+
+$startDt->setTimezone($utcTz);
+$endDt->setTimezone($utcTz);
+
+$startUtc = $startDt->format('Y-m-d\TH:i:s\Z');
+$endUtc   = $endDt->format('Y-m-d\TH:i:s\Z');
+if (strtotime($endUtc) <= strtotime($startUtc)) {
+    $this->error = "LessonSpace invalid timeouts: start={$startUtc}, end={$endUtc}";
+    return false;
+}
+
+
 
 $data = [
     "id" => $launchId,
