@@ -77,10 +77,12 @@ class LessonSpace extends FatModel
         if (!$response = $this->exeCurlRequest($url, $data)) {
             return false;
         }
-        if (empty($response['client_url'])) {
-            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
-            return false;
-        }
+      if (empty($response['client_url'])) {
+    // keep actual API error if we already captured it in exeCurlRequest()
+    $this->error = $this->error ?: ('LessonSpace missing client_url. Raw: ' . json_encode($response));
+    return false;
+}
+
         return $this->meeting = $response;
     }
 
