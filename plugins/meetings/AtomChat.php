@@ -211,7 +211,7 @@ class AtomChat extends FatModel
         curl_close($curl);
         $response = json_decode($curlResult, true) ?? [];
         if (empty($response)) {
-            $this->error = Label::getLabel('LBL_CONTACTATOM_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
             return false;
         }
         return $response;

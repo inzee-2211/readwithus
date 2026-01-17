@@ -205,7 +205,7 @@ class ZoomMeeting extends FatModel
             return false;
         }
         if (empty($response['id'])) {
-            $this->error = Label::getLabel('LBL_CONTACTZOOM_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
             return false;
         }
         return $response;
@@ -287,7 +287,7 @@ class ZoomMeeting extends FatModel
             }
             $type = $response['type'];
         } elseif (empty($response['id'])) {
-            $this->error = Label::getLabel('LBL_CONTACTZOOM_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
             return false;
         }
         /* Map Zoom User with Users */
@@ -318,7 +318,7 @@ class ZoomMeeting extends FatModel
         $url = self::BASE_URL . "/users/" . $user['zmusr_zoom_id'];
         $this->exeCurlRequest($url, $request, "PATCH");
         if ($this->curlResult['httpcode'] != 204) {
-            $this->error = Label::getLabel('LBL_CONTACTZOOM_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
+            $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
             return false;
         }
         $record = new TableRecord(static::DB_TBL_USERS);

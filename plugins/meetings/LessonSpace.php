@@ -52,27 +52,33 @@ class LessonSpace extends FatModel
      */
     public function createMeeting(array $user, array $meeting)
     {
-        $userTimezoneOffset = MyDate::getOffset($user['user_timezone']);
-        $starttime = strtotime(MyDate::formatDate($meeting['starttime'], 'Y-m-d H:i:s', $user['user_timezone']));
-        $endtime = strtotime(MyDate::formatDate($meeting['endtime'], 'Y-m-d H:i:s', $user['user_timezone']));
-        $unixStarttime = date('Y-m-d', $starttime) . 'T' . date('H:i:s', $starttime) . $userTimezoneOffset;
-        $unixEndtime = date('Y-m-d', $endtime) . 'T' . date('H:i:s', $endtime) . $userTimezoneOffset;
-        $data = [
-            "id" => $meeting['id'],
-            "user" => [
-                'name' => $user['user_first_name'] . ' ' . $user['user_last_name'],
-                'leader' => ($user['user_type'] == User::TEACHER),
-                // 'profile_picture' => $user['user_image'],
-            ],
-            'timeouts' => ["not_before" => $unixStarttime, "not_after" => $unixEndtime],
-            "features" => [
-                'invite' => false,
-                'fullscreen' => true,
-                'endSession' => false,
-                'whiteboard.equations' => true,
-                'whiteboard.infiniteToggle' => true
-            ]
-        ];
+     // 1) Always generate a UNIQUE launch id (avoid collisions on live)
+$launchId = $meeting['id'] . '_' . bin2hex(random_bytes(4));
+
+// 2) Always send timeouts in UTC "Z" format (avoid timezone drift)
+$startUtc = gmdate('Y-m-d\TH:i:s\Z', strtotime($meeting['starttime']));
+$endUtc   = gmdate('Y-m-d\TH:i:s\Z', strtotime($meeting['endtime']));
+
+$data = [
+    "id" => $launchId,
+    "user" => [
+        'name' => trim($user['user_first_name'] . ' ' . $user['user_last_name']),
+        'leader' => ($user['user_type'] == User::TEACHER),
+        // 'profile_picture' => $user['user_image'],
+    ],
+    'timeouts' => [
+        "not_before" => $startUtc,
+        "not_after"  => $endUtc
+    ],
+    "features" => [
+        'invite' => false,
+        'fullscreen' => true,
+        'endSession' => false,
+        'whiteboard.equations' => true,
+        'whiteboard.infiniteToggle' => true
+    ]
+];
+
         $url = static::BASE_URL . 'spaces/launch/';
         if (!$response = $this->exeCurlRequest($url, $data)) {
             return false;
@@ -126,52 +132,60 @@ class LessonSpace extends FatModel
      * @return boolean
      */
     private function exeCurlRequest(string $url, array $params)
-    {
-        $postfields = json_encode($params);
-        $headers = [
-            'Accept', 'application/json',
-            'Content-type: application/json',
-            'Content-length: ' . strlen($postfields),
-            'Authorization: Organisation ' . $this->settings['api_key']
-        ];
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $postfields);
-        $curlResult = curl_exec($curl);
-        if (curl_errno($curl)) {
-            $this->error = 'Error:' . curl_error($curl);
-            return false;
-        }
+{
+    $postfields = json_encode($params);
+
+    $headers = [
+        'Accept: application/json',
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($postfields),
+        'Authorization: Organisation ' . $this->settings['api_key'],
+    ];
+
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);  // use true on live
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $postfields);
+    curl_setopt($curl, CURLOPT_TIMEOUT, 20);
+
+    $curlResult = curl_exec($curl);
+    $httpcode   = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    if ($curlResult === false) {
+        $this->error = 'LessonSpace cURL error: ' . curl_error($curl);
         curl_close($curl);
-        // $response = json_decode($curlResult, true) ?? [];
-        // if (empty($response) || !empty($response['detail'])) {
-        //     $this->error = Label::getLabel('LBL_CONTACT_WITH_ADMIN_ISSUE_WITH_MEETING_TOOL');
-        //     return false;
-        // }
-        // return $response;
-        $response = json_decode($curlResult, true);
-
-if (!is_array($response)) {
-    // Not JSON => show first part of raw response for debugging
-    $this->error = 'LessonSpace raw response: ' . substr((string)$curlResult, 0, 300);
-    return false;
-}
-
-if (!empty($response['detail'])) {
-    // LessonSpace returns useful detail, show it
-    $this->error = 'LessonSpace error: ' . (is_string($response['detail']) ? $response['detail'] : json_encode($response['detail']));
-    return false;
-}
-
-if (empty($response)) {
-    $this->error = 'LessonSpace empty response';
-    return false;
-}
-
-return $response;
-
+        return false;
     }
+    curl_close($curl);
+
+    // Log to PHP error log (check server error log)
+    error_log("LessonSpace HTTP={$httpcode} URL={$url} PAYLOAD={$postfields} RESPONSE={$curlResult}");
+
+    $response = json_decode($curlResult, true);
+
+    if (!is_array($response)) {
+        $this->error = "LessonSpace non-JSON HTTP {$httpcode}: " . substr((string)$curlResult, 0, 500);
+        return false;
+    }
+
+    // Catch common LessonSpace error shapes
+    if (!empty($response['detail'])) {
+        $this->error = "LessonSpace HTTP {$httpcode} detail: " . (is_string($response['detail']) ? $response['detail'] : json_encode($response['detail']));
+        return false;
+    }
+    if (!empty($response['non_field_errors'])) {
+        $this->error = "LessonSpace HTTP {$httpcode} non_field_errors: " . json_encode($response['non_field_errors']);
+        return false;
+    }
+
+    if ($httpcode >= 400) {
+        $this->error = "LessonSpace HTTP {$httpcode}: " . json_encode($response);
+        return false;
+    }
+
+    return $response;
+}
+
 }
