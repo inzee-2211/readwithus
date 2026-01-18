@@ -40,7 +40,7 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                         <div class="profile-meta">
                             <div class="profile-meta__media">
                                 <span class="avtar avtar--xsmall" data-title="<?php echo CommonHelper::getFirstChar($lesson['first_name']); ?>">
-                                    <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '" />'; ?>
+                                    <?php echo '<img src="' . FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $lesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg') . '" />'; ?>
                                 </span>
                             </div>
                             <div class="profile-meta__details"><h4 class="bold-600"><?php echo $lesson['first_name'] . ' ' . $lesson['last_name']; ?></h4></div>
