@@ -27,4 +27,4 @@ define('CONF_STRIPE_WEBHOOK_SECRET', 'whsec_yDyfgKtahphw1WanMAztrz1MYFlDA4hn'); 
 define('CONF_ENABLE_MATH_EDITOR', 1); // 1 = enabled, 0 = disabled
 define('CONF_MATH_KEYBOARD_DEFAULT', 'basic'); // basic, numeric, advanced
 define('CONF_MATH_MAX_LATEX_LENGTH', 5000); // Maximum LaTeX characters
-define('CONF_LIVE_LESSONS_MAINTENANCE', 1);
+// define('CONF_LIVE_LESSONS_MAINTENANCE', 1);
