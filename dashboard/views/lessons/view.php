@@ -128,12 +128,14 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
                             <?php } ?>
                         </div>
                     <?php } elseif ($lesson['ordles_status'] == Lesson::SCHEDULED) { ?>
-                        <?php $startTimer = true; ?>
-                        <div class="start-lesson-timer timer">
-                            <h5 class="timer-title"><?php echo Label::getLabel('LBL_STARTS_IN'); ?></h5>
-                            <div class="countdown-timer size_lg" id="lessonStartTimer" timestamp="<?php echo $lesson['ordles_lesson_starttime_utc']; ?>">00:00:00:00</div>
-                        </div>
-                    <?php } ?>
+    <?php $startTimer = true; // stop timer JS from running ?>
+    <div class="start-lesson-timer timer">
+        <h5 class="timer-title">Lesson will be starting soon.</h5>
+        <p class="small color-gray">
+            Please wait, lesson will become available soon.
+        </p>
+    </div>
+<?php } ?>
                 </div>
             </div>
         </div>
