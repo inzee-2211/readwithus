@@ -44,6 +44,12 @@ class Cart extends FatModel
             static::COURSE => $row['cart_items'][static::COURSE] ?? [],
         ];
     }
+private function liveLessonsUnavailableMsg(): string
+{
+    return "Live lesson booking is temporarily unavailable.\n\n"
+        . "You can still access Quizzes, Courses, Flashcards and other learning resources.\n\n"
+        . "We are working to restore this feature soon. Thank you for your patience.";
+}
 
     /**
      * Add Lesson to Cart
@@ -60,15 +66,8 @@ class Cart extends FatModel
      */
     public function addLesson(array $lesson): bool
     {
-            // ===== Live Lessons Maintenance Mode =====
-    $isMaintenance = FatApp::getConfig('CONF_LIVE_LESSONS_MAINTENANCE', FatUtility::VAR_INT, 0);
-
-    if ((int)$isMaintenance === 1) {
-        $this->error = "Live lesson booking is temporarily unavailable due to a technical issue.\n\n"
-                     . "You can still use Quizzes, Courses, Flashcards and other learning resources.\n\n"
-                     . "We will restore lesson booking soon. Thank you for your patience.";
-        return false;
-    }
+$this->error = $this->liveLessonsUnavailableMsg();
+return false;
 
         $this->clear();
         /* Validate Lesson Data */

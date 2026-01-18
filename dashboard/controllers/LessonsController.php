@@ -221,18 +221,20 @@ class LessonsController extends DashboardController
      * 3. Join on Meeting Tool
      * 4. Update join Datetime
      */
+    private function liveLessonsUnavailableMsg(): string
+{
+    return "Live lesson booking is temporarily unavailable.\n\n"
+        . "You can still access Quizzes, Courses, Flashcards and other learning resources.\n\n"
+        . "We are working to restore this feature soon. Thank you for your patience.";
+}
+
     public function joinMeeting()
     {
         
     // ===== Live Lessons Maintenance Mode =====
-    $isMaintenance = FatApp::getConfig('CONF_LIVE_LESSONS_MAINTENANCE', FatUtility::VAR_INT, 0);
+  
 
-    if ((int)$isMaintenance === 1) {
-        $msg = "Live Lessons are temporarily unavailable due to a technical issue.\n\n"
-             . "You can still access Quizzes, Courses  and other learning resources.\n\n"
-             . "We are working to restore live lessons as soon as possible. Thank you for your patience.";
-        FatUtility::dieJsonError($msg);
-    }
+FatUtility::dieJsonError($this->liveLessonsUnavailableMsg());
         /* Get Lesson to join */
         $lessonId = FatApp::getPostedData('lessonId', FatUtility::VAR_INT, 0);
         $lessonObj = new Lesson($lessonId, $this->siteUserId, $this->siteUserType);
