@@ -22,7 +22,7 @@ $upcomingLesson = current($allLessons);
                         <?php echo Label::getLabel('LBL_WITH'); ?>
                         <div class="avtar-meta display-inline">
                             <span class="avtar avtar--xsmall display-inline margin-right-2" data-title="<?php echo CommonHelper::getFirstChar($upcomingLesson['first_name']); ?>">
-                                <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $upcomingLesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
+                                <img src="<?php echo FatCache::getCachedUrl(MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $upcomingLesson['user_id'], Afile::SIZE_SMALL], CONF_WEBROOT_FRONT_URL), CONF_DEF_CACHE_TIME, '.jpg'); ?>" />
                             </span>
                             <?php echo $upcomingLesson['first_name'] . ' ' . $upcomingLesson['last_name']; ?>
                         </div>
