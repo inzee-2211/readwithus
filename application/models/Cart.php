@@ -66,8 +66,8 @@ private function liveLessonsUnavailableMsg(): string
      */
     public function addLesson(array $lesson): bool
     {
-// $this->error = $this->liveLessonsUnavailableMsg();
-// return false;
+$this->error = $this->liveLessonsUnavailableMsg();
+return false;
 
         $this->clear();
         /* Validate Lesson Data */

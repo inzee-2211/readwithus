@@ -234,7 +234,7 @@ class LessonsController extends DashboardController
     // ===== Live Lessons Maintenance Mode =====
   
 
-FatUtility::dieJsonError($this->liveLessonsUnavailableMsg());
+// FatUtility::dieJsonError($this->liveLessonsUnavailableMsg());
         /* Get Lesson to join */
         $lessonId = FatApp::getPostedData('lessonId', FatUtility::VAR_INT, 0);
         $lessonObj = new Lesson($lessonId, $this->siteUserId, $this->siteUserType);
