@@ -223,16 +223,6 @@ class LessonsController extends DashboardController
      */
     public function joinMeeting()
     {
-        
-    // ===== Live Lessons Maintenance Mode =====
-    $isMaintenance = FatApp::getConfig('CONF_LIVE_LESSONS_MAINTENANCE', FatUtility::VAR_INT, 0);
-
-    if ((int)$isMaintenance === 1) {
-        $msg = "Live Lessons are temporarily unavailable due to a technical issue.\n\n"
-             . "You can still access Quizzes, Courses  and other learning resources.\n\n"
-             . "We are working to restore live lessons as soon as possible. Thank you for your patience.";
-        FatUtility::dieJsonError($msg);
-    }
         /* Get Lesson to join */
         $lessonId = FatApp::getPostedData('lessonId', FatUtility::VAR_INT, 0);
         $lessonObj = new Lesson($lessonId, $this->siteUserId, $this->siteUserType);

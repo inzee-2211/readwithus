@@ -60,16 +60,6 @@ class Cart extends FatModel
      */
     public function addLesson(array $lesson): bool
     {
-            // ===== Live Lessons Maintenance Mode =====
-    $isMaintenance = FatApp::getConfig('CONF_LIVE_LESSONS_MAINTENANCE', FatUtility::VAR_INT, 0);
-
-    if ((int)$isMaintenance === 1) {
-        $this->error = "Live lesson booking is temporarily unavailable due to a technical issue.\n\n"
-                     . "You can still use Quizzes, Courses, Flashcards and other learning resources.\n\n"
-                     . "We will restore lesson booking soon. Thank you for your patience.";
-        return false;
-    }
-
         $this->clear();
         /* Validate Lesson Data */
         // $lessonObj = new Lesson(0, $this->userId, User::LEARNER);
