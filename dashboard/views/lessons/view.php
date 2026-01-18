@@ -136,6 +136,7 @@ if ($lesson['ordles_type'] == Lesson::TYPE_FTRAIL) {
         </p>
     </div>
 <?php } ?>
+<!-- //timer removed -->
                 </div>
             </div>
         </div>
