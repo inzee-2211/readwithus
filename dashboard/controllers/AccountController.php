@@ -275,14 +275,25 @@ class AccountController extends DashboardController
      */
     public function setupProfileInfo()
     {
+        // $isTeacher = ($this->siteUserType == User::TEACHER);
+        // if ($isTeacher && isset($post['user_username'])) {
+        //     $post['user_username'] = CommonHelper::seoUrl($post['user_username']);
+        // }
+        // $frm = $this->getProfileInfoForm($isTeacher, true);
+        // if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+        //     FatUtility::dieJsonError(current($frm->getValidationErrors()));
+        // }
         $isTeacher = ($this->siteUserType == User::TEACHER);
-        if ($isTeacher && isset($post['user_username'])) {
-            $post['user_username'] = CommonHelper::seoUrl($post['user_username']);
-        }
-        $frm = $this->getProfileInfoForm($isTeacher, true);
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
+$frm = $this->getProfileInfoForm($isTeacher, true);
+
+if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+    FatUtility::dieJsonError(current($frm->getValidationErrors()));
+}
+
+if ($isTeacher && isset($post['user_username'])) {
+    $post['user_username'] = CommonHelper::seoUrl($post['user_username']);
+}
+
         $db = FatApp::getDb();
         $db->startTransaction();
         unset($post['user_id']);
@@ -302,11 +313,11 @@ class AccountController extends DashboardController
                 FatUtility::dieJsonError($availability->getError());
             }
         }
-        $userSetting = new UserSetting($this->siteUserId);
-        if (!$userSetting->saveData($post)) {
-            $db->rollbackTransaction();
-            FatUtility::dieJsonError($userSetting->getError());
-        }
+        // $userSetting = new UserSetting($this->siteUserId);
+        // if (!$userSetting->saveData($post)) {
+        //     $db->rollbackTransaction();
+        //     FatUtility::dieJsonError($userSetting->getError());
+        // }
         $db->commitTransaction();
         if (!empty($post['user_timezone'])) {
             MyUtility::setSiteTimezone($post['user_timezone'], true);
