@@ -47,7 +47,7 @@ $fileSize = MyUtility::convertBitesToMb($fileSize).' MB';
                         <div class="field_cover">
                             <div class="profile-media">
                                 <div class="avtar avtar--xlarge" data-title="<?php echo ''; ?>">
-                                    <?php echo '<img src="' . MyUtility::makeUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_LARGE], CONF_WEBROOT_FRONT_URL) . '?' . time() . '" />'; ?>
+                                    <?php echo '<img src="' . MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_USER_PROFILE_IMAGE, $siteUserId, Afile::SIZE_LARGE], CONF_WEBROOT_FRONT_URL) . '?' . time() . '" />'; ?>
                                 </div>
                                 <div class="buttons-group margin-top-4">
                                     <span class="btn btn--bordered color-primary btn--small btn--fileupload btn--wide margin-right-2">
