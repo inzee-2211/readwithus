@@ -1498,7 +1498,22 @@ $frm->addHiddenField('', 'id', $id);
    $frm->setFormTagAttribute('id', 'frmQuestion');// rehan
 $frm->addHiddenField('', 'subtopic_id', $subtopicId);
 
-$currType = $row['question_type'] ?? 'Multiple-Choice'; // safe default
+// ---- Normalize legacy question types (story -> Story-Based etc.) ----
+$rawType = strtolower(trim((string)($row['question_type'] ?? '')));
+
+if ($rawType === '' ) {
+    $currType = 'Multiple-Choice';
+} elseif ($rawType === 'story' || $rawType === 'story-based' || $rawType === 'story_based') {
+    $currType = 'Story-Based';
+} elseif ($rawType === 'short' || $rawType === 'short-answer' || $rawType === 'short_answer') {
+    $currType = 'Short';
+} elseif ($rawType === 'mcq' || $rawType === 'multiple-choice' || $rawType === 'multiple choice') {
+    $currType = 'Multiple-Choice';
+} else {
+    // fallback: keep as-is if it already matches one of our options
+    $currType = $row['question_type'] ?? 'Multiple-Choice';
+}
+ // safe default
 
 $frm->addTextBox('Question Title', 'question_title', $row['question_title'] ?? '')->requirements()->setRequired();
 
