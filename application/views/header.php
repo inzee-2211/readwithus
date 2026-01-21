@@ -20,7 +20,7 @@ $mathEditorEnabled = defined('CONF_ENABLE_MATH_EDITOR') && CONF_ENABLE_MATH_EDIT
 // =========================
 // Dynamic SEO defaults
 // =========================
-$metaTitleRaw = $pageTitle ?? (FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility::VAR_STRING, '') ?: 'Read With Us');
+$metaTitleRaw = $pageTitle ?? $title ??(FatApp::getConfig('CONF_WEBSITE_NAME_' . $siteLangId, FatUtility::VAR_STRING, '') ?: 'Read With Us');
 $metaTitleRaw = html_entity_decode($metaTitleRaw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 $metaDesc  = $pageDescription ?? FatApp::getConfig('CONF_META_DESCRIPTION', FatUtility::VAR_STRING, '');
 $canonical = $canonicalUrl ?? MyUtility::makeFullUrl();
@@ -175,18 +175,19 @@ window.MathJax = {
 }
 </style>
 <?php endif; ?>
-        <?php
-// Keep YoCoach meta tags only if controller didn't provide custom SEO
-if (empty($pageTitle) && empty($pageDescription)) {
+<?php
+// If controller didn’t provide SEO vars, fall back to YoCoach meta system
+if (empty($pageTitle) && empty($title) && empty($pageDescription) && empty($metaDescription)) {
     echo $this->writeMetaTags();
 }
 ?>
 
+
         <link rel="shortcut icon" href="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_FAVICON, 0, Afile::SIZE_ORIGINAL]); ?>">
         <link rel="apple-touch-icon" href="<?php echo MyUtility::makeFullUrl('Image', 'show', [Afile::TYPE_APPLE_TOUCH_ICON, 0, Afile::SIZE_LARGE]); ?>">
-        <?php if (!empty($canonicalUrl)) { ?>
+        <!-- <?php if (!empty($canonicalUrl)) { ?>
             <link rel="canonical" href="<?php echo $canonicalUrl; ?>" />
-        <?php } ?>
+        <?php } ?> -->
         <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
         <script type="text/javascript">
             var langLbl = <?php echo json_encode(CommonHelper::htmlEntitiesDecode($jsVariables)); ?>;
@@ -301,13 +302,13 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
          <!-- OG Product Facebook Meta [ -->
     <!-- ]   -->
     <!--Here is the Twitter Card code for this product  -->
-    <meta name="twitter:card" content="summary_large_image">
+    <!-- <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@read_withus">
     <meta name="twitter:title" content="Online Reading Tutors Platform | Tutors for PreK, Kindergarten, & Other Age Kids.">
     <meta name="twitter:description" content="Read With US, online reading tutors platform for Preschool kids, kindergarten, & Year 4-Year 9 students to increase their reading fluency, vocabulary & comprehension. Explore 1-to-1 live sessions on English & other languages with top-class tutors.">
-    <meta name="twitter:image" content="http://readwithus.org.uk/images/online-reading-tutors-for-your-child.png">
+    <meta name="twitter:image" content="http://readwithus.org.uk/images/online-reading-tutors-for-your-child.png"> -->
     <!-- End Here is the Twitter Card code for this product  -->
-    <script type='application/ld+json' defer>
+    <!-- <script type='application/ld+json' defer>
         {
             "@context": "http://schema.org/",
             "@type": "Organization",
@@ -340,7 +341,7 @@ if (isset($setMonthAndWeekNames) && $setMonthAndWeekNames) {
             "name": "Read With Us"
         }
         
-    </script>
+    </script> -->
         
     <meta name="google-site-verification" content="M7iSjIdNqfAi4D3JntWPkrV_C4of_m8UanLTR1ObFU0" />
     </head>
