@@ -50,7 +50,9 @@
         <!-- Right: Icon-only upload button -->
         <div class="text-end mt-3">
         <form id="csvUploadForm" enctype="multipart/form-data">
-        <input type="hidden" name="subtopic_id" value="<?php echo (int)$material['subtopic']; ?>">
+        <!-- <input type="hidden" name="subtopic_id" value="<?php echo (int)$material['subtopic']; ?>"> -->
+         <input type="hidden" name="subtopic_id" value="<?php echo (int)$material['id']; ?>">
+
         <input type="hidden" name="course_id" value="<?php echo (int)$material['course_id']; ?>">
 
         <!-- Stylish Upload Button -->
@@ -91,12 +93,33 @@
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
                                         <td><?php echo $question['question_title']; ?></td>
-                                        <td>
-                                            A. <?php echo $question['answer_a']; ?><br>
-                                            B. <?php echo $question['answer_b']; ?><br>
-                                            C. <?php echo $question['answer_c']; ?><br>
-                                            D. <?php echo $question['answer_d']; ?>
-                                        </td>
+                                    <td>
+<?php if (($question['question_type'] ?? '') === 'Multiple-Choice' && ($question['option_mode'] ?? 'text') === 'image') { ?>
+    <?php
+      $opts = [
+        'A' => $question['answer_a_image'] ?? '',
+        'B' => $question['answer_b_image'] ?? '',
+        'C' => $question['answer_c_image'] ?? '',
+        'D' => $question['answer_d_image'] ?? '',
+      ];
+      foreach ($opts as $k => $img) {
+        echo $k . '. ';
+        if (!empty($img)) {
+          echo '<img src="/' . htmlspecialchars($img) . '" style="max-width:70px;height:auto;border:1px solid #ddd;padding:2px;border-radius:4px;margin:2px 0;">';
+        } else {
+          echo '<em>-</em>';
+        }
+        echo '<br>';
+      }
+    ?>
+<?php } else { ?>
+    A. <?php echo htmlspecialchars($question['answer_a'] ?? ''); ?><br>
+    B. <?php echo htmlspecialchars($question['answer_b'] ?? ''); ?><br>
+    C. <?php echo htmlspecialchars($question['answer_c'] ?? ''); ?><br>
+    D. <?php echo htmlspecialchars($question['answer_d'] ?? ''); ?>
+<?php } ?>
+</td>
+
                                         <td><?php echo $question['correct_answer']; ?></td>
                                         <td><?php echo $question['difficult_level']; ?></td>
                                     </tr>

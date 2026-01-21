@@ -46,7 +46,7 @@ function rwuField(Form $frm, string $name): string {
         <?= rwuField($frm,'question_type'); ?>
 
         <!-- MCQ -->
-        <div class="mcq-fields rwu-full">
+        <!-- <div class="mcq-fields rwu-full">
           <div class="rwu-grid">
             <?= rwuField($frm,'answer_a'); ?>
             <?= rwuField($frm,'answer_b'); ?>
@@ -54,7 +54,43 @@ function rwuField(Form $frm, string $name): string {
             <?= rwuField($frm,'answer_d'); ?>
             <?= rwuField($frm,'correct_answer'); ?>
           </div>
-        </div>
+        </div> -->
+        <div class="mcq-fields rwu-full">
+  <div class="rwu-grid">
+    <?= rwuField($frm,'option_mode'); ?>
+  </div>
+
+  <!-- Text options -->
+  <div class="mcq-text-options">
+    <div class="rwu-grid">
+      <?= rwuField($frm,'answer_a'); ?>
+      <?= rwuField($frm,'answer_b'); ?>
+      <?= rwuField($frm,'answer_c'); ?>
+      <?= rwuField($frm,'answer_d'); ?>
+    </div>
+  </div>
+
+  <!-- Image options -->
+  <div class="mcq-image-options">
+    <div class="rwu-grid">
+      <?= rwuField($frm,'answer_a_image_file'); ?>
+      <?= rwuField($frm,'answer_b_image_file'); ?>
+      <?= rwuField($frm,'answer_c_image_file'); ?>
+      <?= rwuField($frm,'answer_d_image_file'); ?>
+    </div>
+
+    <!-- existing paths hidden -->
+    <?= $frm->getFieldHtml('existing_answer_a_image'); ?>
+    <?= $frm->getFieldHtml('existing_answer_b_image'); ?>
+    <?= $frm->getFieldHtml('existing_answer_c_image'); ?>
+    <?= $frm->getFieldHtml('existing_answer_d_image'); ?>
+  </div>
+
+  <div class="rwu-grid">
+    <?= rwuField($frm,'correct_answer'); ?>
+  </div>
+</div>
+
 
         <!-- Story/Short -->
         <div class="text-answer-field rwu-full">
@@ -83,32 +119,41 @@ function rwuField(Form $frm, string $name): string {
 <script>
 (function(){
   function toggleTypeUI(){
-    var sel = document.getElementById('question_type') || document.querySelector('[name="question_type"]');
-    var t   = sel ? (sel.value || '') : '';
-    var mcq = document.querySelector('.mcq-fields');
-    var txt = document.querySelector('.text-answer-field');
-    if(!mcq || !txt) return;
+  var sel = document.getElementById('question_type') || document.querySelector('[name="question_type"]');
+  var t   = sel ? (sel.value || '') : '';
 
-    var isMcq = (/multiple/i.test(t) || /mcq/i.test(t));
+  var mcqWrap = document.querySelector('.mcq-fields');
+  var txtWrap = document.querySelector('.text-answer-field');
 
-    mcq.style.display = isMcq ? '' : 'none';
-    txt.style.display = isMcq ? 'none' : '';
+  var isMcq = (/multiple/i.test(t) || /mcq/i.test(t));
 
-    // OPTIONAL: clear irrelevant fields when switching type
-    if (!isMcq) {
-      ['answer_a','answer_b','answer_c','answer_d'].forEach(function(n){
-        var el = document.querySelector('[name="'+n+'"]'); if (el) el.value = '';
-      });
-      var ca = document.querySelector('[name="correct_answer"]'); if (ca) ca.value = '';
-    } else {
-      var cat = document.querySelector('[name="correct_answer_text"]'); if (cat) cat.value = '';
-    }
+  if (mcqWrap) mcqWrap.style.display = isMcq ? '' : 'none';
+  if (txtWrap) txtWrap.style.display = isMcq ? 'none' : '';
+
+  // Option mode toggles (only in MCQ)
+  var modeSel = document.getElementById('option_mode') || document.querySelector('[name="option_mode"]');
+  var mode = modeSel ? (modeSel.value || 'text') : 'text';
+
+  var textOps = document.querySelector('.mcq-text-options');
+  var imgOps  = document.querySelector('.mcq-image-options');
+
+  if (isMcq) {
+    if (textOps) textOps.style.display = (mode === 'image') ? 'none' : '';
+    if (imgOps)  imgOps.style.display  = (mode === 'image') ? '' : 'none';
+  } else {
+    if (textOps) textOps.style.display = 'none';
+    if (imgOps)  imgOps.style.display  = 'none';
   }
+}
 
-  toggleTypeUI();
-  document.addEventListener('change', function(e){
-    if (e.target && (e.target.id === 'question_type' || e.target.name === 'question_type')) toggleTypeUI();
-  });
+toggleTypeUI();
+document.addEventListener('change', function(e){
+  if (!e.target) return;
+  if (e.target.id === 'question_type' || e.target.name === 'question_type' ||
+      e.target.id === 'option_mode'  || e.target.name === 'option_mode') {
+    toggleTypeUI();
+  }
+});
 })();
 
 function saveQuestion(form){

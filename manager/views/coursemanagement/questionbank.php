@@ -208,12 +208,33 @@ echo $srchFrm->getFormTag();
             </small>
           <?php } ?>
         </td>
-        <td>
-          A. <?= $q['answer_a']; ?><br>
-          B. <?= $q['answer_b']; ?><br>
-          C. <?= $q['answer_c']; ?><br>
-          D. <?= $q['answer_d']; ?>
-        </td>
+ <td>
+<?php if (($q['question_type'] ?? '') === 'Multiple-Choice' && ($q['option_mode'] ?? 'text') === 'image') { ?>
+  <?php
+    $opts = [
+      'A' => $q['answer_a_image'] ?? '',
+      'B' => $q['answer_b_image'] ?? '',
+      'C' => $q['answer_c_image'] ?? '',
+      'D' => $q['answer_d_image'] ?? '',
+    ];
+    foreach ($opts as $k => $img) {
+      echo $k . '. ';
+      if (!empty($img)) {
+        echo '<img src="/' . htmlspecialchars($img) . '" style="max-width:70px;height:auto;border:1px solid #ddd;padding:2px;border-radius:4px;margin:2px 0;">';
+      } else {
+        echo '<em>-</em>';
+      }
+      echo '<br>';
+    }
+  ?>
+<?php } else { ?>
+  A. <?= htmlspecialchars($q['answer_a'] ?? ''); ?><br>
+  B. <?= htmlspecialchars($q['answer_b'] ?? ''); ?><br>
+  C. <?= htmlspecialchars($q['answer_c'] ?? ''); ?><br>
+  D. <?= htmlspecialchars($q['answer_d'] ?? ''); ?>
+<?php } ?>
+</td>
+
         <td><?= $q['correct_answer']; ?></td>
         <td><?= $q['difficult_level']; ?></td>
         <td><?= $q['question_type']; ?></td>

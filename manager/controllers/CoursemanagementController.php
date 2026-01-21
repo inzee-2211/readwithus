@@ -217,7 +217,12 @@ public function downloadSampleCsv()
         'question_type',    // Multiple-Choice / Story-Based / Short (recommend Multiple-Choice here)
         'hint',
         'explanation',
-        'image_url'
+        'image_url',
+          'option_mode',        // text|image
+    'answer_a_image',     // URL or ZIP filename
+    'answer_b_image',
+    'answer_c_image',
+    'answer_d_image',
     ];
     fputcsv($out, $headers);
 
@@ -230,7 +235,8 @@ public function downloadSampleCsv()
         'Multiple-Choice',
         'Think about pairs.',
         '2 + 2 equals 4.',
-        'https://example.com/sample-q1.png'
+        'https://example.com/sample-q1.png',
+          'text', '', '', '', ''
     ]);
 
     fputcsv($out, [
@@ -649,15 +655,22 @@ public function uploadQuestionBank()
 
         $uploadDir = 'uploads/question_images/';
         if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0775, true); }
+foreach ($lines as $rowIndex => $line) {
+      // ✅ Support old 16-col CSV + new 21-col CSV
+$line = array_pad($line, 21, '');
 
-        foreach ($lines as $rowIndex => $line) {
-            $line = array_pad($line, 16, '');
+[
+  $question_text, $answer_a, $answer_b, $answer_c, $answer_d,
+  $correct_answer, $difficulty, $examboardName, $topic, $subtopicName,
+  $levelName, $question_type, $tier, $hint, $explanation, $image_url,
 
-            [
-                $question_text, $answer_a, $answer_b, $answer_c, $answer_d,
-                $correct_answer, $difficulty, $examboardName, $topic, $subtopicName,
-                $levelName, $question_type, $tier, $hint, $explanation, $image_url
-            ] = $line;
+  // ✅ NEW
+  $option_mode, $a_img, $b_img, $c_img, $d_img
+] = $line;
+
+$option_mode = strtolower(trim((string)$option_mode));
+$option_mode = ($option_mode === 'image') ? 'image' : 'text';
+
 
             if (trim($question_text) === '' || trim($correct_answer) === '') {
                 continue;
@@ -667,6 +680,14 @@ public function uploadQuestionBank()
             $explanation = str_replace(["\r\n", "\r"], "\n", (string)$explanation);
 
             $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+            $optAPath = $optBPath = $optCPath = $optDPath = '';
+if ($option_mode === 'image') {
+    $optAPath = $this->resolveAndSaveQuestionImage((string)$a_img, $zipBag, $uploadDir);
+    $optBPath = $this->resolveAndSaveQuestionImage((string)$b_img, $zipBag, $uploadDir);
+    $optCPath = $this->resolveAndSaveQuestionImage((string)$c_img, $zipBag, $uploadDir);
+    $optDPath = $this->resolveAndSaveQuestionImage((string)$d_img, $zipBag, $uploadDir);
+}
+
 
             $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
             $examboardId  = $examboardRow ? (int)$examboardRow['id'] : 0;
@@ -696,10 +717,16 @@ public function uploadQuestionBank()
                 'explanation'       => trim($explanation),
                 'image'             => $imagePath,
                 'question_added_on' => date('Y-m-d H:i:s'),
+                'option_mode'    => $option_mode,
+'answer_a_image' => $optAPath,
+'answer_b_image' => $optBPath,
+'answer_c_image' => $optCPath,
+'answer_d_image' => $optDPath,
             ];
 
             if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
-                throw new Exception("Row #" . ($rowIndex + 1) . " insert failed: " . $db->getError());
+               throw new Exception("Row #" . ($rowIndex + 1) . " insert failed: " . $db->getError());
+
             }
 
             $insertedCount++;
@@ -721,146 +748,6 @@ public function uploadQuestionBank()
     }
 }
 
-
-// public function uploadQuestionBank()
-// {
-//     $post = FatApp::getPostedData();
-//     $subtopicId = FatUtility::int($post['subtopic_id'] ?? 0);
-//     $courseId = FatUtility::int($post['course_id'] ?? 0);
-
-//     if ($subtopicId <= 0) {
-//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_SUBTOPIC_OR_COURSE'));
-//     }
-
-//     if (!isset($_FILES['question_csv']) || $_FILES['question_csv']['error'] !== UPLOAD_ERR_OK) {
-//         FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_OR_MISSING_CSV_FILE'));
-//     }
-
-//     $file = $_FILES['question_csv'];
-//     $allowedMimeTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
-//     $fileMimeType = mime_content_type($file['tmp_name']);
-//     $fileExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
-
-//     if (!in_array($fileMimeType, $allowedMimeTypes) || strtolower($fileExtension) !== 'csv') {
-//         FatUtility::dieJsonError(Label::getLabel('LBL_ONLY_CSV_FILES_ARE_ALLOWED'));
-//     }
-// $zipBag = null;
-// try {
-//     $zipBag = $this->initZipBagFromUpload('question_images_zip');
-//     if (!$zipBag) {
-//         $zipBag = $this->initZipBagFromUpload('quiz_images_zip');
-//     }
-// } catch (Exception $e) {
-//     FatUtility::dieJsonError($e->getMessage());
-// }
-
-
-//     // $csvData = file_get_contents($file['tmp_name']);
-//     // $lines = array_map('str_getcsv', explode(PHP_EOL, $csvData));
-//     // $lines = array_filter($lines); // Remove empty rows
-//     $lines = $this->readCsvRows($file['tmp_name']);
-
-
-//     if (count($lines) < 2) {
-//         FatUtility::dieJsonError(Label::getLabel('LBL_CSV_FILE_HAS_NO_VALID_DATA'));
-//     }
-
-//     $db = FatApp::getDb();
-//     $db->startTransaction();
-
-//     // Delete old questions for this subtopic
-//     $sql = "DELETE FROM tbl_quaestion_bank WHERE subtopic_id = $subtopicId";
-//     if (!$db->query($sql)) {
-//         $db->rollbackTransaction();
-//         FatUtility::dieJsonError(Label::getLabel('LBL_FAILED_TO_CLEAR_OLD_QUESTIONS'));
-//     }
-
-//     $header = $lines[0];
-//     unset($lines[0]); // Remove header row
-
-//     $insertedCount = 0;
-//     $uploadDir = 'uploads/question_images/';
-//     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-//     foreach ($lines as $line) {
-//         // Pad to at least 16 fields to handle all columns including explanation and image
-//         $line = array_pad($line, 16, '');
-
-//         [
-//             $question_text,
-//             $answer_a,
-//             $answer_b,
-//             $answer_c,
-//             $answer_d,
-//             $correct_answer,
-//             $difficulty,
-//             $examboardName,
-//             $topic,
-//             $subtopicName,
-//             $levelName,
-//             $question_type,
-//             $tier,
-//             $hint,
-//             $explanation,    // NEW FIELD
-//             $image_url       // NEW FIELD
-//         ] = $line;
-
-//         if (empty($question_text) || empty($correct_answer)) {
-//             continue; // Skip incomplete rows
-//         }
-
-//         // Handle image upload from URL
-//        $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
-
-
-//         // Resolve Examboard ID
-//         $examboardRow = $db->fetch("SELECT id FROM course_examboards WHERE name = ?", [$examboardName]);
-//         $examboardId = $examboardRow ? $examboardRow['id'] : 0;
-
-//         // Resolve Level ID
-//         $levelRow = $db->fetch("SELECT id FROM tbl_courses WHERE name = ?", [$levelName]);
-//         $levelId = $levelRow ? $levelRow['id'] : 0;
-
-//         $questionData = [
-//             'question_title'    => trim($question_text),
-//             'answer_a'          => trim($answer_a),
-//             'answer_b'          => trim($answer_b),
-//             'answer_c'          => trim($answer_c),
-//             'answer_d'          => trim($answer_d),
-//             'correct_answer'    => trim($correct_answer),
-//             'difficult_level'   => trim($difficulty),
-//             'examboard_id'      => $examboardId,
-//             'subtopic_id'       => $subtopicId,
-//             'course_id'         => $courseId,
-//             'level_id'          => $levelId,
-//             'topic'             => trim($topic),
-//             'subtopic'          => trim($subtopicName),
-//             'tier'              => trim($tier),
-//             'hint'              => trim($hint),
-//             'question_type'     => trim($question_type),
-//             'category'          => '',
-//             'subcategory'       => '',
-//             'explanation'       => trim($explanation), // NEW FIELD
-//             'image'             => $imagePath,        // NEW FIELD
-//             'question_added_on' => date('Y-m-d H:i:s'),
-//         ];
-
-//         if (!$db->insertFromArray('tbl_quaestion_bank', $questionData)) {
-//             $db->rollbackTransaction();
-//             FatUtility::dieJsonError('❌ Error inserting question: ' . $db->getError());
-//         }
-
-//         $insertedCount++;
-//     }
-// if ($zipBag) $zipBag->cleanup();
-
-//     $db->commitTransaction();
-
-//     FatUtility::dieJsonSuccess([
-//         'msg' => "✅ {$insertedCount} questions uploaded successfully!",
-//         'status' => '1'
-//     ]);
-// }
 public function setup()
 {
     $db   = FatApp::getDb();
@@ -1004,9 +891,17 @@ if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === 
         if ($i === 0) continue; // header row
 
         // Keep your current 11-col format fully supported
-        $row = array_pad($row, 11, '');
+    // ✅ Support old 11-col CSV + new 16-col CSV
+$row = array_pad($row, 16, '');
 
-        [$question_text, $a, $b, $c, $d, $correct, $difficulty, $question_type, $hint, $explanation, $image_url] = $row;
+[
+  $question_text, $a, $b, $c, $d,
+  $correct, $difficulty, $question_type, $hint, $explanation, $image_url,
+  $option_mode, $a_img, $b_img, $c_img, $d_img
+] = $row;
+
+$option_mode = strtolower(trim((string)$option_mode));
+$option_mode = ($option_mode === 'image') ? 'image' : 'text';
 
         if (trim($question_text) === '' || trim($correct) === '') {
             continue;
@@ -1014,6 +909,14 @@ if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === 
 
         // NEW: image from URL OR ZIP filename/path
         $imagePath = $this->resolveAndSaveQuestionImage((string)$image_url, $zipBag, $uploadDir);
+// ✅ Option images (URL OR ZIP filename) - only if option_mode=image
+$optAPath = $optBPath = $optCPath = $optDPath = '';
+if ($option_mode === 'image') {
+    $optAPath = $this->resolveAndSaveQuestionImage((string)$a_img, $zipBag, $uploadDir);
+    $optBPath = $this->resolveAndSaveQuestionImage((string)$b_img, $zipBag, $uploadDir);
+    $optCPath = $this->resolveAndSaveQuestionImage((string)$c_img, $zipBag, $uploadDir);
+    $optDPath = $this->resolveAndSaveQuestionImage((string)$d_img, $zipBag, $uploadDir);
+}
 
         $qData = [
             'subtopic_id'       => $subtopicId,
@@ -1029,6 +932,11 @@ if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === 
             'explanation'       => trim($explanation),
             'image'             => $imagePath,
             'question_added_on' => date('Y-m-d H:i:s'),
+            'option_mode'    => $option_mode,
+'answer_a_image' => $optAPath,
+'answer_b_image' => $optBPath,
+'answer_c_image' => $optCPath,
+'answer_d_image' => $optDPath,
         ];
 
         if (!$db->insertFromArray('tbl_quaestion_bank', $qData)) {
@@ -1133,6 +1041,12 @@ if (!empty($_FILES['quiz_csv']['tmp_name']) && $_FILES['quiz_csv']['error'] === 
             'examboard_id',
             'level_id',
             'tier',
+            'option_mode',
+'answer_a_image',
+'answer_b_image',
+'answer_c_image',
+'answer_d_image',
+
         ]);
 
         $questionRs = $questionSrch->getResultSet();
@@ -1382,9 +1296,14 @@ if ($keyword !== '') {
 }
 
 $q->addMultipleFields([
-    'qb.id','qb.question_title','qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
-    'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on', 'qb.image','qb.explanation' 
+  'qb.id','qb.question_title',
+  'qb.option_mode',
+  'qb.answer_a','qb.answer_b','qb.answer_c','qb.answer_d',
+  'qb.answer_a_image','qb.answer_b_image','qb.answer_c_image','qb.answer_d_image',
+  'qb.correct_answer','qb.difficult_level','qb.question_type','qb.hint','qb.question_added_on',
+  'qb.image','qb.explanation'
 ]);
+
 
     $rs = $q->getResultSet();
     $questions = FatApp::getDb()->fetchAll($rs);
@@ -1537,7 +1456,26 @@ $frm->addSelectBox(
   ['A'=>'A','B'=>'B','C'=>'C','D'=>'D'],
   $row['correct_answer'] ?? ''
 );
+$frm->addFileUpload('Option A Image', 'answer_a_image_file', ['accept'=>'.jpg,.jpeg,.png,.webp,.gif']);
+$frm->addFileUpload('Option B Image', 'answer_b_image_file', ['accept'=>'.jpg,.jpeg,.png,.webp,.gif']);
+$frm->addFileUpload('Option C Image', 'answer_c_image_file', ['accept'=>'.jpg,.jpeg,.png,.webp,.gif']);
+$frm->addFileUpload('Option D Image', 'answer_d_image_file', ['accept'=>'.jpg,.jpeg,.png,.webp,.gif']);
+
+$frm->addHiddenField('', 'existing_answer_a_image', $row['answer_a_image'] ?? '');
+$frm->addHiddenField('', 'existing_answer_b_image', $row['answer_b_image'] ?? '');
+$frm->addHiddenField('', 'existing_answer_c_image', $row['answer_c_image'] ?? '');
+$frm->addHiddenField('', 'existing_answer_d_image', $row['answer_d_image'] ?? '');
+
 $frm->addHtml('', '', '</div>');
+// ✅ Options type selector (only for MCQ UI; we’ll hide via JS when not MCQ)
+$mode = $row['option_mode'] ?? 'text';
+$frm->addSelectBox(
+  'Options Type',
+  'option_mode',
+  ['text' => 'Text', 'image' => 'Images'],
+  $mode
+)->setFieldTagAttribute('id', 'option_mode');
+
 $frm->addTextArea(
   'Correct Answer (Story/Short)',
   'correct_answer_text',
@@ -1586,7 +1524,12 @@ public function saveQuestion()
         'question_type'   => trim($post['question_type'] ?? 'Multiple-Choice'),
         'hint'            => trim($post['hint'] ?? ''),
         'explanation'     => trim($post['explanation'] ?? ''),
+        'option_mode' => trim($post['option_mode'] ?? 'text'),
+
     ];
+    $data['option_mode'] = strtolower(trim((string)$data['option_mode']));
+$data['option_mode'] = ($data['option_mode'] === 'image') ? 'image' : 'text';
+
     if ($data['question_title'] === '') {
         FatUtility::dieJsonError('Question is required.');
     }
@@ -1595,9 +1538,29 @@ public function saveQuestion()
     $type = $data['question_type'];
     if (stripos($type, 'multiple') !== false || stripos($type, 'mcq') !== false) {
         // MCQ – all four options + correct are required
-        if ($data['answer_a']==='' || $data['answer_b']==='' || $data['answer_c']==='' || $data['answer_d']==='' || $data['correct_answer']==='') {
-            FatUtility::dieJsonError('Please fill all options and the correct answer for Multiple-Choice.');
-        }
+     if ($data['correct_answer'] === '') {
+    FatUtility::dieJsonError('Please select the correct answer for Multiple-Choice.');
+}
+
+if ($data['option_mode'] === 'text') {
+    if ($data['answer_a']==='' || $data['answer_b']==='' || $data['answer_c']==='' || $data['answer_d']==='') {
+        FatUtility::dieJsonError('Please fill all options for Multiple-Choice (text mode).');
+    }
+} else {
+    // image mode: require images (upload OR existing)
+    $hasA = !empty($_FILES['answer_a_image_file']['tmp_name']) || !empty($post['existing_answer_a_image']);
+    $hasB = !empty($_FILES['answer_b_image_file']['tmp_name']) || !empty($post['existing_answer_b_image']);
+    $hasC = !empty($_FILES['answer_c_image_file']['tmp_name']) || !empty($post['existing_answer_c_image']);
+    $hasD = !empty($_FILES['answer_d_image_file']['tmp_name']) || !empty($post['existing_answer_d_image']);
+
+    if (!$hasA || !$hasB || !$hasC || !$hasD) {
+        FatUtility::dieJsonError('Please upload all 4 option images for Multiple-Choice (image mode).');
+    }
+
+    // optional: clear text options to avoid confusion
+    $data['answer_a'] = $data['answer_b'] = $data['answer_c'] = $data['answer_d'] = '';
+}
+
         // ensure correct answer is one of A-D
         if (!in_array($data['correct_answer'], ['A','B','C','D'], true)) {
             FatUtility::dieJsonError('Correct answer must be A, B, C or D.');
@@ -1637,6 +1600,41 @@ public function saveQuestion()
         }
     }
     if ($imagePath) $data['image'] = $imagePath;
+    // ===== Option images upload (MCQ image mode) =====
+$uploadDir = 'uploads/question_images/';
+if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+
+$allowed = ['jpg','jpeg','png','webp','gif'];
+
+function rwuUploadOpt(string $fileKey, string $existingKey, string $uploadDir, array $allowed): string {
+    $existing = FatApp::getPostedData($existingKey, FatUtility::VAR_STRING, '');
+    if (!empty($_FILES[$fileKey]['tmp_name']) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed, true)) {
+            FatUtility::dieJsonError('Only JPG/JPEG/PNG/WEBP/GIF allowed for option images.');
+        }
+        $path = $uploadDir . uniqid('opt_') . '.' . $ext;
+        if (!move_uploaded_file($_FILES[$fileKey]['tmp_name'], $path)) {
+            FatUtility::dieJsonError('Option image upload failed.');
+        }
+        return $path;
+    }
+    return $existing;
+}
+
+if (($data['question_type'] ?? '') === 'Multiple-Choice' && ($data['option_mode'] ?? 'text') === 'image') {
+    $data['answer_a_image'] = rwuUploadOpt('answer_a_image_file', 'existing_answer_a_image', $uploadDir, $allowed);
+    $data['answer_b_image'] = rwuUploadOpt('answer_b_image_file', 'existing_answer_b_image', $uploadDir, $allowed);
+    $data['answer_c_image'] = rwuUploadOpt('answer_c_image_file', 'existing_answer_c_image', $uploadDir, $allowed);
+    $data['answer_d_image'] = rwuUploadOpt('answer_d_image_file', 'existing_answer_d_image', $uploadDir, $allowed);
+} else {
+    // if switching back to text mode, keep DB clean
+    $data['answer_a_image'] = $post['existing_answer_a_image'] ?? '';
+    $data['answer_b_image'] = $post['existing_answer_b_image'] ?? '';
+    $data['answer_c_image'] = $post['existing_answer_c_image'] ?? '';
+    $data['answer_d_image'] = $post['existing_answer_d_image'] ?? '';
+}
+
 
     if ($id > 0) {
         if (!$db->updateFromArray('tbl_quaestion_bank', $data, ['smt'=>'id = ?', 'vals'=>[$id]])) {
