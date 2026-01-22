@@ -923,10 +923,10 @@ if ($hasSub && $isCurrent) {
 
     <!-- Right: Actions -->
     <div class="rwu-cta__actions">
-      <a class="btn-pill btn--ghost" href="<?php echo getBaseUrl(); ?>/teachers">
+      <a class="btn-pill btn--ghost" href="<?php echo getBaseUrl(); ?>teachers">
         I’m A Student
       </a>
-      <a class="btn-pill btn--primary" href="<?php echo getBaseUrl(); ?>/apply-to-teach">
+      <a class="btn-pill btn--primary" href="<?php echo getBaseUrl(); ?>apply-to-teach">
         Become an Instructor
       </a>
     </div>
