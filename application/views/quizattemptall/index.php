@@ -4,6 +4,26 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 <style>
 /* ====== Shared helpers ====== */
 .hidden { display:none; }
+/* Image option inside tile */
+.qz-opt-img{
+  width: 100%;
+  max-width: 220px;
+  height: 140px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  display:block;
+}
+
+/* Make options grid nicer when images */
+.quiz-options{
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.qz-opt{
+  align-items: center;
+}
 
 /* ====== Layout (sidebar LEFT + widened question panel) ====== */
 .qz-shell {
@@ -364,10 +384,41 @@ window.RWU_IS_MATH_SUBJECT = false; // RWUMath reads this in other pages too
 
 /* ------------------ UTILITIES ------------------ */
 function toArray(val) { return Array.isArray(val) ? val : (val ? [val] : []); }
+function isProbablyImage(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return false;
+  return (
+    /\.(png|jpe?g|gif|webp|svg)$/.test(s) ||
+    s.includes('/uploads/') ||
+    s.includes('/public/')
+  );
+}
 
 function normalizeQuestions(rows) {
   return (rows || []).map(function (q) {
-    var opts = Array.isArray(q.options) ? q.options.filter(Boolean) : [];
+    // var opts = Array.isArray(q.options) ? q.options.filter(Boolean) : [];
+var opts = Array.isArray(q.options) ? q.options : [];
+
+opts = opts
+  .map(function (o) {
+    // Backward compatibility: old API gave string options
+    if (typeof o === 'string') {
+      const v = o.trim();
+      if (!v) return null;
+      return { type: isProbablyImage(v) ? 'image' : 'text', value: v };
+    }
+
+    // New API: {type, value}
+    if (o && typeof o === 'object') {
+      const type = String(o.type || 'text').trim().toLowerCase();
+      const value = String(o.value || o.url || '').trim();
+      if (!value) return null;
+      return { type: type === 'image' ? 'image' : 'text', value };
+    }
+
+    return null;
+  })
+  .filter(Boolean);
 
     var correct = [];
     if (Array.isArray(q.answer)) {
@@ -692,11 +743,27 @@ function loadAllQuestions() {
           tick.className = "tick";
           tick.textContent = "✓";
 
-          const textSpan = document.createElement("span");
-          textSpan.textContent = `${opt}`;
+          // const textSpan = document.createElement("span");
+          // textSpan.textContent = `${opt}`;
+const optObj = opt; // now opt is {type, value}
+const contentSpan = document.createElement("span");
 
-          label.appendChild(tick);
-          label.appendChild(textSpan);
+if (optObj && optObj.type === 'image') {
+  const img = document.createElement("img");
+  img.src = resolveUrl(optObj.value);
+  img.alt = `Option ${letter}`;
+  img.loading = "lazy";
+  img.className = "qz-opt-img";
+  contentSpan.appendChild(img);
+} else {
+  contentSpan.textContent = (optObj && optObj.value) ? optObj.value : '';
+}
+
+label.appendChild(tick);
+label.appendChild(contentSpan);
+
+          // label.appendChild(tick);
+          // label.appendChild(textSpan);
 
           optsDiv.appendChild(input);
           optsDiv.appendChild(label);

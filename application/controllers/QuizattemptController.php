@@ -431,7 +431,7 @@ class QuizattemptController extends MyAppController
             'totalMarks' => $totalQuestions * $questionMarks,
         ]);
     }
-public function getQuestions()
+    public function getQuestions()
 {
     header('Content-Type: application/json; charset=utf-8');
 
@@ -456,11 +456,44 @@ public function getQuestions()
     });
 
     try {
+
+        /* ---------- image detection helper (keep your existing logic) ---------- */
+        $isImagePath = function ($v): bool {
+            $v = strtolower(trim((string)$v));
+            if ($v === '') return false;
+
+            if (preg_match('/\.(png|jpe?g|gif|webp|svg)$/i', $v)) return true;
+            if (strpos($v, '/uploads/') !== false) return true;
+            if (strpos($v, '/public/') !== false) return true;
+            if (strpos($v, 'uploads/') === 0) return true;
+
+            return false;
+        };
+
+        $normalizeOption = function ($raw) use ($isImagePath) {
+            $raw = is_string($raw) ? trim($raw) : $raw;
+            if ($raw === null || $raw === '') return null;
+
+            // If stored JSON like {"type":"image","value":"/path/to.png"}
+            if (is_string($raw) && strlen($raw) > 1 && ($raw[0] === '{' || $raw[0] === '[')) {
+                $decoded = json_decode($raw, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $type  = strtolower(trim((string)($decoded['type'] ?? 'text')));
+                    $value = (string)($decoded['value'] ?? ($decoded['url'] ?? ''));
+                    $value = trim($value);
+                    if ($value !== '') {
+                        return ['type' => ($type === 'image' ? 'image' : 'text'), 'value' => $value];
+                    }
+                }
+            }
+
+            $type = $isImagePath($raw) ? 'image' : 'text';
+            return ['type' => $type, 'value' => (string)$raw];
+        };
+
         $debugStep = 'read_posts';
         $posts = FatApp::getPostedData();
 
-        // IMPORTANT:
-        // your frontend sends subtopicid=57, but this is actually tbl_quiz_management.id
         $debugStep = 'parse_inputs';
         $quizMgmtId = FatUtility::int($posts['subtopicid'] ?? 0);
 
@@ -478,20 +511,18 @@ public function getQuestions()
             throw new Exception("FatApp::getDb() returned null/false");
         }
 
-        // ---------------------------
-        // 1) Fetch questions
-        // tbl_quaestion_bank.subtopic_id matches tbl_quiz_management.id in your flow
-        // ---------------------------
+        /* ---------------------------
+         * 1) Fetch questions
+         * IMPORTANT: include new image option columns
+         * --------------------------- */
         $debugStep = 'questions_query';
         $questionsSql = "
             SELECT 
                 id,
                 question_title,
                 question_type,
-                answer_a,
-                answer_b,
-                answer_c,
-                answer_d,
+                answer_a, answer_b, answer_c, answer_d,
+                answer_a_image, answer_b_image, answer_c_image, answer_d_image,
                 correct_answer,
                 hint,
                 explanation,
@@ -513,36 +544,68 @@ public function getQuestions()
             throw new Exception("No questions found for quizMgmtId={$quizMgmtId}");
         }
 
+        /* ---------------------------
+         * 2) Format questions
+         * - If answer_*_image present => image option
+         * - else fallback to answer_* text
+         * --------------------------- */
         $debugStep = 'format_questions';
         $formattedQuestions = [];
+
         foreach ($rows as $q) {
+            // Build A/B/C/D using image fields first
+            $rawOptions = [
+                ['img' => $q['answer_a_image'] ?? '', 'txt' => $q['answer_a'] ?? ''],
+                ['img' => $q['answer_b_image'] ?? '', 'txt' => $q['answer_b'] ?? ''],
+                ['img' => $q['answer_c_image'] ?? '', 'txt' => $q['answer_c'] ?? ''],
+                ['img' => $q['answer_d_image'] ?? '', 'txt' => $q['answer_d'] ?? ''],
+            ];
+
+            $options = [];
+            foreach ($rawOptions as $pair) {
+                $img = trim((string)($pair['img'] ?? ''));
+                $txt = trim((string)($pair['txt'] ?? ''));
+
+                // prefer image column if present
+                if ($img !== '') {
+                    $opt = $normalizeOption($img);
+                    // force type image (because this column is specifically for images)
+                    if ($opt) {
+                        $opt['type'] = 'image';
+                        $options[] = $opt;
+                    }
+                    continue;
+                }
+
+                // fallback to text
+                if ($txt !== '') {
+                    $opt = $normalizeOption($txt);
+                    if ($opt) {
+                        $opt['type'] = 'text';
+                        $options[] = $opt;
+                    }
+                }
+            }
+
             $formattedQuestions[] = [
-                "id"          => $q['id'] ?? 0,
-                "text"        => $q['question_title'] ?? '',
-                "type"        => $q['question_type'] ?? '',
-                "options"     => array_values(array_filter([
-                    $q['answer_a'] ?? '',
-                    $q['answer_b'] ?? '',
-                    $q['answer_c'] ?? '',
-                    $q['answer_d'] ?? '',
-                ])),
+                "id"          => (int)($q['id'] ?? 0),
+                "text"        => (string)($q['question_title'] ?? ''),
+                "type"        => (string)($q['question_type'] ?? ''),
+                "options"     => $options,
                 "answer"      => array_values(array_filter(array_map(
-                    'trim',
+                    function ($s) { return strtoupper(trim((string)$s)); },
                     explode(",", (string)($q['correct_answer'] ?? ''))
                 ))),
-                "hint"        => $q['hint'] ?? '',
-                "explanation" => $q['explanation'] ?? '',
-                "image"       => $q['image'] ?? '',
+                "hint"        => (string)($q['hint'] ?? ''),
+                "explanation" => (string)($q['explanation'] ?? ''),
+                "image"       => (string)($q['image'] ?? ''),
             ];
         }
 
-        // ---------------------------
-        // 2) Resolve subject properly:
-        // quiz_management.id (57)
-        // -> quiz_setup_id (33)
-        // -> quiz_setup.subject_id (8)
-        // -> course_subjects.subject ("Math")
-        // ---------------------------
+        /* ---------------------------
+         * 3) Resolve subject properly (keep your existing math logic)
+         * quiz_management.id -> quiz_setup_id -> quiz_setup.subject_id -> course_subjects.subject
+         * --------------------------- */
         $setupId = 0;
         $subjectId = 0;
         $subjectName = '';
@@ -611,6 +674,187 @@ public function getQuestions()
         die;
     }
 }
+
+// public function getQuestions()
+// {
+//     header('Content-Type: application/json; charset=utf-8');
+
+//     $debugStep = 'start';
+
+//     register_shutdown_function(function () use (&$debugStep) {
+//         $err = error_get_last();
+//         if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+//             echo json_encode([
+//                 'success' => false,
+//                 'message' => 'FATAL: ' . $err['message'],
+//                 'file'    => $err['file'] ?? '',
+//                 'line'    => $err['line'] ?? 0,
+//                 'debug'   => ['step' => $debugStep],
+//             ]);
+//         }
+//     });
+
+//     set_error_handler(function ($severity, $message, $file, $line) {
+//         if (!(error_reporting() & $severity)) return false;
+//         throw new ErrorException($message, 0, $severity, $file, $line);
+//     });
+
+//     try {
+//         $debugStep = 'read_posts';
+//         $posts = FatApp::getPostedData();
+
+//         // IMPORTANT:
+//         // your frontend sends subtopicid=57, but this is actually tbl_quiz_management.id
+//         $debugStep = 'parse_inputs';
+//         $quizMgmtId = FatUtility::int($posts['subtopicid'] ?? 0);
+
+//         $limit = FatUtility::int($posts['limit'] ?? 10);
+//         if ($limit < 1) $limit = 10;
+//         if ($limit > 50) $limit = 50;
+
+//         if ($quizMgmtId < 1) {
+//             throw new Exception("Invalid subtopicid/quizMgmtId. Received: {$quizMgmtId}");
+//         }
+
+//         $debugStep = 'get_db';
+//         $db = FatApp::getDb();
+//         if (!$db) {
+//             throw new Exception("FatApp::getDb() returned null/false");
+//         }
+
+//         // ---------------------------
+//         // 1) Fetch questions
+//         // tbl_quaestion_bank.subtopic_id matches tbl_quiz_management.id in your flow
+//         // ---------------------------
+//         $debugStep = 'questions_query';
+//         $questionsSql = "
+//             SELECT 
+//                 id,
+//                 question_title,
+//                 question_type,
+//                 answer_a,
+//                 answer_b,
+//                 answer_c,
+//                 answer_d,
+//                 correct_answer,
+//                 hint,
+//                 explanation,
+//                 image
+//             FROM tbl_quaestion_bank
+//             WHERE subtopic_id = {$quizMgmtId}
+//             ORDER BY RAND()
+//             LIMIT {$limit}
+//         ";
+
+//         $rs = $db->query($questionsSql);
+//         if (!$rs) {
+//             throw new Exception("Questions query failed. SQL: {$questionsSql}");
+//         }
+
+//         $debugStep = 'questions_fetchAll';
+//         $rows = $db->fetchAll($rs);
+//         if (!is_array($rows) || empty($rows)) {
+//             throw new Exception("No questions found for quizMgmtId={$quizMgmtId}");
+//         }
+
+//         $debugStep = 'format_questions';
+//         $formattedQuestions = [];
+//         foreach ($rows as $q) {
+//             $formattedQuestions[] = [
+//                 "id"          => $q['id'] ?? 0,
+//                 "text"        => $q['question_title'] ?? '',
+//                 "type"        => $q['question_type'] ?? '',
+//                 "options"     => array_values(array_filter([
+//                     $q['answer_a'] ?? '',
+//                     $q['answer_b'] ?? '',
+//                     $q['answer_c'] ?? '',
+//                     $q['answer_d'] ?? '',
+//                 ])),
+//                 "answer"      => array_values(array_filter(array_map(
+//                     'trim',
+//                     explode(",", (string)($q['correct_answer'] ?? ''))
+//                 ))),
+//                 "hint"        => $q['hint'] ?? '',
+//                 "explanation" => $q['explanation'] ?? '',
+//                 "image"       => $q['image'] ?? '',
+//             ];
+//         }
+
+//         // ---------------------------
+//         // 2) Resolve subject properly:
+//         // quiz_management.id (57)
+//         // -> quiz_setup_id (33)
+//         // -> quiz_setup.subject_id (8)
+//         // -> course_subjects.subject ("Math")
+//         // ---------------------------
+//         $setupId = 0;
+//         $subjectId = 0;
+//         $subjectName = '';
+
+//         $debugStep = 'get_setup_id';
+//         $rs = $db->query("SELECT quiz_setup_id FROM tbl_quiz_management WHERE id = {$quizMgmtId} LIMIT 1");
+//         if (!$rs) {
+//             throw new Exception("Failed to query tbl_quiz_management for id={$quizMgmtId}");
+//         }
+//         $row = $db->fetch($rs);
+//         $setupId = (int)($row['quiz_setup_id'] ?? 0);
+
+//         if ($setupId > 0) {
+//             $debugStep = 'get_subject_id';
+//             $rs = $db->query("SELECT subject_id FROM tbl_quiz_setup WHERE id = {$setupId} LIMIT 1");
+//             if (!$rs) {
+//                 throw new Exception("Failed to query tbl_quiz_setup for id={$setupId}");
+//             }
+//             $row = $db->fetch($rs);
+//             $subjectId = (int)($row['subject_id'] ?? 0);
+//         }
+
+//         if ($subjectId > 0) {
+//             $debugStep = 'get_subject_name';
+//             $rs = $db->query("SELECT subject FROM course_subjects WHERE id = {$subjectId} LIMIT 1");
+//             if (!$rs) {
+//                 throw new Exception("Failed to query course_subjects for id={$subjectId}");
+//             }
+//             $row = $db->fetch($rs);
+//             $subjectName = (string)($row['subject'] ?? '');
+//         }
+
+//         $debugStep = 'math_check';
+//         $isMathSubject = (preg_match('/\bmaths?\b/i', $subjectName) === 1);
+
+//         restore_error_handler();
+
+//         $debugStep = 'success_return';
+//         FatUtility::dieJsonSuccess([
+//             'success' => true,
+//             'data'    => $formattedQuestions,
+//             'meta'    => [
+//                 'subjectName'   => $subjectName,
+//                 'isMathSubject' => $isMathSubject,
+//                 'quizMgmtId'    => $quizMgmtId,
+//                 'setupId'       => $setupId,
+//                 'subjectId'     => $subjectId,
+//                 'debug' => [
+//                     'step'  => $debugStep,
+//                     'limit' => $limit,
+//                     'count' => count($formattedQuestions),
+//                 ],
+//             ],
+//         ]);
+
+//     } catch (Throwable $e) {
+//         restore_error_handler();
+
+//         echo json_encode([
+//             'success' => false,
+//             'message' => $e->getMessage(),
+//             'file'    => $e->getFile(),
+//             'line'    => $e->getLine(),
+//             'debug'   => ['step' => $debugStep],
+//         ]);
+//         die;
+//     }
+// }
 
 
 

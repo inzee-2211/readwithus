@@ -876,11 +876,42 @@ function loadQuestion(index) {
       tick.className = "tick";
       tick.textContent = "✓";
 
-      const textSpan = document.createElement("span");
-      textSpan.textContent = opt;
+      // const textSpan = document.createElement("span");
+      // textSpan.textContent = opt;
 
-      label.appendChild(tick);
-      label.appendChild(textSpan);
+      // label.appendChild(tick);
+      // label.appendChild(textSpan);
+      // ----- render option content (text OR image) -----
+const content = document.createElement("span");
+content.className = "qz-opt-content";
+
+// Backward compatible: if opt is a string, show as text
+if (typeof opt === "string") {
+  content.textContent = opt;
+} else if (opt && typeof opt === "object") {
+  const type = (opt.type || "text").toLowerCase();
+  const val  = (opt.value || "").toString().trim();
+
+  if (type === "image" && val) {
+    const img = document.createElement("img");
+    img.src = resolveUrl(val);
+    img.alt = `Option ${letter}`;
+    img.loading = "lazy";
+    img.style.maxWidth = "180px";
+    img.style.maxHeight = "120px";
+    img.style.borderRadius = "10px";
+    img.style.display = "block";
+    content.appendChild(img);
+  } else {
+    content.textContent = val;
+  }
+} else {
+  content.textContent = "";
+}
+
+label.appendChild(tick);
+label.appendChild(content);
+
 
       optionsContainer.appendChild(input);
       optionsContainer.appendChild(label);
