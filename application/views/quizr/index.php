@@ -1419,7 +1419,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
         ?>
         <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$targetSubtopic; ?>"
            class="btn-pill btn-pill-primary text-center">
-            Next Suggested Quiz
+            Next Quiz
         </a>
     <?php } else { ?>
         <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$currentSubtopicId; ?>"
@@ -1442,7 +1442,7 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
         ?>
         <a href="<?php echo MyUtility::makeUrl('quizattemptall', '', [], CONF_WEBROOT_FRONTEND) . '?subtopic=' . (int)$targetSubtopicOpp; ?>"
            class="btn-pill btn-pill-primary text-center">
-            Next Suggested Quiz
+            Next Quiz
         </a>
     <?php } ?>
 
