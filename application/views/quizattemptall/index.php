@@ -566,20 +566,9 @@ if (idx >= 0) {
 function canUseMathLive() {
   return !!(isMathSubject && window.customElements && customElements.get('math-field') && window.RWUMath);
 }
-/* ✅ Only use MathLive for math-type questions (not "explain in words") */
-function shouldUseMathField(q){
- const t = String(q?._rawType || '').toLowerCase();
- // block word/explain/story questions
-  if (t.includes('story') || t.includes('explain') || t.includes('word')) return false;
- // allow math-y questions
- return (
-   t.includes('math') || t.includes('ratio') || t.includes('fraction') ||
-   t.includes('decimal') || t.includes('percent') || t.includes('numeric') ||
-    t.includes('number') || t.includes('equation')
-  );
-}
-function renderTextarea(parent, index, q) {
- if (canUseMathLive() && shouldUseMathField(q)) {
+
+function renderTextarea(parent, index) {
+  if (canUseMathLive()) {
     const wrapper = document.createElement("div");
     wrapper.className = "rwu-math-wrapper";
     wrapper.setAttribute("data-math-field", "true");
@@ -733,8 +722,8 @@ function loadAllQuestions() {
       const optsDiv = document.createElement("div");
       optsDiv.className = "quiz-options";
 
-     if (!q.options || q.options.length === 0) {
-      renderTextarea(optsDiv, index, q);
+      if (!q.options || q.options.length === 0) {
+        renderTextarea(optsDiv, index);
       } else {
         q.options.forEach((opt, i) => {
           const letter = String.fromCharCode(65 + i);
@@ -784,8 +773,7 @@ label.appendChild(contentSpan);
 
       wrap.appendChild(optsDiv);
     } else {
-      // renderTextarea(wrap, index);
-      renderTextarea(wrap, index, q);
+      renderTextarea(wrap, index);
     }
 
     container.appendChild(wrap);
