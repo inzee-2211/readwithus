@@ -13,6 +13,81 @@ class QuizattemptController extends MyAppController
         parent::__construct($action);
     }
     /**
+ * Detect if question type looks like math/numeric/ratio/fraction.
+ * Backwards compatible: only true when keywords match.
+ */
+private function rwuIsMathType(string $questionType): bool
+{
+    $qt = strtolower(trim($questionType));
+    if ($qt === '') return false;
+
+    // Add keywords that your system uses for math questions
+    $needles = [
+        'math', 'maths', 'mathematics',
+        'ratio', 'fraction', 'decimal', 'percent', 'percentage',
+        'numeric', 'number', 'equation', 'algebra',
+        'division', 'multiply', 'multiplication', 'subtraction', 'addition'
+    ];
+
+    foreach ($needles as $n) {
+        if (strpos($qt, $n) !== false) return true;
+    }
+    return false;
+}
+
+/**
+ * Math-safe normalization:
+ * - keep operators (: / = + - * x ^)
+ * - normalize unicode × ÷
+ * - remove spaces around operators
+ * - collapse remaining whitespace
+ */
+private function rwuNormalizeMath(string $text): string
+{
+    $text = trim(mb_strtolower((string)$text, 'UTF-8'));
+    if ($text === '') return '';
+
+    // Normalize unicode operators to ASCII
+    $text = str_replace(["×", "÷", "−", "–", "—"], ["*", "/", "-", "-", "-"], $text);
+
+    // Collapse whitespace
+    $text = preg_replace('/\s+/u', ' ', $text);
+
+    // Remove spaces around math operators and common separators
+    // e.g. "3 / 4" -> "3/4", "2 : 3" -> "2:3", "x ^ 2" -> "x^2"
+    $text = preg_replace('/\s*([:\/=\+\-\*\^])\s*/u', '$1', $text);
+
+    // Optional: normalize "2 x 3" as multiplication when surrounded by numbers
+    // (keeps normal 'x' for algebra too)
+    $text = preg_replace('/(\d)\s*x\s*(\d)/u', '$1*$2', $text);
+
+    // Final trim
+    return trim($text);
+}
+
+/**
+ * Compare math answers with math-safe normalization.
+ * Supports multiple acceptable answers separated by | (pipe).
+ */
+private function rwuIsMathCorrect(string $userAnswer, string $correctAnswer): bool
+{
+    $u = $this->rwuNormalizeMath($userAnswer);
+
+    $alts = array_map('trim', explode('|', (string)$correctAnswer));
+    $alts = array_values(array_filter($alts, fn($x) => $x !== ''));
+
+    if (empty($alts)) {
+        return $u === '';
+    }
+
+    foreach ($alts as $alt) {
+        $c = $this->rwuNormalizeMath($alt);
+        if ($c !== '' && $u === $c) return true;
+    }
+    return false;
+}
+
+    /**
  * Optional AI correctness check for story-based answers.
  * Returns:
  * - true/false when AI responded correctly
@@ -52,7 +127,7 @@ Student answer:
 PROMPT;
 
     $data = [
-        "model" => "gpt-5.1",
+        "model" => "GPT-5 mini",
         "messages" => [
             ["role" => "system", "content" => "You are a strict examiner. Output JSON only."],
             ["role" => "user", "content" => $prompt]
@@ -565,14 +640,19 @@ $questionMarksDefault = 2;
         $questionMarks = $questionMarksDefault;
 $qt = strtolower(trim($questionType));
 
-if ($qt === 'story-based' || str_contains($qt, 'story')) {
+if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
 
     // 1) First try normalization (cheap + no API)
     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
     $normCorrect = false;
     if (trim((string)$correctAnswer) !== '') {
-        $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+        if ($this->rwuIsMathType($questionType)) {
+    $normCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+} else {
+    $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+}
+
     }
 
     $isCorrect = $normCorrect;
@@ -605,28 +685,33 @@ if ($qt === 'story-based' || str_contains($qt, 'story')) {
             // -------------------------
             // 2) Text / Short answer => normalization-based compare
             // -------------------------
-            else if (
-                str_contains($qt, 'short') ||
-                str_contains($qt, 'text')  ||
-                str_contains($qt, 'blank') ||
-                str_contains($qt, 'fill')
-            ) {
-                $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+        else if (
+    strpos($qt, 'short') !== false ||
+    strpos($qt, 'text')  !== false ||
+    strpos($qt, 'blank') !== false ||
+    strpos($qt, 'fill')  !== false
+) {
+    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-                // ✅ normalization compare
-                $isCorrect = $this->rwuIsTextCorrect($ua, $correctAnswer, true);
-                $marksObtained = $isCorrect ? $questionMarks : 0;
+    // ✅ NEW: math-safe path for math-like question types
+    if ($this->rwuIsMathType($questionType)) {
+        $isCorrect = $this->rwuIsMathCorrect($ua, $correctAnswer);
+    } else {
+        $isCorrect = $this->rwuIsTextCorrect($ua, $correctAnswer, true);
+    }
 
-                $results[] = [
-                    'questionId'     => $questionId,
-                    'userAnswer'     => $ua,
-                    'correctAnswer'  => $correctAnswer,
-                    'isCorrect'      => $isCorrect,
-                    'marksObtained'  => $marksObtained,
-                    'explanation'    => '',
-                ];
-            }
-            // -------------------------
+    $marksObtained = $isCorrect ? $questionMarks : 0;
+
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $ua,
+        'correctAnswer'  => $correctAnswer,
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $marksObtained,
+        'explanation'    => '',
+    ];
+}
+         // -------------------------
             // 3) MCQ => your existing A/B/C/D logic
             // -------------------------
             else {
@@ -680,8 +765,11 @@ if ($qt === 'story-based' || str_contains($qt, 'story')) {
         $totalQuestions = count($results);
 
         $passingPercentage = 80;
-        $tm = $totalQuestions * $questionMarks;
-        $percentage = ($totalMarks / $tm) * 100;
+      $tm = 0;
+foreach ($results as $res) {
+    $tm += $questionMarksDefault; // OR store max marks per question if you later vary
+}
+$percentage = ($tm > 0) ? (($totalMarks / $tm) * 100) : 0;
 
         $resultStatus = $percentage >= $passingPercentage ? 'pass' : 'fail';
         $db = FatApp::getDb();
