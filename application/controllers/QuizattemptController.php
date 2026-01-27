@@ -12,6 +12,289 @@ class QuizattemptController extends MyAppController
     {
         parent::__construct($action);
     }
+    /**
+ * Optional AI correctness check for story-based answers.
+ * Returns:
+ * - true/false when AI responded correctly
+ * - null when AI is unavailable (quota / API error / bad response)
+ */
+private function rwuAiIsCorrectStory(
+    string $questionTitle,
+    string $studentAnswer,
+    string $correctAnswer,
+    string $apiKey
+): ?bool {
+
+    $questionTitle  = trim($questionTitle);
+    $studentAnswer  = trim((string)$studentAnswer);
+    $correctAnswer  = trim((string)$correctAnswer);
+
+    if ($questionTitle === '') return null;
+    if ($studentAnswer === '') return false; // empty answer is wrong
+
+    // JSON-only prompt (NO explanation)
+    $prompt = <<<PROMPT
+You are marking a student's answer.
+
+Decide if the student's answer is correct.
+
+Return ONLY valid JSON, no extra text:
+{"is_correct": true} or {"is_correct": false}
+
+Question:
+{$questionTitle}
+
+Expected answer (reference):
+{$correctAnswer}
+
+Student answer:
+{$studentAnswer}
+PROMPT;
+
+    $data = [
+        "model" => "gpt-5.1",
+        "messages" => [
+            ["role" => "system", "content" => "You are a strict examiner. Output JSON only."],
+            ["role" => "user", "content" => $prompt]
+        ],
+        "temperature" => 0.0,
+        "max_tokens" => 50
+    ];
+
+    $ch = curl_init('https://api.openai.com/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($data),
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey
+        ],
+        CURLOPT_TIMEOUT => 15,
+    ]);
+
+    $response = curl_exec($ch);
+    $curlErr  = curl_error($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Network / curl failure => treat as unavailable
+    if ($response === false || $curlErr) {
+        return null;
+    }
+
+    $responseData = json_decode((string)$response, true);
+
+    // Non-JSON response => unavailable
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($responseData)) {
+        return null;
+    }
+
+    // OpenAI error (quota/rate limit/etc.) => unavailable (do NOT stop execution)
+    if (isset($responseData['error'])) {
+        // e.g. insufficient_quota, rate_limit_exceeded
+        return null;
+    }
+
+    // Must be 200 to trust (but still parse defensively)
+    if ($httpCode < 200 || $httpCode >= 300) {
+        return null;
+    }
+
+    $content = $responseData['choices'][0]['message']['content'] ?? '';
+    $content = trim((string)$content);
+    if ($content === '') return null;
+
+    $json = json_decode($content, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($json) || !isset($json['is_correct'])) {
+        return null;
+    }
+
+    return (bool)$json['is_correct'];
+}
+
+        /**
+     * Normalize free-text for comparison
+     * - lowercase + trim
+     * - remove punctuation
+     * - collapse spaces
+     * - convert number words to digits (twenty one -> 21)
+     * - normalize plurals (apples->apple, candies->candy)
+     * - remove filler words (optional): a, an, the, of
+     */
+    private function rwuNormalizeText(string $text, bool $removeFillers = true): string
+    {
+        $text = trim(mb_strtolower($text, 'UTF-8'));
+
+        // If it's probably LaTeX / MathLive, don't destroy it (keep only trim + collapse spaces)
+        if (preg_match('/\\\\|\\{|\\}|\\^|_/', $text)) {
+            $text = preg_replace('/\s+/u', ' ', $text);
+            return trim($text);
+        }
+
+        // normalize hyphens to spaces so "twenty-one" works
+        $text = str_replace(['-', '–', '—'], ' ', $text);
+
+        // remove punctuation (keep letters/numbers/spaces)
+        $text = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $text);
+
+        // collapse spaces
+        $text = preg_replace('/\s+/u', ' ', $text);
+        $text = trim($text);
+
+        // convert number-words to digits (supports common English forms)
+        $text = $this->rwuNumberWordsToDigits($text);
+
+        // tokenize
+        $words = $text === '' ? [] : explode(' ', $text);
+
+        // remove filler words (optional)
+        if ($removeFillers) {
+            $fillers = array_flip(['a', 'an', 'the', 'of']);
+            $words = array_values(array_filter($words, fn($w) => !isset($fillers[$w])));
+        }
+
+        // normalize plurals (simple rules)
+        $words = array_map([$this, 'rwuSingularize'], $words);
+
+        // final collapse
+        $out = trim(preg_replace('/\s+/u', ' ', implode(' ', $words)));
+        return $out;
+    }
+
+    private function rwuSingularize(string $w): string
+    {
+        $w = trim($w);
+        if ($w === '') return $w;
+
+        // candies -> candy
+        if (preg_match('/ies$/u', $w) && mb_strlen($w, 'UTF-8') > 3) {
+            return preg_replace('/ies$/u', 'y', $w);
+        }
+
+        // boxes/churches/dishes -> box/church/dish
+        if (preg_match('/(ches|shes|xes|zes|ses)$/u', $w) && mb_strlen($w, 'UTF-8') > 4) {
+            return preg_replace('/es$/u', '', $w);
+        }
+
+        // apples -> apple (but keep "ss" like "glass" -> "glass")
+        if (preg_match('/s$/u', $w) && !preg_match('/ss$/u', $w) && mb_strlen($w, 'UTF-8') > 2) {
+            return preg_replace('/s$/u', '', $w);
+        }
+
+        return $w;
+    }
+
+    /**
+     * Convert number words inside a sentence to digits.
+     * Handles:
+     * - one..nineteen
+     * - twenty..ninety + optional unit (twenty one)
+     * - hundred (one hundred five)
+     * - thousand (two thousand one hundred)
+     */
+    private function rwuNumberWordsToDigits(string $text): string
+    {
+        $ones = [
+            'zero'=>0,'one'=>1,'two'=>2,'three'=>3,'four'=>4,'five'=>5,'six'=>6,'seven'=>7,'eight'=>8,'nine'=>9,
+            'ten'=>10,'eleven'=>11,'twelve'=>12,'thirteen'=>13,'fourteen'=>14,'fifteen'=>15,'sixteen'=>16,'seventeen'=>17,'eighteen'=>18,'nineteen'=>19
+        ];
+        $tens = [
+            'twenty'=>20,'thirty'=>30,'forty'=>40,'fifty'=>50,'sixty'=>60,'seventy'=>70,'eighty'=>80,'ninety'=>90
+        ];
+        $scales = ['hundred'=>100,'thousand'=>1000];
+
+        $tokens = $text === '' ? [] : explode(' ', $text);
+        $out = [];
+
+        $current = 0;   // current chunk value
+        $total = 0;     // total value for larger scales
+        $inNumber = false;
+
+        $flush = function () use (&$out, &$current, &$total, &$inNumber) {
+            if ($inNumber) {
+                $out[] = (string)($total + $current);
+                $current = 0;
+                $total = 0;
+                $inNumber = false;
+            }
+        };
+
+        foreach ($tokens as $tok) {
+            if ($tok === '') continue;
+
+            if ($tok === 'and') {
+                // ignore "and" inside number phrases: "one hundred and five"
+                if ($inNumber) continue;
+                $out[] = $tok;
+                continue;
+            }
+
+            if (isset($ones[$tok])) {
+                $current += $ones[$tok];
+                $inNumber = true;
+                continue;
+            }
+
+            if (isset($tens[$tok])) {
+                $current += $tens[$tok];
+                $inNumber = true;
+                continue;
+            }
+
+            if (isset($scales[$tok])) {
+                $scale = $scales[$tok];
+                if (!$inNumber) {
+                    // "hundred" without a leading number -> treat as word
+                    $out[] = $tok;
+                    continue;
+                }
+
+                if ($scale === 100) {
+                    $current = max(1, $current) * 100;
+                } else {
+                    // thousand
+                    $total += max(1, $current) * 1000;
+                    $current = 0;
+                }
+                $inNumber = true;
+                continue;
+            }
+
+            // token is not a number word -> flush pending number
+            $flush();
+            $out[] = $tok;
+        }
+
+        // flush any trailing number
+        $flush();
+
+        return implode(' ', $out);
+    }
+
+    /**
+     * Compare user answer to correct answer using normalization.
+     * Supports multiple acceptable answers separated by | (pipe).
+     */
+    private function rwuIsTextCorrect(string $userAnswer, string $correctAnswer, bool $removeFillers = true): bool
+    {
+        $u = $this->rwuNormalizeText($userAnswer, $removeFillers);
+
+        // allow multiple acceptable answers like: "car|automobile|vehicle"
+        $alts = array_map('trim', explode('|', (string)$correctAnswer));
+        $alts = array_filter($alts, fn($x) => $x !== '');
+
+        if (empty($alts)) {
+            return $u === '';
+        }
+
+        foreach ($alts as $alt) {
+            $c = $this->rwuNormalizeText($alt, $removeFillers);
+            if ($c !== '' && $u === $c) return true;
+        }
+        return false;
+    }
+
 
     /**
      * Course list
@@ -255,93 +538,110 @@ class QuizattemptController extends MyAppController
 
 
         $api_key = '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';
+$questionMarksDefault = 2;
 
+
+              $results = []; // ✅ IMPORTANT: prevent undefined $results warning
 
         foreach ($answers as $item) {
             $questionId = $item['questionId'];
             $userAnswer = $item['answer'];
 
-            // Fetch question data including type and marks
             $srch = new SearchBase('tbl_quaestion_bank');
             $srch->addCondition('id', '=', $questionId);
             $srch->addMultipleFields(['question_title', 'correct_answer', 'question_type']);
             $rs = $srch->getResultSet();
             $question = FatApp::getDb()->fetch($rs);
 
-            if (!$question)
-                continue;
+            if (!$question) continue;
 
-            $questionType = $question['question_type'];
-            // $questionMarks = (float) $question['marks'];
+            $questionType  = (string)$question['question_type'];
             $questionMarks = 2;
-            $questionTitle = $question['question_title'];
-            $correctAnswer = $question['correct_answer'];
+            $questionTitle = (string)$question['question_title'];
+            $correctAnswer = (string)$question['correct_answer'];
 
-            if ($questionType === 'Story-Based') {
-                // === ChatGPT Grading ===
-                $prompt = "You are a teacher grading a student's answer. ...";
-                $prompt = str_replace(
-                    ['{question}', '{student_answer}', '{marks}'],
-                    [$questionTitle, $userAnswer, $questionMarks],
-                    $prompt
-                );
+            $qt = strtolower(trim($questionType));
 
-                $data = [
-                    "model" => "gpt-3.5-turbo",
-                    "messages" => [
-                        ["role" => "system", "content" => "You are a helpful assistant and an expert teacher."],
-                        ["role" => "user", "content" => $prompt]
-                    ],
-                    "temperature" => 0.0,
-                    "max_tokens" => 300
-                ];
+        $questionMarks = $questionMarksDefault;
+$qt = strtolower(trim($questionType));
 
-                $ch = curl_init('https://api.openai.com/v1/chat/completions');
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => json_encode($data),
-                    CURLOPT_HTTPHEADER => [
-                        'Content-Type: application/json',
-                        'Authorization: Bearer ' . $api_key
-                    ],
-                ]);
+if ($qt === 'story-based' || str_contains($qt, 'story')) {
 
-                $response = curl_exec($ch);
-                curl_close($ch);
+    // 1) First try normalization (cheap + no API)
+    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-                $responseData = json_decode($response, true);
+    $normCorrect = false;
+    if (trim((string)$correctAnswer) !== '') {
+        $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+    }
 
-                $obtainedMarks = 0;
-                $explanation = 'No explanation provided';
-                $isCorrect = false;
+    $isCorrect = $normCorrect;
 
-                if (isset($responseData['choices'][0]['message']['content'])) {
-                    $gptResponse = $responseData['choices'][0]['message']['content'];
+    // 2) If not correct by normalization, try AI (optional)
+    //    If AI unavailable (quota etc.), do NOT stop execution (fallback keeps running)
+    if (!$isCorrect) {
+        $ai = $this->rwuAiIsCorrectStory($questionTitle, $ua, (string)$correctAnswer, $api_key);
+        if ($ai !== null) {
+            $isCorrect = $ai;
+        }
+        // if $ai === null => keep $isCorrect as normalization result (false)
+    }
 
-                    // Extract marks
-                    preg_match('/\b([\d\.]+)\s*\/\s*' . preg_quote($questionMarks, '/') . '\b/', $gptResponse, $matches);
-                    $obtainedMarks = isset($matches[1]) ? floatval($matches[1]) : 0;
+    $obtainedMarks = $isCorrect ? $questionMarks : 0;
 
-                    // Explanation
-                    preg_match('/Explanation:\s*(.*)/s', $gptResponse, $explanationMatches);
-                    $explanation = isset($explanationMatches[1]) ? trim($explanationMatches[1]) : $explanation;
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $ua,
+        'correctAnswer'  => (string)$correctAnswer, // keep for records
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $obtainedMarks,
+        'explanation'    => '', // ✅ you said: no explanation
+    ];
 
-                    $isCorrect = $obtainedMarks > 0;
-                }
+
+                // ... keep your existing ChatGPT grading block EXACTLY as-is ...
+
+            }
+            // -------------------------
+            // 2) Text / Short answer => normalization-based compare
+            // -------------------------
+            else if (
+                str_contains($qt, 'short') ||
+                str_contains($qt, 'text')  ||
+                str_contains($qt, 'blank') ||
+                str_contains($qt, 'fill')
+            ) {
+                $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+
+                // ✅ normalization compare
+                $isCorrect = $this->rwuIsTextCorrect($ua, $correctAnswer, true);
+                $marksObtained = $isCorrect ? $questionMarks : 0;
 
                 $results[] = [
-                    'questionId' => $questionId,
-                    'userAnswer' => $userAnswer,
-                    'correctAnswer' => null,
-                    'isCorrect' => $isCorrect,
-                    'marksObtained' => $obtainedMarks,
-                    'explanation' => $explanation,
+                    'questionId'     => $questionId,
+                    'userAnswer'     => $ua,
+                    'correctAnswer'  => $correctAnswer,
+                    'isCorrect'      => $isCorrect,
+                    'marksObtained'  => $marksObtained,
+                    'explanation'    => '',
                 ];
-            } else {
-                // === MCQ Logic ===
-                $correctArray = explode(',', $correctAnswer);
+            }
+            // -------------------------
+            // 3) MCQ => your existing A/B/C/D logic
+            // -------------------------
+            else {
+                $correctArray = array_map(function($x){
+                    return strtoupper(trim((string)$x));
+                }, explode(',', $correctAnswer));
+
+                $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
+
                 $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+                $userArray = array_map(function($x){
+                    return strtoupper(trim((string)$x));
+                }, $userArray);
+
+                $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
 
                 sort($correctArray);
                 sort($userArray);
@@ -350,15 +650,16 @@ class QuizattemptController extends MyAppController
                 $marksObtained = $isCorrect ? $questionMarks : 0;
 
                 $results[] = [
-                    'questionId' => $questionId,
-                    'userAnswer' => $userArray,
-                    'correctAnswer' => $correctArray,
-                    'isCorrect' => $isCorrect,
-                    'marksObtained' => $marksObtained,
-                    'explanation' => '',
+                    'questionId'     => $questionId,
+                    'userAnswer'     => $userArray,
+                    'correctAnswer'  => $correctArray,
+                    'isCorrect'      => $isCorrect,
+                    'marksObtained'  => $marksObtained,
+                    'explanation'    => '',
                 ];
             }
         }
+
 
 
         $totalCorrect = 0;
