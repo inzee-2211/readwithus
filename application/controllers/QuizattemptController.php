@@ -253,54 +253,42 @@ private function rwuIsMathCorrect(string $userAnswer, string $correctAnswer): bo
 
     return false;
 }
-
-    /**
- * Optional AI correctness check for story-based answers.
- * Returns:
- * - true/false when AI responded correctly
- * - null when AI is unavailable (quota / API error / bad response)
+/**
+ * Batch AI grading for fallback (single API call).
+ * Returns: [questionId => bool] for those graded, missing ids mean "no change".
  */
-private function rwuAiIsCorrectStory(
-    string $questionTitle,
-    string $studentAnswer,
-    string $correctAnswer,
-    string $apiKey
-): ?bool {
+private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens = 200): array
+{
+    if (empty($items)) return [];
 
-    $questionTitle  = trim($questionTitle);
-    $studentAnswer  = trim((string)$studentAnswer);
-    $correctAnswer  = trim((string)$correctAnswer);
+    // Super short, strict JSON-only prompt
+    $payloadItems = [];
+    foreach ($items as $it) {
+        $payloadItems[] = [
+            'id' => (int)$it['id'],
+            'q'  => (string)$it['q'],
+            'expected' => (string)$it['expected'],
+            'answer'   => (string)$it['answer'],
+        ];
+    }
 
-    if ($questionTitle === '') return null;
-    if ($studentAnswer === '') return false; // empty answer is wrong
-
-    // JSON-only prompt (NO explanation)
-    $prompt = <<<PROMPT
-You are marking a student's answer.
-
-Decide if the student's answer is correct.
-
-Return ONLY valid JSON, no extra text:
-{"is_correct": true} or {"is_correct": false}
-
-Question:
-{$questionTitle}
-
-Expected answer (reference):
-{$correctAnswer}
-
-Student answer:
-{$studentAnswer}
-PROMPT;
+    $prompt = "Mark answers strictly against expected.\n"
+        . "Return ONLY valid JSON:\n"
+        . "{\"results\": {\"<id>\": true|false, ...}}\n"
+        . "Rules:\n"
+        . "- true only if answer matches expected meaning\n"
+        . "- allow minor spelling/synonyms\n"
+        . "- if unsure => false\n\n"
+        . "DATA:\n" . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
     $data = [
-        "model" => "GPT-5 mini",
+        "model" => "gpt-4o-mini",   // choose your actual cheap model
         "messages" => [
             ["role" => "system", "content" => "You are a strict examiner. Output JSON only."],
-            ["role" => "user", "content" => $prompt]
+            ["role" => "user", "content" => $prompt],
         ],
         "temperature" => 0.0,
-        "max_tokens" => 50
+        "max_tokens" => $maxOutTokens,
     ];
 
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
@@ -312,7 +300,7 @@ PROMPT;
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey
         ],
-        CURLOPT_TIMEOUT => 15,
+        CURLOPT_TIMEOUT => 20,
     ]);
 
     $response = curl_exec($ch);
@@ -320,40 +308,142 @@ PROMPT;
     $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // Network / curl failure => treat as unavailable
-    if ($response === false || $curlErr) {
-        return null;
+    if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
+        return []; // fallback silently
     }
 
-    $responseData = json_decode((string)$response, true);
-
-    // Non-JSON response => unavailable
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($responseData)) {
-        return null;
-    }
-
-    // OpenAI error (quota/rate limit/etc.) => unavailable (do NOT stop execution)
-    if (isset($responseData['error'])) {
-        // e.g. insufficient_quota, rate_limit_exceeded
-        return null;
-    }
-
-    // Must be 200 to trust (but still parse defensively)
-    if ($httpCode < 200 || $httpCode >= 300) {
-        return null;
-    }
-
-    $content = $responseData['choices'][0]['message']['content'] ?? '';
+    $resp = json_decode((string)$response, true);
+    $content = $resp['choices'][0]['message']['content'] ?? '';
     $content = trim((string)$content);
-    if ($content === '') return null;
 
     $json = json_decode($content, true);
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($json) || !isset($json['is_correct'])) {
-        return null;
-    }
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($json)) return [];
 
-    return (bool)$json['is_correct'];
+    $results = $json['results'] ?? [];
+    if (!is_array($results)) return [];
+
+    // normalize keys to ints + bool
+    $out = [];
+    foreach ($results as $qid => $val) {
+        $out[(int)$qid] = (bool)$val;
+    }
+    return $out;
 }
+private function rwuTokApprox(string $s): int
+{
+    // Rough estimate: 1 token ≈ 4 chars (English-ish)
+    return (int)ceil(strlen($s) / 4);
+}
+
+private function rwuTruncate(string $s, int $maxChars): string
+{
+    $s = trim($s);
+    if ($s === '') return '';
+    if (strlen($s) <= $maxChars) return $s;
+    return substr($s, 0, $maxChars) . '…';
+}
+
+
+    /**
+ * Optional AI correctness check for story-based answers.
+ * Returns:
+ * - true/false when AI responded correctly
+ * - null when AI is unavailable (quota / API error / bad response)
+ */
+// private function rwuAiIsCorrectStory(
+//     string $questionTitle,
+//     string $studentAnswer,
+//     string $correctAnswer,
+//     string $apiKey
+// ): ?bool {
+
+//     $questionTitle  = trim($questionTitle);
+//     $studentAnswer  = trim((string)$studentAnswer);
+//     $correctAnswer  = trim((string)$correctAnswer);
+
+//     if ($questionTitle === '') return null;
+//     if ($studentAnswer === '') return false; // empty answer is wrong
+
+//     // JSON-only prompt (NO explanation)
+//     $prompt = <<<PROMPT
+// You are marking a student's answer.
+
+// Decide if the student's answer is correct.
+
+// Return ONLY valid JSON, no extra text:
+// {"is_correct": true} or {"is_correct": false}
+
+// Question:
+// {$questionTitle}
+
+// Expected answer (reference):
+// {$correctAnswer}
+
+// Student answer:
+// {$studentAnswer}
+// PROMPT;
+
+//     $data = [
+//         "model" => "GPT-5 mini",
+//         "messages" => [
+//             ["role" => "system", "content" => "You are a strict examiner. Output JSON only."],
+//             ["role" => "user", "content" => $prompt]
+//         ],
+//         "temperature" => 0.0,
+//         "max_tokens" => 50
+//     ];
+
+//     $ch = curl_init('https://api.openai.com/v1/chat/completions');
+//     curl_setopt_array($ch, [
+//         CURLOPT_RETURNTRANSFER => true,
+//         CURLOPT_POST => true,
+//         CURLOPT_POSTFIELDS => json_encode($data),
+//         CURLOPT_HTTPHEADER => [
+//             'Content-Type: application/json',
+//             'Authorization: Bearer ' . $apiKey
+//         ],
+//         CURLOPT_TIMEOUT => 15,
+//     ]);
+
+//     $response = curl_exec($ch);
+//     $curlErr  = curl_error($ch);
+//     $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+//     curl_close($ch);
+
+//     // Network / curl failure => treat as unavailable
+//     if ($response === false || $curlErr) {
+//         return null;
+//     }
+
+//     $responseData = json_decode((string)$response, true);
+
+//     // Non-JSON response => unavailable
+//     if (json_last_error() !== JSON_ERROR_NONE || !is_array($responseData)) {
+//         return null;
+//     }
+
+//     // OpenAI error (quota/rate limit/etc.) => unavailable (do NOT stop execution)
+//     if (isset($responseData['error'])) {
+//         // e.g. insufficient_quota, rate_limit_exceeded
+//         return null;
+//     }
+
+//     // Must be 200 to trust (but still parse defensively)
+//     if ($httpCode < 200 || $httpCode >= 300) {
+//         return null;
+//     }
+
+//     $content = $responseData['choices'][0]['message']['content'] ?? '';
+//     $content = trim((string)$content);
+//     if ($content === '') return null;
+
+//     $json = json_decode($content, true);
+//     if (json_last_error() !== JSON_ERROR_NONE || !is_array($json) || !isset($json['is_correct'])) {
+//         return null;
+//     }
+
+//     return (bool)$json['is_correct'];
+// }
 
         /**
      * Normalize free-text for comparison
@@ -779,11 +869,14 @@ PROMPT;
 
 
 
-        $api_key = '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';
+        $api_key = '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';
 $questionMarksDefault = 2;
 
 
-              $results = []; // ✅ IMPORTANT: prevent undefined $results warning
+              $results = [];
+              $aiCandidates = [];       // items to possibly send to GPT
+$resultsIndexByQid = [];  // map questionId => index in $results array
+ // ✅ IMPORTANT: prevent undefined $results warning
 
         foreach ($answers as $item) {
             $questionId = $item['questionId'];
@@ -828,16 +921,16 @@ if (trim((string)$correctAnswer) !== '') {
 
 
     $isCorrect = $normCorrect;
+if (!$isCorrect) {
+    $aiCandidates[] = [
+        'id' => (int)$questionId,
+        'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+        'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+        'answer'   => $this->rwuTruncate((string)$ua, 220),
+    ];
+}
 
-    // 2) If not correct by normalization, try AI (optional)
-    //    If AI unavailable (quota etc.), do NOT stop execution (fallback keeps running)
-    if (!$isCorrect) {
-        $ai = $this->rwuAiIsCorrectStory($questionTitle, $ua, (string)$correctAnswer, $api_key);
-        if ($ai !== null) {
-            $isCorrect = $ai;
-        }
-        // if $ai === null => keep $isCorrect as normalization result (false)
-    }
+  
 
     $obtainedMarks = $isCorrect ? $questionMarks : 0;
 
@@ -849,6 +942,7 @@ if (trim((string)$correctAnswer) !== '') {
         'marksObtained'  => $obtainedMarks,
         'explanation'    => '', // ✅ you said: no explanation
     ];
+$resultsIndexByQid[$questionId] = count($results) - 1;
 
 
                 // ... keep your existing ChatGPT grading block EXACTLY as-is ...
@@ -919,6 +1013,39 @@ if ($isMath) {
                 ];
             }
         }
+// ---- GPT fallback budget control ----
+$BUDGET_TOTAL = 800;
+$MAX_OUT = 200;                 // output cap
+$BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
+
+$selected = [];
+$used = 0;
+
+// Always keep prompt small: only send what fits budget
+foreach ($aiCandidates as $it) {
+    $piece = json_encode($it, JSON_UNESCAPED_UNICODE);
+    $cost = $this->rwuTokApprox($piece);
+
+    if (($used + $cost) > $BUDGET_IN) {
+        continue; // skip, keep normalizer result
+    }
+    $selected[] = $it;
+    $used += $cost;
+}
+
+if (!empty($selected)) {
+    $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
+
+    // apply AI results to $results
+    foreach ($aiMarks as $qid => $aiCorrect) {
+        if (!isset($resultsIndexByQid[$qid])) continue;
+
+        $idx = $resultsIndexByQid[$qid];
+        $results[$idx]['isCorrect'] = (bool)$aiCorrect;
+        $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
+        // no explanation
+    }
+}
 
 
 
