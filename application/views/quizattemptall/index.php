@@ -516,6 +516,23 @@ function fetchQuestions() {
     }
   });
 }
+function bindMathProgressListeners() {
+  const container = document.getElementById('quiz-options');
+  if (!container) return;
+
+  // Delegate events: works even for math-fields added later
+  ['input', 'change', 'keyup'].forEach(evt => {
+    container.addEventListener(evt, function(e){
+      const t = e.target;
+      if (!t) return;
+
+      // math-field is a custom element (tagName = 'MATH-FIELD')
+      if (t.tagName === 'MATH-FIELD' || t.matches?.('textarea')) {
+        updateProgress();
+      }
+    }, true);
+  });
+}
 
 /* ------------------ PROGRESS + NAV ------------------ */
 function updateProgress() {
@@ -555,11 +572,23 @@ if (idx >= 0) {
   if (pctEl)   pctEl.textContent   = pct + '%';
   if (fillEl)  fillEl.style.width  = pct + '%';
 
-  const dots = document.querySelectorAll('.qz-dot');
-  dots.forEach(function(dot, i){
-    if (i < answered) dot.classList.add('answered');
-    else dot.classList.remove('answered');
-  });
+ const dots = document.querySelectorAll('.qz-dot');
+dots.forEach(function(dot, i){
+  const card = document.querySelector(`.quiz-question[data-qindex="${i}"]`);
+  if (!card) return;
+
+  let has = false;
+  const inputs = card.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+  inputs.forEach(inp => { if (inp.checked) has = true; });
+
+  if (!has) {
+    if (i >= 0 && isTextAnswered(i)) has = true;
+  }
+
+  if (has) dot.classList.add('answered');
+  else dot.classList.remove('answered');
+});
+
 }
 
 /* ------------------ RENDERING ------------------ */
@@ -983,6 +1012,7 @@ function exitQuiz() {
 }
 
 (function init() {
+  bindMathProgressListeners();
   if (Array.isArray(questions) && questions.length) {
     questions = normalizeQuestions(questions);
     loadAllQuestions();
