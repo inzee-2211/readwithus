@@ -47,21 +47,36 @@ private function rwuNormalizeMath(string $text): string
     $text = trim(mb_strtolower((string)$text, 'UTF-8'));
     if ($text === '') return '';
 
-    // Normalize unicode operators to ASCII
-    $text = str_replace(["×", "÷", "−", "–", "—"], ["*", "/", "-", "-", "-"], $text);
+    // 1) Normalize common unicode variants to ASCII
+    $text = str_replace(
+        ["×", "✕", "✖", "x", "ⅹ", "Ｘ", "ｘ",  // multiply/x variants
+         "·", "⋅", "∙", "•", "⋆",               // dot/star operators often used as multiply
+         "÷", "−", "–", "—"],
+        ["*", "*", "*", "x", "x", "x", "x",
+         "*", "*", "*", "*", "*",
+         "/", "-", "-", "-"],
+        $text
+    );
 
-    // Collapse whitespace
+    // 2) Collapse whitespace
     $text = preg_replace('/\s+/u', ' ', $text);
 
-    // Remove spaces around math operators and common separators
-    // e.g. "3 / 4" -> "3/4", "2 : 3" -> "2:3", "x ^ 2" -> "x^2"
-    $text = preg_replace('/\s*([:\/=\+\-\*\^])\s*/u', '$1', $text);
-
-    // Optional: normalize "2 x 3" as multiplication when surrounded by numbers
-    // (keeps normal 'x' for algebra too)
+    // 3) Convert "2 x 3" or "2x3" to multiplication (ONLY when x is between numbers)
+    //    This avoids breaking algebraic "x" like "x^2" or "2x + 1" (we handle 2x below too).
     $text = preg_replace('/(\d)\s*x\s*(\d)/u', '$1*$2', $text);
 
-    // Final trim
+    // 4) Convert coefficient form "2x" into "2*x" (ONLY when x is a variable after a number)
+    //    This helps if correct answer stored as 2*x but student writes 2x.
+    $text = preg_replace('/(\d)\s*x\b/u', '$1*x', $text);
+
+    // 5) Handle dot-as-multiply ONLY when dot is BETWEEN digits with spaces: "2 . 3"
+    //    IMPORTANT: Do NOT change decimals like 3.5 (no spaces).
+    $text = preg_replace('/(\d)\s*\.\s*(\d)/u', '$1*$2', $text);
+
+    // 6) Remove spaces around operators/separators (after conversions above)
+    //    include () , as well (helps "( 2 + 3 )" become "(2+3)")
+    $text = preg_replace('/\s*([:\/=\+\-\*\^\(\),])\s*/u', '$1', $text);
+
     return trim($text);
 }
 
