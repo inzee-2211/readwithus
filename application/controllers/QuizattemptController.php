@@ -272,14 +272,20 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
         ];
     }
 
-    $prompt = "Mark answers strictly against expected.\n"
-        . "Return ONLY valid JSON:\n"
-        . "{\"results\": {\"<id>\": true|false, ...}}\n"
-        . "Rules:\n"
-        . "- true only if answer matches expected meaning\n"
-        . "- allow minor spelling/synonyms\n"
-        . "- if unsure => false\n\n"
-        . "DATA:\n" . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
+    $prompt =
+"Grade each student answer against the expected answer.\n"
+."Return ONLY valid JSON exactly in this schema:\n"
+."{\"results\": {\"<id>\": true|false, ...}}\n\n"
+."STRICT RULES (avoid false positives):\n"
+."1) Mark true ONLY if the student answer clearly contains the required expected meaning.\n"
+."2) Extra words are allowed ONLY if they do NOT change the meaning.\n"
+."3) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
+."4) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
+."5) Allow minor spelling mistakes and direct synonyms only when meaning is unchanged.\n"
+."6) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
+."7) Do NOT guess. Do NOT award credit for related concepts.\n\n"
+."DATA:\n"
+. json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
     $data = [
         "model" => "gpt-4o-mini",   // choose your actual cheap model
@@ -309,6 +315,8 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
     curl_close($ch);
 
     if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
+        error_log("AI_FAIL http=$httpCode curlErr=$curlErr resp=" . substr((string)$response, 0, 800));
+        die;
         return []; // fallback silently
     }
 
@@ -898,7 +906,11 @@ $resultsIndexByQid = [];  // map questionId => index in $results array
             $qt = strtolower(trim($questionType));
 
         $questionMarks = $questionMarksDefault;
+// $qt = strtolower(trim($questionType));
 $qt = strtolower(trim($questionType));
+$qt = str_replace(["–","—","_"], "-", $qt);        // normalize dash/underscore
+$qt = preg_replace('/\s+/', '-', $qt);            // spaces -> hyphen
+
 
 if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
 
@@ -951,7 +963,7 @@ $resultsIndexByQid[$questionId] = count($results) - 1;
             // -------------------------
             // 2) Text / Short answer => normalization-based compare
             // -------------------------
-        else if (
+      else if (
     strpos($qt, 'short') !== false ||
     strpos($qt, 'text')  !== false ||
     strpos($qt, 'blank') !== false ||
@@ -959,27 +971,38 @@ $resultsIndexByQid[$questionId] = count($results) - 1;
 ) {
     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-    // ✅ NEW: detect math by type OR by content
-$isMath = $this->rwuIsMathType($questionType)
-    || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+    $isMath = $this->rwuIsMathType($questionType)
+        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
 
-if ($isMath) {
-    $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
-} else {
-    $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
-}
+    if ($isMath) {
+        $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+    } else {
+        $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+    }
 
-    $marksObtained = $isCorrect ? $questionMarks : 0;
+    $obtainedMarks = $isCorrect ? $questionMarks : 0;
 
     $results[] = [
         'questionId'     => $questionId,
         'userAnswer'     => $ua,
         'correctAnswer'  => $correctAnswer,
         'isCorrect'      => $isCorrect,
-        'marksObtained'  => $marksObtained,
+        'marksObtained'  => $obtainedMarks,
         'explanation'    => '',
     ];
+    $resultsIndexByQid[$questionId] = count($results) - 1;
+
+    // ✅ NEW: send to AI when normalizer fails
+    if (!$isCorrect) {
+        $aiCandidates[] = [
+            'id' => (int)$questionId,
+            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+            'answer'   => $this->rwuTruncate((string)$ua, 220),
+        ];
+    }
 }
+
          // -------------------------
             // 3) MCQ => your existing A/B/C/D logic
             // -------------------------

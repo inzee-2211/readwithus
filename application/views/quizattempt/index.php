@@ -651,23 +651,51 @@ function renderTextAnswer(container, index, savedValue) {
 /* ------------------ UTILITIES ------------------ */
 function normalizeQuestions(rows) {
   return (rows || []).map(function (q) {
-    var opts = Array.isArray(q.options) ? q.options.filter(Boolean) : [];
-    var ans  = Array.isArray(q.answer)
-      ? q.answer
-      : (typeof q.answer === 'string' && q.answer.trim().length
-          ? q.answer.split(',').map(function (s){ return s.trim().toUpperCase(); })
-          : []);
+
+    // normalize options to [{type, value}]
+    var opts = Array.isArray(q.options) ? q.options : [];
+    opts = opts
+      .map(function (o) {
+
+        // old API: option is string
+        if (typeof o === 'string') {
+          const v = o.trim();
+          if (!v) return null;
+          return { type: isProbablyImage(v) ? 'image' : 'text', value: v };
+        }
+
+        // new API: {type,value} or {url}
+        if (o && typeof o === 'object') {
+          const type = String(o.type || 'text').trim().toLowerCase();
+          const value = String(o.value || o.url || '').trim();
+          if (!value) return null;
+          return { type: (type === 'image') ? 'image' : 'text', value };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+
+    // normalize answer
+    var ans = [];
+    if (Array.isArray(q.answer)) {
+      ans = q.answer.map(s => String(s).trim().toUpperCase()).filter(Boolean);
+    } else if (typeof q.answer === 'string' && q.answer.trim().length) {
+      ans = q.answer.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    }
+
     return {
-      id     : q.id,
-      text   : q.text,
-      hint   : q.hint || '',
+      id: q.id,
+      text: q.text,
+      hint: q.hint || '',
       options: opts,
       correct: ans,
-      image  : q.image || '',
-      type   : (q.type || '').toLowerCase()
+      image: q.image || '',
+      type: (q.type || '').toLowerCase()
     };
   });
 }
+
 
 function hasOptions(q) {
   return Array.isArray(q.options) && q.options.length > 0;
@@ -728,6 +756,15 @@ function highlightActiveDot() {
   });
   const active = document.querySelector('.qz-dot[data-index="' + currentQuestion + '"]');
   if (active) active.classList.add('active');
+}
+function isProbablyImage(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return false;
+  return (
+    /\.(png|jpe?g|gif|webp|svg)$/.test(s) ||
+    s.includes('/uploads/') ||
+    s.includes('/public/')
+  );
 }
 
 function updateProgress() {
@@ -882,35 +919,57 @@ function loadQuestion(index) {
       // label.appendChild(tick);
       // label.appendChild(textSpan);
       // ----- render option content (text OR image) -----
-const content = document.createElement("span");
+      const content = document.createElement("span");
 content.className = "qz-opt-content";
 
-// Backward compatible: if opt is a string, show as text
-if (typeof opt === "string") {
-  content.textContent = opt;
-} else if (opt && typeof opt === "object") {
-  const type = (opt.type || "text").toLowerCase();
-  const val  = (opt.value || "").toString().trim();
-
-  if (type === "image" && val) {
-    const img = document.createElement("img");
-    img.src = resolveUrl(val);
-    img.alt = `Option ${letter}`;
-    img.loading = "lazy";
-    img.style.maxWidth = "180px";
+if (opt && typeof opt === "object" && opt.type === "image") {
+  const img = document.createElement("img");
+  img.src = resolveUrl(opt.value);
+  img.alt = `Option ${letter}`;
+  img.loading = "lazy";
+  img.className = "qz-opt-img";
+  img.style.maxWidth = "180px";
     img.style.maxHeight = "120px";
     img.style.borderRadius = "10px";
     img.style.display = "block";
-    content.appendChild(img);
-  } else {
-    content.textContent = val;
-  }
+//     content.appendChild(img);
+  content.appendChild(img);
 } else {
-  content.textContent = "";
+  content.textContent = (opt && opt.value) ? opt.value : "";
 }
 
 label.appendChild(tick);
 label.appendChild(content);
+
+// const content = document.createElement("span");
+// content.className = "qz-opt-content";
+
+// // Backward compatible: if opt is a string, show as text
+// if (typeof opt === "string") {
+//   content.textContent = opt;
+// } else if (opt && typeof opt === "object") {
+//   const type = (opt.type || "text").toLowerCase();
+//   const val  = (opt.value || "").toString().trim();
+
+//   if (type === "image" && val) {
+//     const img = document.createElement("img");
+//     img.src = resolveUrl(val);
+//     img.alt = `Option ${letter}`;
+//     img.loading = "lazy";
+//     img.style.maxWidth = "180px";
+//     img.style.maxHeight = "120px";
+//     img.style.borderRadius = "10px";
+//     img.style.display = "block";
+//     content.appendChild(img);
+//   } else {
+//     content.textContent = val;
+//   }
+// } else {
+//   content.textContent = "";
+// }
+
+// label.appendChild(tick);
+// label.appendChild(content);
 
 
       optionsContainer.appendChild(input);
