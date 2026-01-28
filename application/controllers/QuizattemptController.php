@@ -44,41 +44,134 @@ private function rwuIsMathType(string $questionType): bool
  */
 private function rwuNormalizeMath(string $text): string
 {
-    $text = trim(mb_strtolower((string)$text, 'UTF-8'));
+    $text = (string)$text;
+    $text = trim($text);
     if ($text === '') return '';
 
-    // 1) Normalize common unicode variants to ASCII
+    // 0) normalize case + strip invisible unicode
+    $text = mb_strtolower($text, 'UTF-8');
+    $text = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $text);
+
+    // 1) Convert common LaTeX-ish tokens to plain
+    // (MathLive sometimes gives latex/ascii-math)
     $text = str_replace(
-        ["×", "✕", "✖", "x", "ⅹ", "Ｘ", "ｘ",  // multiply/x variants
-         "·", "⋅", "∙", "•", "⋆",               // dot/star operators often used as multiply
-         "÷", "−", "–", "—"],
-        ["*", "*", "*", "x", "x", "x", "x",
-         "*", "*", "*", "*", "*",
-         "/", "-", "-", "-"],
+        ['\\left', '\\right', '\\,', '\\:', '\\;', '\\!', "\t", "\n", "\r"],
+        ['',      '',       ' ',  ' ',  ' ',  ' ',  ' ',  ' ',  ' '],
         $text
     );
 
-    // 2) Collapse whitespace
-    $text = preg_replace('/\s+/u', ' ', $text);
+    // \cdot, \times, \div, \pi etc
+    $text = preg_replace('/\\\\cdot\b/u', '*', $text);
+      $text = preg_replace('/\\\\dot\b/u', '*', $text);
+    $text = preg_replace('/\\\\times\b/u', '*', $text);
+    $text = preg_replace('/\\\\div\b/u',   '/', $text);
+    $text = preg_replace('/\\\\pi\b/u',    'pi', $text);
 
-    // 3) Convert "2 x 3" or "2x3" to multiplication (ONLY when x is between numbers)
-    //    This avoids breaking algebraic "x" like "x^2" or "2x + 1" (we handle 2x below too).
+    // \sqrt{a} -> sqrt(a)
+    $text = preg_replace('/\\\\sqrt\s*\{\s*([^{}]+)\s*\}/u', 'sqrt($1)', $text);
+
+    // \frac{a}{b} or \dfrac{a}{b} -> (a)/(b)
+    // (simple but very effective for typical answers)
+    $text = preg_replace('/\\\\(d)?frac\s*\{\s*([^{}]+)\s*\}\s*\{\s*([^{}]+)\s*\}/u', '($2)/($3)', $text);
+
+    // 2) Unicode operator normalization (THIS fixes dot-multiply)
+    $text = str_replace(
+        [
+            // multiply variants
+            "×","✕","✖","⨯","⊗",
+            "·","⋅","∙","•","⋆","∗","✱",
+            // division variants
+            "÷","∕","⁄",
+            // minus variants
+            "−","–","—",
+            // plus/equals variants
+            "＋","＝",
+        ],
+        [
+            "*","*","*","*","*",
+            "*","*","*","*","*","*","*",
+            "/","/","/",
+            "-","-","-",
+            "+","=",
+        ],
+        $text
+    );
+
+    // 3) Convert vulgar unicode fractions to a/b
+    $vulgar = [
+        "½"=>"1/2","⅓"=>"1/3","⅔"=>"2/3","¼"=>"1/4","¾"=>"3/4",
+        "⅕"=>"1/5","⅖"=>"2/5","⅗"=>"3/5","⅘"=>"4/5","⅙"=>"1/6","⅚"=>"5/6",
+        "⅛"=>"1/8","⅜"=>"3/8","⅝"=>"5/8","⅞"=>"7/8",
+    ];
+    $text = strtr($text, $vulgar);
+
+    // 4) Normalize superscripts -> caret powers
+    // x² => x^2 , 10⁻² => 10^-2
+    $supMap = [
+        '⁰'=>'0','¹'=>'1','²'=>'2','³'=>'3','⁴'=>'4','⁵'=>'5','⁶'=>'6','⁷'=>'7','⁸'=>'8','⁹'=>'9',
+        '⁺'=>'+','⁻'=>'-','⁽'=>'(','⁾'=>')'
+    ];
+    // Replace any run of superscripts after a token with ^(...)
+    $text = preg_replace_callback(
+        '/([0-9a-z\)])([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁽⁾]+)/u',
+        function ($m) use ($supMap) {
+            $base = $m[1];
+            $sup  = $m[2];
+            $out  = '';
+            $chars = preg_split('//u', $sup, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($chars as $ch) {
+                $out .= $supMap[$ch] ?? '';
+            }
+            $out = trim($out);
+            if ($out === '') return $m[0];
+            // if it already looks wrapped, keep it; else just append
+            return $base . '^' . $out;
+        },
+        $text
+    );
+
+    // Clean latex power braces: x^{2} => x^2
+    $text = preg_replace('/\^\s*\{\s*([^{}]+)\s*\}/u', '^$1', $text);
+
+    // 5) Collapse whitespace
+    $text = preg_replace('/\s+/u', ' ', trim($text));
+
+    // 6) Mixed number -> improper fraction (numbers only)
+    // 1 1/2 => 3/2
+    $text = preg_replace_callback('/\b(\d+)\s+(\d+)\s*\/\s*(\d+)\b/u', function ($m) {
+        $whole = (int)$m[1];
+        $num   = (int)$m[2];
+        $den   = (int)$m[3];
+        if ($den === 0) return $m[0];
+        $top = ($whole * $den) + $num;
+        return $top . '/' . $den;
+    }, $text);
+
+    // 7) Convert numeric multiply forms:
+    // 2 x 3 => 2*3  (letter x between digits)
     $text = preg_replace('/(\d)\s*x\s*(\d)/u', '$1*$2', $text);
 
-    // 4) Convert coefficient form "2x" into "2*x" (ONLY when x is a variable after a number)
-    //    This helps if correct answer stored as 2*x but student writes 2x.
-    $text = preg_replace('/(\d)\s*x\b/u', '$1*x', $text);
+    // 8) Implicit multiplication (useful for typical student answers)
+    // 2pi => 2*pi , 2(x+1) => 2*(x+1) , )( => )*(
+    // NOTE: We avoid breaking function names like sqrt(
+    $text = preg_replace('/(\d)\s*(pi)\b/u', '$1*$2', $text);
+    $text = preg_replace('/(\d)\s*\(/u', '$1*(', $text);
+    $text = preg_replace('/\)\s*(\d|[a-z])/u', ')*$1', $text);
+    $text = preg_replace('/\)\s*\(/u', ')*(', $text);
+    $text = preg_replace('/([a-z])\s*\(/u', '$1*(', $text);
+    // undo for common functions: sqrt*( -> sqrt(
+    $text = preg_replace('/\b(sqrt|sin|cos|tan|log|ln)\*\(/u', '$1(', $text);
 
-    // 5) Handle dot-as-multiply ONLY when dot is BETWEEN digits with spaces: "2 . 3"
-    //    IMPORTANT: Do NOT change decimals like 3.5 (no spaces).
+    // 9) IMPORTANT: dot-period as multiply only when spaced "2 . 3"
+    // but keep decimals like 3.5
     $text = preg_replace('/(\d)\s*\.\s*(\d)/u', '$1*$2', $text);
 
-    // 6) Remove spaces around operators/separators (after conversions above)
-    //    include () , as well (helps "( 2 + 3 )" become "(2+3)")
+    // 10) Remove spaces around operators/separators
     $text = preg_replace('/\s*([:\/=\+\-\*\^\(\),])\s*/u', '$1', $text);
 
     return trim($text);
 }
+
 
 /**
  * Compare math answers with math-safe normalization.
