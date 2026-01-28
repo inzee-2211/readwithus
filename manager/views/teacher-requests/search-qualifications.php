@@ -55,6 +55,8 @@
 
     if (!empty($row['file_id'])) {
         $url = MyUtility::makeFullUrl('Image', 'download', [Afile::TYPE_USER_QUALIFICATION_FILE, $row['uqualification_id']]);
+$url = preg_replace('#^http://#i', 'https://', $url);
+
 
         // ✅ Make the <a> the actual clickable element (block) and keep it above overlays
         $a = $span->appendElement('a', [
