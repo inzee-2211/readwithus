@@ -172,6 +172,57 @@ private function rwuNormalizeMath(string $text): string
     return trim($text);
 }
 
+private function rwuLooksLikeMath(string ...$parts): bool
+{
+    $s = mb_strtolower(trim(implode(' ', $parts)), 'UTF-8');
+    if ($s === '') return false;
+
+    // Anything that smells like maths input
+    return (bool)preg_match(
+        '/(\d|[×÷⋅·∙\^=+\-*\/()]|\\\\(frac|dfrac|sqrt|cdot|times|div|pi)\b|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|π|sqrt|pi)/u',
+        $s
+    );
+}
+private function rwuCanonicalizePrimeProduct(string $expr): ?string
+{
+    $expr = $this->rwuNormalizeMath($expr);
+
+    // Only allow pure products of integers with optional exponents: 3*3*7 or 3^2*7
+    if ($expr === '') return null;
+    if (preg_match('/[+\-\/=,]/u', $expr)) return null;     // not a pure product
+    if (strpos($expr, '(') !== false || strpos($expr, ')') !== false) return null;
+
+    $factors = explode('*', $expr);
+    if (empty($factors)) return null;
+
+    $map = []; // base => exponent sum
+    foreach ($factors as $f) {
+        $f = trim($f);
+        if ($f === '') continue;
+
+        // base^exp or base
+        if (!preg_match('/^(\d+)(?:\^(-?\d+))?$/u', $f, $m)) {
+            return null; // contains symbols/vars -> not prime factor product
+        }
+        $base = (int)$m[1];
+        $exp  = isset($m[2]) ? (int)$m[2] : 1;
+        if ($exp === 0) continue;
+
+        if (!isset($map[$base])) $map[$base] = 0;
+        $map[$base] += $exp;
+    }
+
+    if (empty($map)) return null;
+
+    ksort($map, SORT_NUMERIC);
+
+    $out = [];
+    foreach ($map as $base => $exp) {
+        $out[] = ($exp === 1) ? (string)$base : ($base . '^' . $exp);
+    }
+
+    return implode('*', $out);
+}
 
 /**
  * Compare math answers with math-safe normalization.
@@ -184,14 +235,22 @@ private function rwuIsMathCorrect(string $userAnswer, string $correctAnswer): bo
     $alts = array_map('trim', explode('|', (string)$correctAnswer));
     $alts = array_values(array_filter($alts, fn($x) => $x !== ''));
 
-    if (empty($alts)) {
-        return $u === '';
-    }
+    if (empty($alts)) return ($u === '');
+
+    // Canonical (prime factor product) form for user
+    $uCanon = $this->rwuCanonicalizePrimeProduct($u);
 
     foreach ($alts as $alt) {
         $c = $this->rwuNormalizeMath($alt);
         if ($c !== '' && $u === $c) return true;
+
+        // If both are prime-factor products, compare canonical forms
+        $cCanon = $this->rwuCanonicalizePrimeProduct($c);
+        if ($uCanon !== null && $cCanon !== null && $uCanon === $cCanon) {
+            return true;
+        }
     }
+
     return false;
 }
 
@@ -753,15 +812,20 @@ if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
     // 1) First try normalization (cheap + no API)
     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-    $normCorrect = false;
-    if (trim((string)$correctAnswer) !== '') {
-        if ($this->rwuIsMathType($questionType)) {
-    $normCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
-} else {
-    $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+  $normCorrect = false;
+if (trim((string)$correctAnswer) !== '') {
+
+    // ✅ NEW: Detect math even for Story questions using content (ua / correct / title)
+    $isMath = $this->rwuIsMathType($questionType)
+        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+
+    if ($isMath) {
+        $normCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+    } else {
+        $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+    }
 }
 
-    }
 
     $isCorrect = $normCorrect;
 
@@ -801,12 +865,15 @@ if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
 ) {
     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-    // ✅ NEW: math-safe path for math-like question types
-    if ($this->rwuIsMathType($questionType)) {
-        $isCorrect = $this->rwuIsMathCorrect($ua, $correctAnswer);
-    } else {
-        $isCorrect = $this->rwuIsTextCorrect($ua, $correctAnswer, true);
-    }
+    // ✅ NEW: detect math by type OR by content
+$isMath = $this->rwuIsMathType($questionType)
+    || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+
+if ($isMath) {
+    $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+} else {
+    $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+}
 
     $marksObtained = $isCorrect ? $questionMarks : 0;
 
