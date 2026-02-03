@@ -268,4 +268,12 @@
   background: #e5e7eb;
   border-radius: 3px;
 }
+.ai-md p { margin: 0 0 10px; }
+.ai-md ul, .ai-md ol { margin: 0 0 10px 18px; }
+.ai-md li { margin: 4px 0; }
+.ai-md code { padding: 2px 5px; border-radius: 6px; background: #eef2ff; }
+.ai-md pre { padding: 10px; border-radius: 10px; overflow: auto; background: #0b1020; color: #fff; }
+
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>

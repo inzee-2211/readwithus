@@ -31,14 +31,32 @@ $(function () {
     }
     
 
-    function renderBot(text) {
-        return (
-            '<div class="ai-msg ai-msg--bot">' +
-            '  <div class="ai-msg__avatar">AI</div>' +
-            '  <div class="ai-msg__bubble">' + text + '</div>' +
-            '</div>'
-        );
-    }
+ function renderBot(text) {
+    // 1) normalize common AI math delimiters if you don't have KaTeX/MathJax
+    //    (optional) remove \(...\) -> (...)
+    text = String(text)
+        .replace(/\\\(/g, '(')
+        .replace(/\\\)/g, ')')
+        .replace(/\\\[/g, '[')
+        .replace(/\\\]/g, ']');
+
+    // 2) markdown -> html
+    var html = marked.parse(text, {
+        breaks: true,     // newlines -> <br>
+        gfm: true
+    });
+
+    // 3) sanitize html (critical)
+    html = DOMPurify.sanitize(html);
+
+    return (
+        '<div class="ai-msg ai-msg--bot">' +
+        '  <div class="ai-msg__avatar">AI</div>' +
+        '  <div class="ai-msg__bubble ai-md">' + html + '</div>' +
+        '</div>'
+    );
+}
+
 
     // Build a unique key per (learner + course + lecture)
     function aiStorageKey() {
