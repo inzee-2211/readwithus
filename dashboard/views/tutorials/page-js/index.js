@@ -9,6 +9,87 @@ $(function () {
      *  SHARED HELPERS FOR AVA CHAT
      * =============================== */
 
+      function simpleMarkdownToHtml(input) {
+    let text = String(input ?? '');
+
+    // ✅ 0) Normalize FIRST (before escapeHtml)
+    // Remove any number of backslashes before math delimiters:
+    // \(...\), \\(...\\), \[...\], etc.
+    text = text
+        .replace(/\\+\(/g, '(')
+        .replace(/\\+\)/g, ')')
+        .replace(/\\+\[/g, '[')
+        .replace(/\\+\]/g, ']')
+
+        // Optional: remove escaping of markdown tokens like \*\*bold\*\*
+        .replace(/\\([*_`~])/g, '$1')
+
+        // Optional: common latex token
+        .replace(/\\times/g, '×');
+
+    // ✅ 1) Escape HTML (safe)
+    text = escapeHtml(text);
+
+    // 2) Extract fenced code blocks first (``` ... ```)
+    const codeBlocks = [];
+    text = text.replace(/```([\s\S]*?)```/g, function (_, code) {
+        const idx = codeBlocks.length;
+        codeBlocks.push(code);
+        return `@@CODEBLOCK_${idx}@@`;
+    });
+
+    // 3) Inline code `code`
+    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+    // 4) Bold **text**
+    text = text.replace(/\*\*([^\n*][\s\S]*?)\*\*/g, '<strong>$1</strong>');
+
+    // 5) Italic *text*
+    text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+    // 6) Links [label](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, label, url) {
+        url = url.trim();
+        if (!/^https?:\/\//i.test(url)) return label;
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+
+    // 7) Unordered lists
+    const lines = text.split('\n');
+    let out = [];
+    let inUl = false;
+
+    function closeUl() {
+        if (inUl) { out.push('</ul>'); inUl = false; }
+    }
+
+    lines.forEach(line => {
+        const m = line.match(/^\s*[-*]\s+(.*)$/);
+        if (m) {
+            if (!inUl) { out.push('<ul>'); inUl = true; }
+            out.push('<li>' + m[1] + '</li>');
+        } else {
+            closeUl();
+            out.push(line);
+        }
+    });
+    closeUl();
+
+    text = out.join('\n');
+
+    // 8) Newlines -> <br>
+    text = text.replace(/\n/g, '<br>');
+
+    // 9) Restore code blocks
+    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, function (_, n) {
+        const code = codeBlocks[Number(n)] ?? '';
+        const escapedCode = escapeHtml(code);
+        return `<pre><code>${escapedCode}</code></pre>`;
+    });
+
+    return text;
+}
+
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, function (m) {
             return {
@@ -29,90 +110,6 @@ $(function () {
             '</div>'
         );
     }
-   function simpleMarkdownToHtml(input) {
-    let text = String(input ?? '');
-
-    // 1) Escape HTML first => makes it safe
-    text = escapeHtml(text);
-
-    // 2) Normalize some AI math delimiters (optional)
-    text = text
-        .replace(/\\\(/g, '(').replace(/\\\)/g, ')')
-        .replace(/\\\[/g, '[').replace(/\\\]/g, ']')
-           .replace(/\\+\(/g, '(')
-            .replace(/\\+\)/g, ')')
-            .replace(/\\+\[/g, '[')
-            .replace(/\\+\]/g, ']')
-
-    // 3) Extract fenced code blocks first (``` ... ```)
-    //    Replace them with placeholders so formatting doesn't touch inside
-    const codeBlocks = [];
-    text = text.replace(/```([\s\S]*?)```/g, function (_, code) {
-        const idx = codeBlocks.length;
-        codeBlocks.push(code);
-        return `@@CODEBLOCK_${idx}@@`;
-    });
-
-    // 4) Inline code `code`WWWW
-    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-
-    // 5) Bold **text**
-    text = text.replace(/\*\*([^\n*][\s\S]*?)\*\*/g, '<strong>$1</strong>');
-
-    // 6) Italic *text*  (simple, avoids ** conflict)
-    text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
-
-    // 7) Links [label](url)
-    //    Only allow http(s) to keep it safe
-    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, label, url) {
-        url = url.trim();
-        if (!/^https?:\/\//i.test(url)) return label; // drop unsafe urls
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-    });
-
-    // 8) Unordered lists: lines starting with "- " or "* "
-    //    We'll build <ul> blocks
-    const lines = text.split('\n');
-    let out = [];
-    let inUl = false;
-
-    function closeUl() {
-        if (inUl) {
-            out.push('</ul>');
-            inUl = false;
-        }
-    }
-
-    lines.forEach(line => {
-        const m = line.match(/^\s*[-*]\s+(.*)$/);
-        if (m) {
-            if (!inUl) { out.push('<ul>'); inUl = true; }
-            out.push('<li>' + m[1] + '</li>');
-        } else {
-            closeUl();
-            // paragraph-ish: keep line breaks
-            out.push(line);
-        }
-    });
-    closeUl();
-
-    text = out.join('\n');
-
-    // 9) Convert remaining newlines to <br> (keeps your “chat” feel)
-    text = text.replace(/\n/g, '<br>');
-
-    // 10) Restore code blocks as <pre><code>
-    //     IMPORTANT: code was already escaped in step (1), so safe.
-    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, function (_, n) {
-        const code = codeBlocks[Number(n)] ?? '';
-        // also convert newlines inside code to <br>? No: use <pre> and keep them raw.
-        // We escaped HTML already, so we can safely un-<br> it by using original escaped code.
-        const escapedCode = escapeHtml(code);
-        return `<pre><code>${escapedCode}</code></pre>`;
-    });
-
-    return text;
-}
  
 
 function renderBot(text) {
