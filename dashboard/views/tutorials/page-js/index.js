@@ -31,22 +31,27 @@ $(function () {
     }
     
 
- function renderBot(text) {
-    // 1) normalize common AI math delimiters if you don't have KaTeX/MathJax
-    //    (optional) remove \(...\) -> (...)
-    text = String(text)
+function renderBot(text) {
+    text = String(text);
+
+    // fallback if libs are missing for any reason
+    if (typeof window.marked === 'undefined' || typeof window.DOMPurify === 'undefined') {
+        return (
+            '<div class="ai-msg ai-msg--bot">' +
+            '  <div class="ai-msg__avatar">AI</div>' +
+            '  <div class="ai-msg__bubble">' + escapeHtml(text) + '</div>' +
+            '</div>'
+        );
+    }
+
+    // optional: normalize \(...\) etc
+    text = text
         .replace(/\\\(/g, '(')
         .replace(/\\\)/g, ')')
         .replace(/\\\[/g, '[')
         .replace(/\\\]/g, ']');
 
-    // 2) markdown -> html
-    var html = marked.parse(text, {
-        breaks: true,     // newlines -> <br>
-        gfm: true
-    });
-
-    // 3) sanitize html (critical)
+    var html = marked.parse(text, { breaks: true, gfm: true });
     html = DOMPurify.sanitize(html);
 
     return (
@@ -56,6 +61,7 @@ $(function () {
         '</div>'
     );
 }
+
 
 
     // Build a unique key per (learner + course + lecture)

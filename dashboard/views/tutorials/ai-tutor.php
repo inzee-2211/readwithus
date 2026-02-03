@@ -1,4 +1,7 @@
 <?php defined('SYSTEM_INIT') or die('Invalid Usage.'); ?>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+
 <div class="aiTutor">
   <!-- Header -->
   <div class="aiTutor__header">
@@ -275,5 +278,3 @@
 .ai-md pre { padding: 10px; border-radius: 10px; overflow: auto; background: #0b1020; color: #fff; }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
