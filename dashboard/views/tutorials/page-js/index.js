@@ -29,30 +29,90 @@ $(function () {
             '</div>'
         );
     }
-    
+   function simpleMarkdownToHtml(input) {
+    let text = String(input ?? '');
 
-function renderBot(text) {
-    text = String(text);
+    // 1) Escape HTML first => makes it safe
+    text = escapeHtml(text);
 
-    // fallback if libs are missing for any reason
-    if (typeof window.marked === 'undefined' || typeof window.DOMPurify === 'undefined') {
-        return (
-            '<div class="ai-msg ai-msg--bot">' +
-            '  <div class="ai-msg__avatar">AI</div>' +
-            '  <div class="ai-msg__bubble">' + escapeHtml(text) + '</div>' +
-            '</div>'
-        );
+    // 2) Normalize some AI math delimiters (optional)
+    text = text
+        .replace(/\\\(/g, '(').replace(/\\\)/g, ')')
+        .replace(/\\\[/g, '[').replace(/\\\]/g, ']');
+
+    // 3) Extract fenced code blocks first (``` ... ```)
+    //    Replace them with placeholders so formatting doesn't touch inside
+    const codeBlocks = [];
+    text = text.replace(/```([\s\S]*?)```/g, function (_, code) {
+        const idx = codeBlocks.length;
+        codeBlocks.push(code);
+        return `@@CODEBLOCK_${idx}@@`;
+    });
+
+    // 4) Inline code `code`
+    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+    // 5) Bold **text**
+    text = text.replace(/\*\*([^\n*][\s\S]*?)\*\*/g, '<strong>$1</strong>');
+
+    // 6) Italic *text*  (simple, avoids ** conflict)
+    text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+    // 7) Links [label](url)
+    //    Only allow http(s) to keep it safe
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, label, url) {
+        url = url.trim();
+        if (!/^https?:\/\//i.test(url)) return label; // drop unsafe urls
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+
+    // 8) Unordered lists: lines starting with "- " or "* "
+    //    We'll build <ul> blocks
+    const lines = text.split('\n');
+    let out = [];
+    let inUl = false;
+
+    function closeUl() {
+        if (inUl) {
+            out.push('</ul>');
+            inUl = false;
+        }
     }
 
-    // optional: normalize \(...\) etc
-    text = text
-        .replace(/\\\(/g, '(')
-        .replace(/\\\)/g, ')')
-        .replace(/\\\[/g, '[')
-        .replace(/\\\]/g, ']');
+    lines.forEach(line => {
+        const m = line.match(/^\s*[-*]\s+(.*)$/);
+        if (m) {
+            if (!inUl) { out.push('<ul>'); inUl = true; }
+            out.push('<li>' + m[1] + '</li>');
+        } else {
+            closeUl();
+            // paragraph-ish: keep line breaks
+            out.push(line);
+        }
+    });
+    closeUl();
 
-    var html = marked.parse(text, { breaks: true, gfm: true });
-    html = DOMPurify.sanitize(html);
+    text = out.join('\n');
+
+    // 9) Convert remaining newlines to <br> (keeps your “chat” feel)
+    text = text.replace(/\n/g, '<br>');
+
+    // 10) Restore code blocks as <pre><code>
+    //     IMPORTANT: code was already escaped in step (1), so safe.
+    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, function (_, n) {
+        const code = codeBlocks[Number(n)] ?? '';
+        // also convert newlines inside code to <br>? No: use <pre> and keep them raw.
+        // We escaped HTML already, so we can safely un-<br> it by using original escaped code.
+        const escapedCode = escapeHtml(code);
+        return `<pre><code>${escapedCode}</code></pre>`;
+    });
+
+    return text;
+}
+ 
+
+function renderBot(text) {
+    const html = simpleMarkdownToHtml(text);
 
     return (
         '<div class="ai-msg ai-msg--bot">' +

@@ -66,3 +66,5 @@ if (FatApp::getConfig('conf_auto_restore_on', FatUtility::VAR_INT, 1) && MyUtili
 <body class="course-leaner">
     <page class="page">
         <main class="page-container">
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
