@@ -48,6 +48,7 @@ $(function () {
 
     // 3) Inline code `code`
     text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+     text = text.replace(/\\?frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1/$2)');
   text = text.replace(/\\([a-zA-Z])/g, '$1');
     // 4) Bold **text**
     text = text.replace(/\*\*([^\n*][\s\S]*?)\*\*/g, '<strong>$1</strong>');
