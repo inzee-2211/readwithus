@@ -20,6 +20,14 @@ $(function () {
         .replace(/\\+\)/g, ')')
         .replace(/\\+\[/g, '[')
         .replace(/\\+\]/g, ']')
+          .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\pm/g, '±')
+    .replace(/\\leq/g, '≤')
+    .replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\approx/g, '≈')
 
         // Optional: remove escaping of markdown tokens like \*\*bold\*\*
         .replace(/\\([*_`~])/g, '$1')
@@ -40,7 +48,7 @@ $(function () {
 
     // 3) Inline code `code`
     text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-
+  text = text.replace(/\\([a-zA-Z])/g, '$1');
     // 4) Bold **text**
     text = text.replace(/\*\*([^\n*][\s\S]*?)\*\*/g, '<strong>$1</strong>');
 
