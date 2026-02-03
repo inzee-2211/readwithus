@@ -38,7 +38,11 @@ $(function () {
     // 2) Normalize some AI math delimiters (optional)
     text = text
         .replace(/\\\(/g, '(').replace(/\\\)/g, ')')
-        .replace(/\\\[/g, '[').replace(/\\\]/g, ']');
+        .replace(/\\\[/g, '[').replace(/\\\]/g, ']')
+           .replace(/\\+\(/g, '(')
+            .replace(/\\+\)/g, ')')
+            .replace(/\\+\[/g, '[')
+            .replace(/\\+\]/g, ']')
 
     // 3) Extract fenced code blocks first (``` ... ```)
     //    Replace them with placeholders so formatting doesn't touch inside
@@ -49,7 +53,7 @@ $(function () {
         return `@@CODEBLOCK_${idx}@@`;
     });
 
-    // 4) Inline code `code`
+    // 4) Inline code `code`WWWW
     text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
     // 5) Bold **text**
