@@ -393,6 +393,39 @@ function isProbablyImage(v) {
     s.includes('/public/')
   );
 }
+function showMathKeyboardTutorialOnce() {
+  // show only for math subject
+  if (!window.RWU_IS_MATH_SUBJECT) return;
+
+  // once per session/tab
+  if (sessionStorage.getItem('RWU_MATH_KB_TUTORIAL_SHOWN') === '1') return;
+
+  sessionStorage.setItem('RWU_MATH_KB_TUTORIAL_SHOWN', '1');
+
+  Swal.fire({
+    icon: 'info',
+    title: 'How to type answers',
+    html: `
+      <div style="text-align:left; line-height:1.5">
+        <p><b>Math Keyboard has multiple modes:</b></p>
+        <ol>
+          <li>Click the <b>☰ (hamburger)</b> icon on the keyboard</li>
+          <li>Select <b>Text mode</b> if you want to type normal words</li>
+         
+          <li>Select <b>Math mode</b> when you want formulas (fractions, powers, etc.)</li>
+           <p style="margin-top:3px; color:#6b7280; font-size:11px">
+           Math mode is pre-selected .
+        </p>
+        </ol>
+        <p style="margin-top:8px; color:#6b7280; font-size:13px">
+          Tip: If your typing turns into math symbols, switch to <b>Text mode</b>.
+        </p>
+      </div>
+    `,
+    confirmButtonText: 'Got it',
+    confirmButtonColor: '#2DADFF',
+  });
+}
 
 function normalizeQuestions(rows) {
   return (rows || []).map(function (q) {
@@ -514,8 +547,11 @@ function fetchQuestions() {
 
     // ✅ only init math when subject is math
     if (isMathSubject) {
-      setTimeout(() => window.RWUMath?.initFields?.(), 0);
-    }
+  setTimeout(() => {
+    window.RWUMath?.initFields?.();
+    showMathKeyboardTutorialOnce();   // ✅ here
+  }, 0);
+}
   } else {
     alert(response?.message || response?.msg || "No questions found.");
     window.history.back();
