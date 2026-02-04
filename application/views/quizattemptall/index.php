@@ -410,10 +410,24 @@ opts = opts
 
     // New API: {type, value}
     if (o && typeof o === 'object') {
+      // const type = String(o.type || 'text').trim().toLowerCase();
+      // const value = String(o.value || o.url || '').trim();
+      // if (!value) return null;
+      // return { type: type === 'image' ? 'image' : 'text', value };
       const type = String(o.type || 'text').trim().toLowerCase();
-      const value = String(o.value || o.url || '').trim();
-      if (!value) return null;
-      return { type: type === 'image' ? 'image' : 'text', value };
+
+// ✅ preserve 0
+let rawVal = '';
+if (o && typeof o === 'object') {
+  if ('value' in o) rawVal = o.value;          // can be 0
+  else if ('url' in o) rawVal = o.url;
+}
+const value = String(rawVal).trim();
+
+if (value === '') return null;
+
+return { type: type === 'image' ? 'image' : 'text', value };
+
     }
 
     return null;
