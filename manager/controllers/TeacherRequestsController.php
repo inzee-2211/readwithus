@@ -207,8 +207,8 @@ class TeacherRequestsController extends AdminBaseController
                 'user_video_link' => $requestRow['tereq_video_link'],
                 'user_dashboard'      => User::TEACHER,
                 'user_registered_as' => $registeredAs,
-                'teacher_wallet_balance' => 0,
-                'user_wallet_balance' => 0,
+                // 'teacher_wallet_balance' => 0,
+                // 'user_wallet_balance' => 0,
             ];
             $userSetting = new UserSetting($requestRow['tereq_user_id']);
             if (!$userSetting->saveData($data)) {
