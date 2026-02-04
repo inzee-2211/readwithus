@@ -665,12 +665,26 @@ function normalizeQuestions(rows) {
         }
 
         // new API: {type,value} or {url}
-        if (o && typeof o === 'object') {
-          const type = String(o.type || 'text').trim().toLowerCase();
-          const value = String(o.value || o.url || '').trim();
-          if (!value) return null;
-          return { type: (type === 'image') ? 'image' : 'text', value };
-        }
+        // if (o && typeof o === 'object') {
+        //   const type = String(o.type || 'text').trim().toLowerCase();
+        //   const value = String(o.value || o.url || '').trim();
+        //   if (!value) return null;
+        //   return { type: (type === 'image') ? 'image' : 'text', value };
+        // }
+// new API: {type,value} or {url}
+if (o && typeof o === 'object') {
+  const type = String(o.type || 'text').trim().toLowerCase();
+
+  // ✅ preserve 0 (number)
+  let rawVal = '';
+  if ('value' in o) rawVal = o.value;     // can be 0
+  else if ('url' in o) rawVal = o.url;
+
+  const value = String(rawVal).trim();
+  if (value === '') return null;
+
+  return { type: (type === 'image') ? 'image' : 'text', value };
+}
 
         return null;
       })
