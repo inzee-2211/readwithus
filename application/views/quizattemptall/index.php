@@ -786,7 +786,12 @@ if (optObj && optObj.type === 'image') {
   img.className = "qz-opt-img";
   contentSpan.appendChild(img);
 } else {
-  contentSpan.textContent = (optObj && optObj.value) ? optObj.value : '';
+  contentSpan.textContent =
+  (optObj && optObj.value !== undefined && optObj.value !== null)
+    ? String(optObj.value)
+    : '';
+
+  // contentSpan.textContent = (optObj && optObj.value) ? optObj.value : '';
 }
 
 label.appendChild(tick);
