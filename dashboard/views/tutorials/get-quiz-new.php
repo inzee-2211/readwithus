@@ -57,11 +57,23 @@
     overflow: visible;      /* ✅ no inner scrolling */
     width: 100%;            /* ✅ full width */
   }
-  .quiz-container{
-  background:#ffffff; border:1px solid #e8edf3; border-radius:16px; padding:16px 16px 6px;
-  width: 100%;
+  /* ====== Questions panel ====== */
+.quiz-container{
+  background:#ffffff;
+  border:1px solid #e8edf3;
+  border-radius:16px;
+  padding:16px 16px 6px;
+  width: 100%;           /* ✅ fluid */
+  max-width: 600px;      /* ✅ cap at 800 */
+  margin-inline: auto;   /* ✅ center when there is space */
   box-shadow:0 10px 24px rgba(17,24,39,.04);
 }
+
+/* If you want it centered inside the grid column explicitly */
+.qz-shell > .quiz-container{
+  justify-self: center;  /* ✅ centers in the grid cell */
+}
+
 
 }
 
@@ -142,11 +154,23 @@
 .qz-btn-secondary{ background:#f3f4f6; color:#111827; border-color:#e5e7eb; }
 
 /* ====== Questions panel ====== */
+/* ====== Questions panel ====== */
 .quiz-container{
-  background:#ffffff; border:1px solid #e8edf3; border-radius:16px; padding:16px 16px 6px;
-  width: 800px;
+  background:#ffffff;
+  border:1px solid #e8edf3;
+  border-radius:16px;
+  padding:16px 16px 6px;
+  width: 100%;           /* ✅ fluid */
+  max-width: 800px;      /* ✅ cap at 800 */
+  margin-inline: auto;   /* ✅ center when there is space */
   box-shadow:0 10px 24px rgba(17,24,39,.04);
 }
+
+/* If you want it centered inside the grid column explicitly */
+.qz-shell > .quiz-container{
+  justify-self: center;  /* ✅ centers in the grid cell */
+}
+
 .quiz-header{ padding:2px 6px 10px; border-radius:8px 8px 0 0; }
 .quiz-body{ padding:6px 4px 2px; }
 @media (max-width: 520px){
