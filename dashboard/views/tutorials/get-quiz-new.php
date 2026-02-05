@@ -49,7 +49,7 @@
   background:#fff7ed; border:1px solid #fde7c7; color:#8a4b10;
   border-radius:10px; padding:10px 12px; font-weight:700;
 }
-@media (max-width: 1100px){
+@media (max-width: 1280px){
   .qz-side{
     position: relative;     /* ✅ stop sticky on small screens */
     top: auto;
@@ -57,7 +57,14 @@
     overflow: visible;      /* ✅ no inner scrolling */
     width: 100%;            /* ✅ full width */
   }
+  .quiz-container{
+  background:#ffffff; border:1px solid #e8edf3; border-radius:16px; padding:16px 16px 6px;
+  width: 100%;
+  box-shadow:0 10px 24px rgba(17,24,39,.04);
 }
+
+}
+
 @media (max-width: 520px){
   .quiz-container{ padding: 12px 12px 6px; border-radius: 14px; }
   .quiz-question{ padding: 12px; }
