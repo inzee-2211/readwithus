@@ -297,6 +297,34 @@ if (empty($allSubjectIds)) {
     $srch->setPageNumber($post['page']);
 
     $courses = $srch->fetchAndFormat();
+// ✅ Ensure action permissions are always available for the view (teacher side)
+if ($this->siteUserType == User::TEACHER && !empty($courses)) {
+    foreach ($courses as &$course) {
+        $courseId = (int)($course['course_id'] ?? 0);
+        if ($courseId < 1) {
+            $course['can_edit_course'] = false;
+            $course['can_delete_course'] = false;
+            continue;
+        }
+
+        // Use existing backend authorization rules (owner + active + valid)
+        $courseObj = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
+
+        $canEdit = $courseObj->canEditCourse();
+
+        // Show Edit regardless of status, as long as user has access
+        $course['can_edit_course'] = $canEdit;
+
+        // Optional: keep delete restricted if you want (safer default)
+        // If you want delete only for drafted (recommended):
+        $status = (int)($course['course_status'] ?? 0);
+        $course['can_delete_course'] = ($canEdit && $status == Course::DRAFTED);
+
+        // If your UI expects cancel etc. you can set them too (safe defaults)
+        $course['can_cancel_course'] = $course['can_cancel_course'] ?? false;
+    }
+    unset($course);
+}
 
     $this->sets([
         'courses'        => $courses,
