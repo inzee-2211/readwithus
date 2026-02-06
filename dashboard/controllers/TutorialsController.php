@@ -2562,37 +2562,30 @@ private function getLectureContext(int $lectureId): ?array
  */
 private function buildCtaHtml(string $interventionStage, array $quizStats): string
 {
-    $tutorUrl = CONF_WEBROOT_FRONT_URL . 'teachers';
+    $tutorUrl  = CONF_WEBROOT_FRONT_URL . 'teachers';
     $bundleUrl = CONF_WEBROOT_FRONT_URL . 'lesson-bundles';
 
-    // Don't show CTA if user has passed the quiz
-    if ($quizStats['has_passed']) {
+    if (!empty($quizStats['has_passed'])) {
         return '';
     }
 
-    switch ($interventionStage) {
-        case 'tutor':
-            return '<div class="aiTutor-cta" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-                    <p style="margin: 0 0 8px 0; font-weight: 500;">💡 <strong>Extra Support Available</strong></p>
-                    <p style="margin: 0 0 12px 0; font-size: 14px;">You\'ve attempted this quiz ' . $quizStats['failed_attempts'] . ' times. A 1-to-1 tutor can help you master this topic.</p>
-                    <a class="btn btn--primary btn--sm" href="' . $tutorUrl . '" target="_blank" style="text-decoration: none;">
-                        ' . Label::getLabel('LBL_FIND_A_TUTOR') . '
-                    </a>
-                </div>';
-                
-        case 'bundle':
-            return '<div class="aiTutor-cta" style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-                    <p style="margin: 0 0 8px 0; font-weight: 500;">🎯 <strong>Structured Learning Recommended</strong></p>
-                    <p style="margin: 0 0 12px 0; font-size: 14px;">You\'ve attempted this quiz ' . $quizStats['failed_attempts'] . ' times. A 5-lesson bundle provides focused support to help you succeed.</p>
-                    <a class="btn btn--warning btn--sm" href="' . $bundleUrl . '" target="_blank" style="text-decoration: none;">
-                        ' . Label::getLabel('LBL_BOOK_5_LESSON_BUNDLE') . '
-                    </a>
-                </div>';
-                
-        default:
-            return '';
+    $failed = (int)($quizStats['failed_attempts'] ?? 0);
+
+    if ($interventionStage === 'tutor') {
+        return "**💡 Extra Support Available**\n\n"
+            . "You’ve attempted this quiz **{$failed}** time(s). A 1-to-1 tutor can help you master this topic.\n\n"
+            . "[Find a Tutor]({$tutorUrl})";
     }
+
+    if ($interventionStage === 'bundle') {
+        return "**🎯 Structured Learning Recommended**\n\n"
+            . "You’ve attempted this quiz **{$failed}** time(s). A 5-lesson bundle provides focused support to help you succeed.\n\n"
+            . "[Book 5-Lesson Bundle]({$bundleUrl})";
+    }
+
+    return '';
 }
+
 
 /**
  * Check if user query is progress-related
