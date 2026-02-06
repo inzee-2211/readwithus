@@ -220,6 +220,25 @@
   border-color: #bbf7d0;
   color: #065f46;
 }
+/* ✅ User message row should push content to the right */
+/* .ai-msg--user{
+  justify-content: flex-end;
+} */
+
+/* ✅ User bubble should wrap content only (not full width) */
+.ai-msg--user .ai-msg__bubble{
+  flex: 0 1 auto;            /* do NOT grow */
+  width: fit-content;        /* shrink to content */
+  max-width: 75%;            /* limit bubble width (adjust to taste) */
+  min-width: 0;
+
+  overflow-wrap: anywhere;   /* breaks long strings like aaaaa... */
+  word-break: break-word;    /* fallback */
+}
+
+/* keep this for flex shrink issues */
+.ai-msg{ min-width: 0; }
+
 
 /* Composer */
 .aiTutor__composer {
