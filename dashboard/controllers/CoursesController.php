@@ -485,6 +485,10 @@ if (empty($allSubjectIds)) {
         if (!$course->canEditCourse()) {
             FatUtility::dieWithError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         if (empty($_FILES['course_image']['name']) && empty($_FILES['course_preview_video']['name'])) {
             FatUtility::dieJsonError(Label::getLabel('LBL_NO_MEDIA_SELECTED'));
         }
@@ -516,6 +520,10 @@ if (empty($allSubjectIds)) {
         if (!$course->canEditCourse()) {
             FatUtility::dieWithError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         $type = FatApp::getPostedData('type');
         $file = new Afile($type);
         if (!$file->removeFile($courseId, 0, true)) {
@@ -541,6 +549,10 @@ if (empty($allSubjectIds)) {
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         /* get form and fill */
         $frm = $this->getIntendedLearnersForm();
         $frm->fill(['course_id' => $courseId]);
@@ -576,6 +588,10 @@ public function setupIntendedLearners()
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
 
         // Clean and validate the data before processing
         $cleanedData = $this->cleanIntendedLearnersData($post);
@@ -698,6 +714,10 @@ private function cleanIntendedLearnersData(array $post): array
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         $intended = new IntendedLearner($indLearnerId);
         if (!$intended->delete()) {
             FatUtility::dieJsonError($intended->getError());
@@ -725,6 +745,9 @@ private function cleanIntendedLearnersData(array $post): array
             FatUtility::dieJsonError($courseObj->getError());
         }
         $data = array_merge($data, $course);
+if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($courseObj->getError());
+}
 
         /* get form and fill */
         $frm = $this->getPriceForm();
@@ -796,6 +819,10 @@ private function cleanIntendedLearnersData(array $post): array
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         /* get form and fill */
         $frm = $this->getCurriculumForm();
         $frm->fill(['course_id' => $courseId]);
@@ -822,6 +849,10 @@ private function cleanIntendedLearnersData(array $post): array
         if (!$course->canEditCourse()) {
             FatUtility::dieJsonError($course->getError());
         }
+        if (!$course->resetToDraftForReapprovalIfNeeded()) {
+    FatUtility::dieJsonError($course->getError());
+}
+
         /* create form data */
         $data = [
             'course_id' => $courseId,

@@ -88,17 +88,60 @@ class Course extends MyAppModel
                 $this->error = Label::getLabel('LBL_INVALID_REQUEST');
                 return false;
             }
-            if (static::SUBMITTED == $course['course_status']) {
-                $this->error = Label::getLabel('LBL_ACTION_NOT_ALLOWED._COURSE_APPROVAL_REQUEST_IS_IN_PROCESS');
-                return false;
-            }
-            if (static::PUBLISHED == $course['course_status']) {
-                $this->error = Label::getLabel('LBL_ACTION_NOT_ALLOWED._COURSE_IS_ALREADY_PUBLISHED');
-                return false;
-            }
+            // if (static::SUBMITTED == $course['course_status']) {
+            //     $this->error = Label::getLabel('LBL_ACTION_NOT_ALLOWED._COURSE_APPROVAL_REQUEST_IS_IN_PROCESS');
+            //     return false;
+            // }
+            // if (static::PUBLISHED == $course['course_status']) {
+            //     $this->error = Label::getLabel('LBL_ACTION_NOT_ALLOWED._COURSE_IS_ALREADY_PUBLISHED');
+            //     return false;
+            // }
         }
         return true;
     }
+/**
+ * If course is SUBMITTED or PUBLISHED and teacher edits anything,
+ * reset it back to DRAFTED so it must be re-submitted for approval.
+ * Also, remove any pending approval requests to avoid duplicates.
+ */
+public function resetToDraftForReapprovalIfNeeded(): bool
+{
+    $courseId = $this->getMainTableRecordId();
+    if ($courseId < 1) return true;
+
+    $course = static::getAttributesById($courseId, ['course_status', 'course_user_id']);
+    if (!$course) return true;
+
+    // Only owner-triggered (safety)
+    if ((int)$course['course_user_id'] !== (int)$this->userId) {
+        $this->error = Label::getLabel('LBL_UNAUTHORIZED_ACCESS');
+        return false;
+    }
+
+    // Only when it was already submitted or published
+    if ((int)$course['course_status'] !== static::SUBMITTED && (int)$course['course_status'] !== static::PUBLISHED) {
+        return true;
+    }
+
+    $db = FatApp::getDb();
+
+    // 1) Remove any pending approval requests for this course (prevents duplicates)
+    $db->deleteRecords(
+        static::DB_TBL_APPROVAL_REQUEST,
+        ['smt' => 'coapre_course_id = ? AND coapre_status = ?', 'vals' => [$courseId, static::REQUEST_PENDING]]
+    );
+
+    // 2) Reset course back to drafted + update timestamp
+    $this->setFldValue('course_status', static::DRAFTED);
+    $this->setFldValue('course_updated', date('Y-m-d H:i:s'));
+
+    if (!$this->save()) {
+        $this->error = $this->getError();
+        return false;
+    }
+
+    return true;
+}
 
     /**
      * GetCourse Status List
@@ -427,6 +470,10 @@ public static function getCourseLevels(int $key = null)
         if (!$this->canEditCourse()) {
             return false;
         }
+        if (!$this->resetToDraftForReapprovalIfNeeded()) {
+    return false;
+}
+
         /* validate data */
         if (!$this->validate($data)) {
             return false;
@@ -551,6 +598,10 @@ public static function getCourseLevels(int $key = null)
     if (!$this->canEditCourse()) {
         return false;
     }
+    if (!$this->resetToDraftForReapprovalIfNeeded()) {
+    return false;
+}
+
     
     $db = FatApp::getDb();
     if (!$db->startTransaction()) {
