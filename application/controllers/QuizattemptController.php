@@ -132,6 +132,8 @@ private function rwuNormalizeMath(string $text): string
 
     // Clean latex power braces: x^{2} => x^2
     $text = preg_replace('/\^\s*\{\s*([^{}]+)\s*\}/u', '^$1', $text);
+// Clean parenthesized integer powers: 10^(7) -> 10^7, 10^(-2) -> 10^-2, x^(3) -> x^3
+$text = preg_replace('/\^\s*\(\s*([+-]?\d+)\s*\)/u', '^$1', $text);
 
     // 5) Collapse whitespace
     $text = preg_replace('/\s+/u', ' ', trim($text));
@@ -146,7 +148,22 @@ private function rwuNormalizeMath(string $text): string
         $top = ($whole * $den) + $num;
         return $top . '/' . $den;
     }, $text);
+// Convert various 10^ formats to consistent *10^
+$text = preg_replace_callback('/(\d+(?:\.\d+)?)\s*(?:×|\*)?\s*10\s*[\^\^]\s*\(?\s*([+-]?\d+)\s*\)?/u', function($matches) {
+    return $matches[1] . '*10^' . $matches[2];
+}, $text);
 
+// Handle 10⁻² style unicode superscripts (already handled by supMap, but ensure it creates *10^ format)
+$text = preg_replace_callback('/(10)\s*([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)/u', function($m) use ($supMap) {
+    $base = $m[1];
+    $sup = $m[2];
+    $out = '';
+    $chars = preg_split('//u', $sup, -1, PREG_SPLIT_NO_EMPTY);
+    foreach ($chars as $ch) {
+        $out .= $supMap[$ch] ?? '';
+    }
+    return $base . '^' . $out;
+}, $text);
     // 7) Convert numeric multiply forms:
     // 2 x 3 => 2*3  (letter x between digits)
     $text = preg_replace('/(\d)\s*x\s*(\d)/u', '$1*$2', $text);
@@ -231,69 +248,39 @@ private function rwuCanonicalizePrimeProduct(string $expr): ?string
 private function rwuIsMathCorrect(string $userAnswer, string $correctAnswer): bool
 {
     $u = $this->rwuNormalizeMath($userAnswer);
-
+    
     $alts = array_map('trim', explode('|', (string)$correctAnswer));
     $alts = array_values(array_filter($alts, fn($x) => $x !== ''));
-
+    
     if (empty($alts)) return ($u === '');
-
-    // Canonical (prime factor product) form for user
-    $uCanon = $this->rwuCanonicalizePrimeProduct($u);
-
+    
+    // First try exact normalized match
     foreach ($alts as $alt) {
         $c = $this->rwuNormalizeMath($alt);
         if ($c !== '' && $u === $c) return true;
-
-        // If both are prime-factor products, compare canonical forms
-        $cCanon = $this->rwuCanonicalizePrimeProduct($c);
-        if ($uCanon !== null && $cCanon !== null && $uCanon === $cCanon) {
+    }
+    
+    // Then try prime factor product match
+    $uCanon = $this->rwuCanonicalizePrimeProduct($u);
+    if ($uCanon !== null) {
+        foreach ($alts as $alt) {
+            $c = $this->rwuNormalizeMath($alt);
+            $cCanon = $this->rwuCanonicalizePrimeProduct($c);
+            if ($cCanon !== null && $uCanon === $cCanon) {
+                return true;
+            }
+        }
+    }
+    
+    // Finally try numeric tolerance comparison
+    foreach ($alts as $alt) {
+        if ($this->rwuIsNumericApproxEqual($userAnswer, $alt)) {
             return true;
         }
     }
-// If exact compare failed, try numeric-approx compare (rounding tolerance)
-foreach ($alts as $alt) {
-    $cRaw = (string)$alt;
-
-    // numeric tolerance for rounding / sig figs / standard form
-    if ($this->rwuIsNumericApproxEqual($userAnswer, $cRaw)) {
-        return true;
-    }
-}
-
+    
     return false;
 }
-/**
- * True only if correct_answer is an MCQ key like: "A" or "A,B" or "A, D"
- * (strictly A-D tokens; prevents numeric/scientific answers from entering MCQ branch)
- */
-private function rwuIsMcqKey(string $correctAnswer): bool
-{
-    $s = strtoupper(trim((string)$correctAnswer));
-    if ($s === '') return false;
-
-    // Allow comma-separated A-D only (no other chars)
-    // Examples allowed: "A", "A,B", "A, D", "B,C,D"
-    return (bool)preg_match('/^(?:[A-D])(?:\s*,\s*[A-D])*$/', $s);
-}
-
-/**
- * Detect if student's submitted answer is an MCQ choice list (A-D)
- */
-private function rwuUserAnswerLooksMcq($userAnswer): bool
-{
-    $arr = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-    $arr = array_values(array_filter(array_map(function ($x) {
-        return strtoupper(trim((string)$x));
-    }, $arr), fn($x) => $x !== ''));
-
-    if (empty($arr)) return false;
-
-    foreach ($arr as $tok) {
-        if (!preg_match('/^[A-D]$/', $tok)) return false;
-    }
-    return true;
-}
-
 /**
  * Batch AI grading for fallback (single API call).
  * Returns: [questionId => bool] for those graded, missing ids mean "no change".
@@ -323,10 +310,8 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
 ."3) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
 ."4) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
 ."5) Allow minor spelling mistakes and direct synonyms only when meaning is unchanged.\n"
-."6) If expected is numerical (including standard form / scientific notation), accept a student answer that matches within reasonable rounding tolerance implied by the student's or expected precision (e.g., last stated digit / significant figures).\n. Do NOT accept if outside that tolerance."
-."7) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
-."8) Do NOT guess. Do NOT award credit for related concepts.\n\n"
-
+."6) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
+."7) Do NOT guess. Do NOT award credit for related concepts.\n\n"
 ."DATA:\n"
 . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
@@ -359,7 +344,7 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
 
     if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
         error_log("AI_FAIL http=$httpCode curlErr=$curlErr resp=" . substr((string)$response, 0, 800));
-        // die;
+        die;
         return []; // fallback silently
     }
 
@@ -854,78 +839,70 @@ private function rwuParseNumericWithTolerance(string $expr): ?array
     $expr = $this->rwuNormalizeMath($expr);
     if ($expr === '') return null;
 
-    // Remove outer spaces already done. Convert "×10^" variants were normalized to "*10^" by rwuNormalizeMath.
-    // Accept:  -3.48*10^-7   or  -3.48e-7   or  -3.48E-7
-    // Also accept: 3/4 (simple fraction)
-
-    // 1) simple fraction a/b (no other operators)
-    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\/([+-]?\d+(?:\.\d+)?)$/u', $expr, $m)) {
+    // 1) First try to parse as standard form with various patterns
+    // Pattern 1: mantissa * 10^exp (with optional * and spacing)
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\s*\*?\s*10\s*\^\s*([+-]?\d+)$/u', $expr, $m)) {
+        $mant = (float)$m[1];
+        $exp = (int)$m[2];
+        $val = $mant * pow(10, $exp);
+        
+        $decimals = $this->rwuCountDecimals($m[1]);
+        $tol = 0.5 * pow(10, $exp - $decimals);
+        $tol = max($tol, 1e-12);
+        
+        return ['value' => $val, 'tol' => $tol];
+    }
+    
+    // Pattern 2: e-notation (3.48e-7 or 3.48E-7)
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\s*[eE]\s*([+-]?\d+)$/u', $expr, $m)) {
+        $mant = (float)$m[1];
+        $exp = (int)$m[2];
+        $val = $mant * pow(10, $exp);
+        
+        $decimals = $this->rwuCountDecimals($m[1]);
+        $tol = 0.5 * pow(10, $exp - $decimals);
+        $tol = max($tol, 1e-12);
+        
+        return ['value' => $val, 'tol' => $tol];
+    }
+    
+    // Pattern 3: ×10^ with unicode (from rwuNormalizeMath, this becomes *10^)
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\s*\*\s*10\s*\^\s*([+-]?\d+)$/u', $expr, $m)) {
+        $mant = (float)$m[1];
+        $exp = (int)$m[2];
+        $val = $mant * pow(10, $exp);
+        
+        $decimals = $this->rwuCountDecimals($m[1]);
+        $tol = 0.5 * pow(10, $exp - $decimals);
+        $tol = max($tol, 1e-12);
+        
+        return ['value' => $val, 'tol' => $tol];
+    }
+    
+    // 2) Simple fraction a/b
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\s*\/\s*([+-]?\d+(?:\.\d+)?)$/u', $expr, $m)) {
         $a = (float)$m[1];
         $b = (float)$m[2];
         if ($b == 0.0) return null;
         $val = $a / $b;
-
-        // tolerance: based on decimal precision of inputs (rough but safe)
+        
         $da = $this->rwuCountDecimals($m[1]);
         $db = $this->rwuCountDecimals($m[2]);
-        $tol = max(
-            0.5 * pow(10, -$da),
-            0.5 * pow(10, -$db),
-            1e-12
-        );
+        $tol = max(0.5 * pow(10, -$da), 0.5 * pow(10, -$db), 1e-12);
         return ['value' => $val, 'tol' => $tol];
     }
-
-    // 2) standard form: mantissa*10^exp
-    if (preg_match('/^([+-]?\d+(?:\.\d+)?)(?:\*10\^([+-]?\d+))$/u', $expr, $m)) {
-        $mant = $m[1];
-        $exp  = (int)$m[2];
-
-        $mantVal = (float)$mant;
-        $val = $mantVal * pow(10, $exp);
-
-        $decimals = $this->rwuCountDecimals($mant);
-        // tolerance = half of the last-place unit in the final value
-        // e.g. 3.48*10^-7 -> decimals=2 => tol=0.5*10^(-7-2)=5e-10
-        $tol = 0.5 * pow(10, $exp - $decimals);
-
-        // safety floor for floats
-        $tol = max($tol, 1e-12);
-
-        return ['value' => $val, 'tol' => $tol];
-    }
-
-    // 3) e-notation: 3.48e-7 or 3.48E-7 or "3.48e^-7" (normalize)
-    $expr2 = str_replace('e^', 'e', $expr);
-    if (preg_match('/^([+-]?\d+(?:\.\d+)?)[eE]([+-]?\d+)$/u', $expr2, $m)) {
-        $mant = $m[1];
-        $exp  = (int)$m[2];
-
-        $mantVal = (float)$mant;
-        $val = $mantVal * pow(10, $exp);
-
-        $decimals = $this->rwuCountDecimals($mant);
-        $tol = 0.5 * pow(10, $exp - $decimals);
-        $tol = max($tol, 1e-12);
-
-        return ['value' => $val, 'tol' => $tol];
-    }
-
-    // 4) plain number (integer/decimal)
+    
+    // 3) Plain number
     if (preg_match('/^([+-]?\d+(?:\.\d+)?)$/u', $expr, $m)) {
-        $num = $m[1];
-        $val = (float)$num;
-
-        $decimals = $this->rwuCountDecimals($num);
+        $val = (float)$m[1];
+        $decimals = $this->rwuCountDecimals($m[1]);
         $tol = 0.5 * pow(10, -$decimals);
         $tol = max($tol, 1e-12);
-
         return ['value' => $val, 'tol' => $tol];
     }
-
+    
     return null;
 }
-
 private function rwuCountDecimals(string $numStr): int
 {
     $numStr = (string)$numStr;
@@ -939,23 +916,36 @@ private function rwuCountDecimals(string $numStr): int
  */
 private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr): bool
 {
-    $u = $this->rwuParseNumericWithTolerance($userExpr);
-    $c = $this->rwuParseNumericWithTolerance($correctExpr);
-    if (!$u || !$c) return false;
-
-    $uv = (float)$u['value'];
-    $cv = (float)$c['value'];
-
-    // Use the larger tolerance (accept rounding either way)
-    $tol = max((float)$u['tol'], (float)$c['tol']);
-
-    // Also add a tiny relative tolerance for safety with floating error
-    $rel = max(abs($cv), 1.0) * 1e-12;
+    // First normalize both expressions
+    $uNorm = $this->rwuNormalizeMath($userExpr);
+    $cNorm = $this->rwuNormalizeMath($correctExpr);
+    
+    // Try parsing both as numbers
+    $uParsed = $this->rwuParseNumericWithTolerance($uNorm);
+    $cParsed = $this->rwuParseNumericWithTolerance($cNorm);
+    
+    // If either can't be parsed, they're not numeric
+    if (!$uParsed || !$cParsed) {
+        return false;
+    }
+    
+    $uv = (float)$uParsed['value'];
+    $cv = (float)$cParsed['value'];
+    
+    // Use the larger tolerance
+    $tol = max((float)$uParsed['tol'], (float)$cParsed['tol']);
+    
+    // Add relative tolerance for floating point errors
+    $rel = max(abs($cv), abs($uv), 1.0) * 1e-12;
     $tol = max($tol, $rel);
-
+    
+    // Special case: if both are very close to zero
+    if (abs($uv) < 1e-12 && abs($cv) < 1e-12) {
+        return true;
+    }
+    
     return abs($uv - $cv) <= $tol;
 }
-
 
 
 
@@ -1065,137 +1055,132 @@ $qt = str_replace(["–","—","_"], "-", $qt);        // normalize dash/undersc
 $qt = preg_replace('/\s+/', '-', $qt);            // spaces -> hyphen
 
 
-$uaText = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
 
-// --- NEW: decide grading mode by correct_answer, not question_type ---
-$correctIsMcq = $this->rwuIsMcqKey((string)$correctAnswer);
-$userLooksMcq = $this->rwuUserAnswerLooksMcq($userAnswer);
+    // 1) First try normalization (cheap + no API)
+    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-// Detect math/numeric by content (not by question_type)
-$looksNumeric = ($this->rwuParseNumericWithTolerance($uaText) !== null)
-             || ($this->rwuParseNumericWithTolerance((string)$correctAnswer) !== null);
+  $normCorrect = false;
+if (trim((string)$correctAnswer) !== '') {
 
-$isMath = $this->rwuIsMathType($questionType)
-    || $this->rwuLooksLikeMath($uaText, (string)$correctAnswer, (string)$questionTitle)
-    || $looksNumeric;
+    // ✅ NEW: Detect math even for Story questions using content (ua / correct / title)
+    $isMath = $this->rwuIsMathType($questionType)
+        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
 
-// 1) MCQ ONLY when the correct_answer is truly A/B/C/D AND user submitted A/B/C/D
-if ($correctIsMcq && $userLooksMcq) {
-
-    $correctArray = array_map(function($x){
-        return strtoupper(trim((string)$x));
-    }, explode(',', (string)$correctAnswer));
-    $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
-
-    $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-    $userArray = array_map(function($x){
-        return strtoupper(trim((string)$x));
-    }, $userArray);
-    $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
-
-    sort($correctArray);
-    sort($userArray);
-
-    $isCorrect = ($correctArray === $userArray);
-    $marksObtained = $isCorrect ? $questionMarks : 0;
-
-    $results[] = [
-        'questionId'     => $questionId,
-        'userAnswer'     => $userArray,
-        'correctAnswer'  => $correctArray,
-        'isCorrect'      => $isCorrect,
-        'marksObtained'  => $marksObtained,
-        'explanation'    => '',
-    ];
-
-    // IMPORTANT: no AI fallback for MCQ
-    continue;
-}
-
-// 2) Non-MCQ grading (covers numeric/scientific answers even if UI question_type is MCQ)
-if ($isMath) {
-    // Deterministic math/numeric comparator (includes rounding tolerance)
-    $isCorrect = $this->rwuIsMathCorrect($uaText, (string)$correctAnswer);
-
-    $marksObtained = $isCorrect ? $questionMarks : 0;
-
-    $results[] = [
-        'questionId'     => $questionId,
-        'userAnswer'     => $uaText,
-        'correctAnswer'  => (string)$correctAnswer,
-        'isCorrect'      => $isCorrect,
-        'marksObtained'  => $marksObtained,
-        'explanation'    => '',
-    ];
-    $resultsIndexByQid[$questionId] = count($results) - 1;
-
-    // IMPORTANT: do NOT AI-grade numeric rounding ever
-    continue;
-}
-
-// 3) Open-ended text grading (normalizer, then optional AI fallback)
-// Keep your existing "story/short/text" behavior, BUT: AI only for non-math text.
-$isCorrect = $this->rwuIsTextCorrect($uaText, (string)$correctAnswer, true);
-$marksObtained = $isCorrect ? $questionMarks : 0;
-
-$results[] = [
-    'questionId'     => $questionId,
-    'userAnswer'     => $uaText,
-    'correctAnswer'  => (string)$correctAnswer,
-    'isCorrect'      => $isCorrect,
-    'marksObtained'  => $marksObtained,
-    'explanation'    => '',
-];
-$resultsIndexByQid[$questionId] = count($results) - 1;
-
-// AI fallback: ONLY for open-ended text (NOT for numeric/math)
-if (!$isCorrect) {
-    // optionally restrict further: only story/short/text types
-    if ($qt === 'story-based' || strpos($qt, 'story') !== false
-        || strpos($qt, 'short') !== false
-        || strpos($qt, 'text') !== false
-        || strpos($qt, 'blank') !== false
-        || strpos($qt, 'fill') !== false
-    ) {
-        $aiCandidates[] = [
-            'id' => (int)$questionId,
-            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
-            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
-            'answer'   => $this->rwuTruncate((string)$uaText, 220),
-        ];
+    if ($isMath) {
+        $normCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+    } else {
+        $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
     }
 }
 
 
-//     $isCorrect = $normCorrect;
-// if (!$isCorrect) {
-//     $aiCandidates[] = [
-//         'id' => (int)$questionId,
-//         'q'  => $this->rwuTruncate((string)$questionTitle, 180),
-//         'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
-//         'answer'   => $this->rwuTruncate((string)$ua, 220),
-//     ];
-// }
+    $isCorrect = $normCorrect;
+if (!$isCorrect) {
+    $aiCandidates[] = [
+        'id' => (int)$questionId,
+        'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+        'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+        'answer'   => $this->rwuTruncate((string)$ua, 220),
+    ];
+}
 
   
 
-//     $obtainedMarks = $isCorrect ? $questionMarks : 0;
+    $obtainedMarks = $isCorrect ? $questionMarks : 0;
 
-//     $results[] = [
-//         'questionId'     => $questionId,
-//         'userAnswer'     => $ua,
-//         'correctAnswer'  => (string)$correctAnswer, // keep for records
-//         'isCorrect'      => $isCorrect,
-//         'marksObtained'  => $obtainedMarks,
-//         'explanation'    => '', // ✅ you said: no explanation
-//     ];
-// $resultsIndexByQid[$questionId] = count($results) - 1;
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $ua,
+        'correctAnswer'  => (string)$correctAnswer, // keep for records
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $obtainedMarks,
+        'explanation'    => '', // ✅ you said: no explanation
+    ];
+$resultsIndexByQid[$questionId] = count($results) - 1;
 
 
                 // ... keep your existing ChatGPT grading block EXACTLY as-is ...
 
             }
-            $BUDGET_TOTAL = 800;
+            // -------------------------
+            // 2) Text / Short answer => normalization-based compare
+            // -------------------------
+      else if (
+    strpos($qt, 'short') !== false ||
+    strpos($qt, 'text')  !== false ||
+    strpos($qt, 'blank') !== false ||
+    strpos($qt, 'fill')  !== false
+) {
+    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+
+    $isMath = $this->rwuIsMathType($questionType)
+        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+
+    if ($isMath) {
+        $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+    } else {
+        $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+    }
+
+    $obtainedMarks = $isCorrect ? $questionMarks : 0;
+
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $ua,
+        'correctAnswer'  => $correctAnswer,
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $obtainedMarks,
+        'explanation'    => '',
+    ];
+    $resultsIndexByQid[$questionId] = count($results) - 1;
+
+    // ✅ NEW: send to AI when normalizer fails
+    if (!$isCorrect) {
+        $aiCandidates[] = [
+            'id' => (int)$questionId,
+            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+            'answer'   => $this->rwuTruncate((string)$ua, 220),
+        ];
+    }
+}
+
+         // -------------------------
+            // 3) MCQ => your existing A/B/C/D logic
+            // -------------------------
+            else {
+                $correctArray = array_map(function($x){
+                    return strtoupper(trim((string)$x));
+                }, explode(',', $correctAnswer));
+
+                $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
+
+                $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+                $userArray = array_map(function($x){
+                    return strtoupper(trim((string)$x));
+                }, $userArray);
+
+                $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
+
+                sort($correctArray);
+                sort($userArray);
+
+                $isCorrect = ($correctArray === $userArray);
+                $marksObtained = $isCorrect ? $questionMarks : 0;
+
+                $results[] = [
+                    'questionId'     => $questionId,
+                    'userAnswer'     => $userArray,
+                    'correctAnswer'  => $correctArray,
+                    'isCorrect'      => $isCorrect,
+                    'marksObtained'  => $marksObtained,
+                    'explanation'    => '',
+                ];
+            }
+        }
+// ---- GPT fallback budget control ----
+$BUDGET_TOTAL = 800;
 $MAX_OUT = 200;                 // output cap
 $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
 
@@ -1227,84 +1212,6 @@ if (!empty($selected)) {
         // no explanation
     }
 }
-            // -------------------------
-            // 2) Text / Short answer => normalization-based compare
-            // -------------------------
-//       else if (
-//     strpos($qt, 'short') !== false ||
-//     strpos($qt, 'text')  !== false ||
-//     strpos($qt, 'blank') !== false ||
-//     strpos($qt, 'fill')  !== false
-// ) {
-//     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
-
-//     $isMath = $this->rwuIsMathType($questionType)
-//         || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
-
-//     if ($isMath) {
-//         $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
-//     } else {
-//         $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
-//     }
-
-//     $obtainedMarks = $isCorrect ? $questionMarks : 0;
-
-//     $results[] = [
-//         'questionId'     => $questionId,
-//         'userAnswer'     => $ua,
-//         'correctAnswer'  => $correctAnswer,
-//         'isCorrect'      => $isCorrect,
-//         'marksObtained'  => $obtainedMarks,
-//         'explanation'    => '',
-//     ];
-//     $resultsIndexByQid[$questionId] = count($results) - 1;
-
-//     // ✅ NEW: send to AI when normalizer fails
-//     if (!$isCorrect) {
-//         $aiCandidates[] = [
-//             'id' => (int)$questionId,
-//             'q'  => $this->rwuTruncate((string)$questionTitle, 180),
-//             'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
-//             'answer'   => $this->rwuTruncate((string)$ua, 220),
-//         ];
-//     }
-// }
-
-         // -------------------------
-            // 3) MCQ => your existing A/B/C/D logic
-            // -------------------------
-        //     else {
-        //         $correctArray = array_map(function($x){
-        //             return strtoupper(trim((string)$x));
-        //         }, explode(',', $correctAnswer));
-
-        //         $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
-
-        //         $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-        //         $userArray = array_map(function($x){
-        //             return strtoupper(trim((string)$x));
-        //         }, $userArray);
-
-        //         $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
-
-        //         sort($correctArray);
-        //         sort($userArray);
-
-        //         $isCorrect = ($correctArray === $userArray);
-        //         $marksObtained = $isCorrect ? $questionMarks : 0;
-
-        //         $results[] = [
-        //             'questionId'     => $questionId,
-        //             'userAnswer'     => $userArray,
-        //             'correctAnswer'  => $correctArray,
-        //             'isCorrect'      => $isCorrect,
-        //             'marksObtained'  => $marksObtained,
-        //             'explanation'    => '',
-        //         ];
-        //     }
-        // }
-// ---- GPT fallback budget control ----
-
 
 
 
