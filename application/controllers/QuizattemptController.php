@@ -250,6 +250,15 @@ private function rwuIsMathCorrect(string $userAnswer, string $correctAnswer): bo
             return true;
         }
     }
+// If exact compare failed, try numeric-approx compare (rounding tolerance)
+foreach ($alts as $alt) {
+    $cRaw = (string)$alt;
+
+    // numeric tolerance for rounding / sig figs / standard form
+    if ($this->rwuIsNumericApproxEqual($userAnswer, $cRaw)) {
+        return true;
+    }
+}
 
     return false;
 }
@@ -282,8 +291,10 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
 ."3) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
 ."4) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
 ."5) Allow minor spelling mistakes and direct synonyms only when meaning is unchanged.\n"
-."6) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
-."7) Do NOT guess. Do NOT award credit for related concepts.\n\n"
+."6) If expected is numerical (including standard form / scientific notation), accept a student answer that matches within reasonable rounding tolerance implied by the student's or expected precision (e.g., last stated digit / significant figures). Do NOT accept if outside that tolerance."
+."7) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
+."8) Do NOT guess. Do NOT award credit for related concepts.\n\n"
+
 ."DATA:\n"
 . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
@@ -802,6 +813,116 @@ private function rwuTruncate(string $s, int $maxChars): string
 
 
 
+/**
+ * Parse numeric answers (standard form / e-notation / decimals / simple fractions).
+ * Returns array: ['value'=>float, 'tol'=>float] or null if not parseable.
+ */
+private function rwuParseNumericWithTolerance(string $expr): ?array
+{
+    $expr = $this->rwuNormalizeMath($expr);
+    if ($expr === '') return null;
+
+    // Remove outer spaces already done. Convert "×10^" variants were normalized to "*10^" by rwuNormalizeMath.
+    // Accept:  -3.48*10^-7   or  -3.48e-7   or  -3.48E-7
+    // Also accept: 3/4 (simple fraction)
+
+    // 1) simple fraction a/b (no other operators)
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)\/([+-]?\d+(?:\.\d+)?)$/u', $expr, $m)) {
+        $a = (float)$m[1];
+        $b = (float)$m[2];
+        if ($b == 0.0) return null;
+        $val = $a / $b;
+
+        // tolerance: based on decimal precision of inputs (rough but safe)
+        $da = $this->rwuCountDecimals($m[1]);
+        $db = $this->rwuCountDecimals($m[2]);
+        $tol = max(
+            0.5 * pow(10, -$da),
+            0.5 * pow(10, -$db),
+            1e-12
+        );
+        return ['value' => $val, 'tol' => $tol];
+    }
+
+    // 2) standard form: mantissa*10^exp
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)(?:\*10\^([+-]?\d+))$/u', $expr, $m)) {
+        $mant = $m[1];
+        $exp  = (int)$m[2];
+
+        $mantVal = (float)$mant;
+        $val = $mantVal * pow(10, $exp);
+
+        $decimals = $this->rwuCountDecimals($mant);
+        // tolerance = half of the last-place unit in the final value
+        // e.g. 3.48*10^-7 -> decimals=2 => tol=0.5*10^(-7-2)=5e-10
+        $tol = 0.5 * pow(10, $exp - $decimals);
+
+        // safety floor for floats
+        $tol = max($tol, 1e-12);
+
+        return ['value' => $val, 'tol' => $tol];
+    }
+
+    // 3) e-notation: 3.48e-7 or 3.48E-7 or "3.48e^-7" (normalize)
+    $expr2 = str_replace('e^', 'e', $expr);
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)[eE]([+-]?\d+)$/u', $expr2, $m)) {
+        $mant = $m[1];
+        $exp  = (int)$m[2];
+
+        $mantVal = (float)$mant;
+        $val = $mantVal * pow(10, $exp);
+
+        $decimals = $this->rwuCountDecimals($mant);
+        $tol = 0.5 * pow(10, $exp - $decimals);
+        $tol = max($tol, 1e-12);
+
+        return ['value' => $val, 'tol' => $tol];
+    }
+
+    // 4) plain number (integer/decimal)
+    if (preg_match('/^([+-]?\d+(?:\.\d+)?)$/u', $expr, $m)) {
+        $num = $m[1];
+        $val = (float)$num;
+
+        $decimals = $this->rwuCountDecimals($num);
+        $tol = 0.5 * pow(10, -$decimals);
+        $tol = max($tol, 1e-12);
+
+        return ['value' => $val, 'tol' => $tol];
+    }
+
+    return null;
+}
+
+private function rwuCountDecimals(string $numStr): int
+{
+    $numStr = (string)$numStr;
+    $pos = strpos($numStr, '.');
+    if ($pos === false) return 0;
+    return max(0, strlen($numStr) - $pos - 1);
+}
+
+/**
+ * Numeric approximate compare using tolerances derived from precision.
+ */
+private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr): bool
+{
+    $u = $this->rwuParseNumericWithTolerance($userExpr);
+    $c = $this->rwuParseNumericWithTolerance($correctExpr);
+    if (!$u || !$c) return false;
+
+    $uv = (float)$u['value'];
+    $cv = (float)$c['value'];
+
+    // Use the larger tolerance (accept rounding either way)
+    $tol = max((float)$u['tol'], (float)$c['tol']);
+
+    // Also add a tiny relative tolerance for safety with floating error
+    $rel = max(abs($cv), 1.0) * 1e-12;
+    $tol = max($tol, $rel);
+
+    return abs($uv - $cv) <= $tol;
+}
 
 
 

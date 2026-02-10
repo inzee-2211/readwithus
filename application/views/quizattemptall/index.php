@@ -256,6 +256,36 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
   display: block;
   margin: 12px auto 4px;
 }
+
+/* --- Math keyboard help button --- */
+.rwu-math-wrapper{
+  position: relative; /* needed for absolute help button */
+}
+
+.rwu-math-help{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(17,24,39,.08);
+  z-index: 5;
+}
+.rwu-math-help:hover{
+  background:#f9fafb;
+}
+
 </style>
 
 <section class="section section--gray section--listing">
@@ -371,6 +401,11 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 var questions = <?php echo json_encode($questionData ?? []); ?>;
 let currentQuestion = 0;
 const CONF_WEBROOT_FRONT_URL = <?= json_encode(CONF_WEBROOT_FRONT_URL); ?>;
+// ✅ Hardcoded: one tutorial video only (change this to your real URL/path)
+// ✅ Hardcoded: one tutorial video only (change this to your real URL/path)
+const RWU_MATH_TUTORIAL_VIDEO_URL = resolveUrl('/uploads/math-tutorials/math-keyboard.mp4');
+
+
 const ENFORCE_SINGLE_CHOICE = true;
 var userSessionId = parseInt("<?php echo (int)($_SESSION['subtopicId'] ?? 0); ?>", 10) || 0; // line changed jan 2 2026
 
@@ -676,6 +711,17 @@ function renderTextarea(parent, index) {
     const raw = document.createElement("div");
     raw.className = "rwu-math-raw";
     raw.textContent = "";
+// ✅ Help button
+const helpBtn = document.createElement("button");
+helpBtn.type = "button";
+helpBtn.className = "rwu-math-help";
+helpBtn.textContent = "?";
+helpBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  showMathKeyboardHelpModal();
+});
+wrapper.appendChild(helpBtn);
 
     wrapper.appendChild(hidden);
     // wrapper.appendChild(clearBtn);
@@ -946,6 +992,113 @@ function validateAllAnswers() {
 //   }
 //   return true;
 // }
+function showMathKeyboardHelpModal() {
+  // only for math subject
+  if (!window.RWU_IS_MATH_SUBJECT) return;
+
+  Swal.fire({
+    icon: 'info',
+    title: 'How to type answers',
+    html: `
+      <div style="text-align:left; line-height:1.5">
+        <p><b>Math Keyboard has multiple modes:</b></p>
+        <ol>
+          <li>Click the <b>☰ (hamburger)</b> icon on the keyboard</li>
+          <li>Select <b>Text mode</b> if you want to type normal words</li>
+          <li>Select <b>Math mode</b> when you want formulas (fractions, powers, etc.)</li>
+          <p style="margin-top:3px; color:#6b7280; font-size:11px">
+            Math mode is pre-selected.
+          </p>
+        </ol>
+        <p style="margin-top:8px; color:#6b7280; font-size:13px">
+          Tip: If your typing turns into math symbols, switch to <b>Text mode</b>.
+        </p>
+      </div>
+    `,
+    confirmButtonText: 'Got it',
+    confirmButtonColor: '#2DADFF',
+
+    // ✅ extra button
+    showDenyButton: true,
+    denyButtonText: 'Watch video tutorial',
+    denyButtonColor: '#111827',
+  }).then((result) => {
+    if (result.isDenied) {
+      showMathVideoTutorialModal();
+    }
+  });
+}
+function showMathVideoTutorialModal() {
+  Swal.fire({
+    icon: 'info',
+    title: 'Video tutorial',
+    width: 620,
+    html: `
+      <div style="text-align:center; padding:18px 10px; line-height:1.5">
+        <div style="font-size:44px; margin-bottom:10px;">🎥</div>
+        <div style="font-size:16px; font-weight:800; color:#111827;">
+          Video tutorial is coming soon
+        </div>
+        <div style="margin-top:8px; font-size:13px; color:#6b7280;">
+          For now, use the <b>☰</b> menu on the math keyboard to switch between
+          <b>Text mode</b> and <b>Math mode</b>.
+        </div>
+      </div>
+    `,
+    showConfirmButton: true,
+    confirmButtonText: 'Close',
+    confirmButtonColor: '#2DADFF',
+  });
+}
+
+
+// function showMathVideoTutorialModal() {
+//   Swal.fire({
+//     title: 'Video tutorial',
+//     width: 860,
+//     html: `
+//       <div class="preview-video ratio ratio--16by9" style="margin-top:8px;">
+//         <video
+//           id="rwuMathTutorialVideo"
+//           controls
+//           playsinline
+//           preload="metadata"
+//           style="width:100%;height:100%;display:block;border-radius:12px;"
+//           src="${RWU_MATH_TUTORIAL_VIDEO_URL}"
+//         >
+//           Your browser does not support the video tag.
+//         </video>
+//       </div>
+
+//       <div style="margin-top:10px; text-align:center;">
+//         <a class="btn btn--bordered btn--wide" target="_blank"
+//            href="${RWU_MATH_TUTORIAL_VIDEO_URL}">
+//           Download
+//         </a>
+//       </div>
+//     `,
+//     showConfirmButton: true,
+//     confirmButtonText: 'Close',
+//     confirmButtonColor: '#2DADFF',
+
+//     // ✅ When modal opens, try to start (may be blocked by browser until user clicks)
+//     didOpen: () => {
+//       const v = document.getElementById('rwuMathTutorialVideo');
+//       if (v) {
+//         try { v.play(); } catch (e) {}
+//       }
+//     },
+
+//     // ✅ Stop video when closing modal
+//     willClose: () => {
+//       const v = document.getElementById('rwuMathTutorialVideo');
+//       if (v) {
+//         try { v.pause(); v.currentTime = 0; } catch (e) {}
+//       }
+//     }
+//   });
+// }
+
 
 function buildUserAnswers() {
   userAnswers = {};
