@@ -328,8 +328,8 @@ You are a math and science teacher grading student answers. Follow these RULES f
 4. **Fraction/Decimal Equivalents**:
    - 1/2 = 0.5 = 0.50 (within tolerance)
    - 1/3 ≈ 0.333 (within 0.001)
-."5) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
-."6) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
+5) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n
+6) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n
 **TEXT/NON-MATH ANSWERS:**
 1. Mark true ONLY if student answer contains required meaning
 2. Allow minor spelling mistakes if meaning unchanged
