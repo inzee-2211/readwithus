@@ -371,7 +371,7 @@ PROMPT . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
     if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
         error_log("AI_FAIL http=$httpCode curlErr=$curlErr resp=" . substr((string)$response, 0, 800));
-        die;
+        // die;
         return []; // fallback silently
     }
 
@@ -1117,7 +1117,7 @@ private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr):
     {
         $answersJson = FatApp::getPostedData('answers');
         $subtopicId = FatApp::getPostedData('subtopicid');
-
+  $aiDebug = (FatApp::getQueryStringData()['ai_debug'] ?? '0') == '1';
         // Convert JSON string to PHP array
         $answers = json_decode($answersJson, true);
 
@@ -1286,38 +1286,115 @@ $resultsIndexByQid[$questionId] = count($results) - 1;
                 ];
             }
         }
+        // ✅ Collect debug info to show in Network tab response
+$aiDebugInfo = [
+    'enabled' => $aiDebug,
+    'candidatesCount' => count($aiCandidates),
+    'selectedCount' => 0,
+    'selectedIds' => [],
+    'skippedIds' => [],
+    'budget' => [
+        'total' => 0,
+        'in'    => 0,
+        'out'   => 0,
+        'used'  => 0,
+    ],
+    'payloadPreview' => [], // truncated items for inspection
+];
+
+// ---- GPT fallback budget control ----
+// $BUDGET_TOTAL = 800;
+// $MAX_OUT = 200;                 // output cap
+// $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
+
+// $selected = [];
+// $used = 0;
+
+// // Always keep prompt small: only send what fits budget
+// foreach ($aiCandidates as $it) {
+//     $piece = json_encode($it, JSON_UNESCAPED_UNICODE);
+//     $cost = $this->rwuTokApprox($piece);
+
+//     if (($used + $cost) > $BUDGET_IN) {
+//         continue; // skip, keep normalizer result
+//     }
+//     $selected[] = $it;
+//     $used += $cost;
+// }
 // ---- GPT fallback budget control ----
 $BUDGET_TOTAL = 800;
-$MAX_OUT = 200;                 // output cap
+$MAX_OUT = 200;
 $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
 
 $selected = [];
 $used = 0;
 
-// Always keep prompt small: only send what fits budget
+$aiDebugInfo['budget'] = [
+    'total' => $BUDGET_TOTAL,
+    'in'    => $BUDGET_IN,
+    'out'   => $MAX_OUT,
+    'used'  => 0,
+];
+
 foreach ($aiCandidates as $it) {
     $piece = json_encode($it, JSON_UNESCAPED_UNICODE);
-    $cost = $this->rwuTokApprox($piece);
+    $cost  = $this->rwuTokApprox($piece);
 
     if (($used + $cost) > $BUDGET_IN) {
-        continue; // skip, keep normalizer result
+        if ($aiDebug) {
+            $aiDebugInfo['skippedIds'][] = (int)$it['id'];
+        }
+        continue;
     }
+
     $selected[] = $it;
     $used += $cost;
+
+    if ($aiDebug) {
+        $aiDebugInfo['selectedIds'][] = (int)$it['id'];
+
+        // store a small preview so you can see WHAT was sent
+        $aiDebugInfo['payloadPreview'][] = [
+            'id' => (int)$it['id'],
+            'q' => $it['q'],
+            'expected' => $it['expected'],
+            'answer' => $it['answer'],
+        ];
+    }
 }
 
+$aiDebugInfo['selectedCount'] = count($selected);
+$aiDebugInfo['budget']['used'] = $used;
 if (!empty($selected)) {
+    if ($aiDebug) {
+        header('X-AI-Selected-Ids: ' . implode(',', $aiDebugInfo['selectedIds']));
+    }
+
     $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
 
-    // apply AI results to $results
+    // apply AI results...
     foreach ($aiMarks as $qid => $aiCorrect) {
         if (!isset($resultsIndexByQid[$qid])) continue;
 
         $idx = $resultsIndexByQid[$qid];
         $results[$idx]['isCorrect'] = (bool)$aiCorrect;
         $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
-        // no explanation
     }
+}
+
+// if (!empty($selected)) {
+//     $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
+
+//     // apply AI results to $results
+//     foreach ($aiMarks as $qid => $aiCorrect) {
+//         if (!isset($resultsIndexByQid[$qid])) continue;
+
+//         $idx = $resultsIndexByQid[$qid];
+//         $results[$idx]['isCorrect'] = (bool)$aiCorrect;
+//         $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
+//         // no explanation
+//     }
+    
 }
 
 
@@ -1393,6 +1470,7 @@ $percentage = ($tm > 0) ? (($totalMarks / $tm) * 100) : 0;
             'status' => $resultStatus,
             'marksObtained' => $totalMarks,
             'totalMarks' => $totalQuestions * $questionMarks,
+            'ai_debug' => ($aiDebug ? $aiDebugInfo : null),
         ]);
     }
     public function getQuestions()
