@@ -300,20 +300,47 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
         ];
     }
 
-    $prompt =
-"Grade each student answer against the expected answer.\n"
-."Return ONLY valid JSON exactly in this schema:\n"
-."{\"results\": {\"<id>\": true|false, ...}}\n\n"
-."STRICT RULES (avoid false positives):\n"
-."1) Mark true ONLY if the student answer clearly contains the required expected meaning.\n"
-."2) Extra words are allowed ONLY if they do NOT change the meaning.\n"
-."3) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
-."4) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
-."5) Allow minor spelling mistakes and direct synonyms only when meaning is unchanged.\n"
-."6) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
-."7) Do NOT guess. Do NOT award credit for related concepts.\n\n"
-."DATA:\n"
-. json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
+      $prompt = <<<PROMPT
+You are a math and science teacher grading student answers. Follow these RULES for grading:
+
+**NUMERICAL/MATHEMATICAL ANSWERS:**
+1. **Standard Form / Scientific Notation**: Accept equivalent forms:
+   - 3.48×10⁻⁷ = 3.48e-7 = 0.000000348 = 3.48*10^-7
+   - Unicode variations: ×, *, x, · all mean multiply
+   - 10⁸ = 10^8 = 1e8 = 100,000,000
+
+2. **Rounding Tolerance Rules** (CRITICAL):
+   - For answers given to 2 decimal places: ±0.005 tolerance
+   - For answers given to 3 decimal places: ±0.0005 tolerance
+   - For answers given to n decimal places: ±0.5×10⁻ⁿ tolerance
+   - For standard form a×10ᵇ: tolerance is half of the last significant digit
+   - Examples that SHOULD be marked correct:
+     * Expected: -3.475×10⁻⁷ → Student: -3.48×10⁻⁷ ✓ (rounded to 2 decimals)
+     * Expected: 5.3708×10⁻⁷ → Student: 5.37085×10⁻⁷ ✓ (within 0.00005)
+     * Expected: 6.25 → Student: 6.3 ✓ (if rounding to 1 decimal)
+     * Expected: 1/3 → Student: 0.333 ✓ (if 3 decimal places shown)
+
+3. **Significant Figures**:
+   - 2.5 (2 s.f.) matches 2.50 (3 s.f.)? NO - precision differs
+   - 2.5×10² matches 250? YES - same value
+   - Use tolerance based on stated precision
+
+4. **Fraction/Decimal Equivalents**:
+   - 1/2 = 0.5 = 0.50 (within tolerance)
+   - 1/3 ≈ 0.333 (within 0.001)
+."5) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
+."6) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
+**TEXT/NON-MATH ANSWERS:**
+1. Mark true ONLY if student answer contains required meaning
+2. Allow minor spelling mistakes if meaning unchanged
+3. Extra words allowed if they don't change meaning
+4. If ambiguous/partially correct → false
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON exactly: {"results": {"<id>": true|false, ...}}
+
+**DATA TO GRADE:**
+PROMPT . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
     $data = [
         "model" => "gpt-4o-mini",   // choose your actual cheap model
@@ -378,7 +405,116 @@ private function rwuTruncate(string $s, int $maxChars): string
     if (strlen($s) <= $maxChars) return $s;
     return substr($s, 0, $maxChars) . '…';
 }
+/**
+ * Smart numeric comparison with adaptive tolerance.
+ * Handles rounding, significant figures, and scientific notation.
+ */
+private function rwuSmartNumericCompare(string $userExpr, string $correctExpr): bool
+{
+    // First normalize both
+    $uNorm = $this->rwuNormalizeMath($userExpr);
+    $cNorm = $this->rwuNormalizeMath($correctExpr);
+    
+    // Try exact match first
+    if ($uNorm === $cNorm) return true;
+    
+    // Parse both as numbers
+    $uParsed = $this->rwuParseNumericWithTolerance($uNorm);
+    $cParsed = $this->rwuParseNumericWithTolerance($cNorm);
+    
+    if (!$uParsed || !$cParsed) {
+        // Not numeric, can't compare
+        return false;
+    }
+    
+    $uVal = (float)$uParsed['value'];
+    $cVal = (float)$cParsed['value'];
+    
+    // Handle very small numbers near zero
+    if (abs($cVal) < 1e-15 && abs($uVal) < 1e-15) {
+        return true; // Both effectively zero
+    }
+    
+    // Calculate relative error
+    $absDiff = abs($uVal - $cVal);
+    $magnitude = max(abs($cVal), abs($uVal), 1e-12);
+    $relError = $absDiff / $magnitude;
+    
+    // Determine expected precision from the expressions
+    $uPrecision = $this->rwuEstimatePrecision($uNorm);
+    $cPrecision = $this->rwuEstimatePrecision($cNorm);
+    $expectedPrecision = min($uPrecision, $cPrecision);
+    
+    // Adaptive tolerance: more lenient for small numbers
+    $adaptiveTol = max(1e-9, $expectedPrecision * $magnitude, $absDiff * 0.1);
+    
+    // Also check if difference is within last digit tolerance
+    $lastDigitTol = $this->rwuLastDigitTolerance($uNorm, $cNorm);
+    
+    $tol = max($adaptiveTol, $lastDigitTol, 1e-12);
+    
+    return $absDiff <= $tol;
+}
 
+/**
+ * Estimate precision from number format (decimal places, sig figs)
+ */
+private function rwuEstimatePrecision(string $expr): float
+{
+    // Standard form: a×10^b
+    if (preg_match('/(\d+(?:\.\d+)?)\s*\*\s*10\s*\^\s*([+-]?\d+)/', $expr, $m)) {
+        $mantissa = $m[1];
+        $exp = (int)$m[2];
+        
+        // Count decimal places in mantissa
+        if (strpos($mantissa, '.') !== false) {
+            $decimals = strlen($mantissa) - strpos($mantissa, '.') - 1;
+            return 0.5 * pow(10, $exp - $decimals);
+        } else {
+            // Integer mantissa: precision is 0.5×10^exp
+            return 0.5 * pow(10, $exp);
+        }
+    }
+    
+    // Decimal number
+    if (preg_match('/^[+-]?\d+(\.\d+)?$/', $expr, $m)) {
+        if (strpos($expr, '.') !== false) {
+            $decimals = strlen($expr) - strpos($expr, '.') - 1;
+            return 0.5 * pow(10, -$decimals);
+        } else {
+            // Integer: precision is 0.5
+            return 0.5;
+        }
+    }
+    
+    // Default precision
+    return 1e-9;
+}
+
+/**
+ * Calculate tolerance based on last significant digit
+ */
+private function rwuLastDigitTolerance(string $expr1, string $expr2): float
+{
+    // Extract mantissas for comparison
+    $getMantissa = function($str) {
+        if (preg_match('/([+-]?\d+(?:\.\d+)?)/', $str, $m)) {
+            return $m[1];
+        }
+        return $str;
+    };
+    
+    $m1 = $getMantissa($expr1);
+    $m2 = $getMantissa($expr2);
+    
+    // Find the more precise (more decimal places)
+    $decimals1 = $this->rwuCountDecimals($m1);
+    $decimals2 = $this->rwuCountDecimals($m2);
+    $decimals = min($decimals1, $decimals2);
+    
+    // Base tolerance on the precision
+    return 0.5 * pow(10, -$decimals);
+}
 
     /**
  * Optional AI correctness check for story-based answers.
@@ -916,37 +1052,8 @@ private function rwuCountDecimals(string $numStr): int
  */
 private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr): bool
 {
-    // First normalize both expressions
-    $uNorm = $this->rwuNormalizeMath($userExpr);
-    $cNorm = $this->rwuNormalizeMath($correctExpr);
-    
-    // Try parsing both as numbers
-    $uParsed = $this->rwuParseNumericWithTolerance($uNorm);
-    $cParsed = $this->rwuParseNumericWithTolerance($cNorm);
-    
-    // If either can't be parsed, they're not numeric
-    if (!$uParsed || !$cParsed) {
-        return false;
-    }
-    
-    $uv = (float)$uParsed['value'];
-    $cv = (float)$cParsed['value'];
-    
-    // Use the larger tolerance
-    $tol = max((float)$uParsed['tol'], (float)$cParsed['tol']);
-    
-    // Add relative tolerance for floating point errors
-    $rel = max(abs($cv), abs($uv), 1.0) * 1e-12;
-    $tol = max($tol, $rel);
-    
-    // Special case: if both are very close to zero
-    if (abs($uv) < 1e-12 && abs($cv) < 1e-12) {
-        return true;
-    }
-    
-    return abs($uv - $cv) <= $tol;
+    return $this->rwuSmartNumericCompare($userExpr, $correctExpr);
 }
-
 
 
     /**
