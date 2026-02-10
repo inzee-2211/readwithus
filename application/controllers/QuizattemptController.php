@@ -263,6 +263,38 @@ foreach ($alts as $alt) {
     return false;
 }
 /**
+ * True only if correct_answer is an MCQ key like: "A" or "A,B" or "A, D"
+ * (strictly A-D tokens; prevents numeric/scientific answers from entering MCQ branch)
+ */
+private function rwuIsMcqKey(string $correctAnswer): bool
+{
+    $s = strtoupper(trim((string)$correctAnswer));
+    if ($s === '') return false;
+
+    // Allow comma-separated A-D only (no other chars)
+    // Examples allowed: "A", "A,B", "A, D", "B,C,D"
+    return (bool)preg_match('/^(?:[A-D])(?:\s*,\s*[A-D])*$/', $s);
+}
+
+/**
+ * Detect if student's submitted answer is an MCQ choice list (A-D)
+ */
+private function rwuUserAnswerLooksMcq($userAnswer): bool
+{
+    $arr = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+    $arr = array_values(array_filter(array_map(function ($x) {
+        return strtoupper(trim((string)$x));
+    }, $arr), fn($x) => $x !== ''));
+
+    if (empty($arr)) return false;
+
+    foreach ($arr as $tok) {
+        if (!preg_match('/^[A-D]$/', $tok)) return false;
+    }
+    return true;
+}
+
+/**
  * Batch AI grading for fallback (single API call).
  * Returns: [questionId => bool] for those graded, missing ids mean "no change".
  */
@@ -291,7 +323,7 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
 ."3) If expected is a single number (e.g. \"6\" or \"six\"), mark true if the student's answer contains that same number (digits or word form). Do NOT accept a different number.\n"
 ."4) If expected contains multiple required parts (e.g. \"3/4\", \"x=5\", \"prime factorization 2*3*5\"), ALL required parts must be present and consistent.\n"
 ."5) Allow minor spelling mistakes and direct synonyms only when meaning is unchanged.\n"
-."6) If expected is numerical (including standard form / scientific notation), accept a student answer that matches within reasonable rounding tolerance implied by the student's or expected precision (e.g., last stated digit / significant figures). Do NOT accept if outside that tolerance."
+."6) If expected is numerical (including standard form / scientific notation), accept a student answer that matches within reasonable rounding tolerance implied by the student's or expected precision (e.g., last stated digit / significant figures).\n. Do NOT accept if outside that tolerance."
 ."7) If the answer is ambiguous, partially correct, missing key information, or contradicts expected => false.\n"
 ."8) Do NOT guess. Do NOT award credit for related concepts.\n\n"
 
@@ -327,7 +359,7 @@ private function rwuAiBatchGrade(array $items, string $apiKey, int $maxOutTokens
 
     if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
         error_log("AI_FAIL http=$httpCode curlErr=$curlErr resp=" . substr((string)$response, 0, 800));
-        die;
+        // die;
         return []; // fallback silently
     }
 
@@ -1033,132 +1065,137 @@ $qt = str_replace(["–","—","_"], "-", $qt);        // normalize dash/undersc
 $qt = preg_replace('/\s+/', '-', $qt);            // spaces -> hyphen
 
 
-if ($qt === 'story-based' || strpos($qt, 'story') !== false) {
+$uaText = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
 
-    // 1) First try normalization (cheap + no API)
-    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+// --- NEW: decide grading mode by correct_answer, not question_type ---
+$correctIsMcq = $this->rwuIsMcqKey((string)$correctAnswer);
+$userLooksMcq = $this->rwuUserAnswerLooksMcq($userAnswer);
 
-  $normCorrect = false;
-if (trim((string)$correctAnswer) !== '') {
+// Detect math/numeric by content (not by question_type)
+$looksNumeric = ($this->rwuParseNumericWithTolerance($uaText) !== null)
+             || ($this->rwuParseNumericWithTolerance((string)$correctAnswer) !== null);
 
-    // ✅ NEW: Detect math even for Story questions using content (ua / correct / title)
-    $isMath = $this->rwuIsMathType($questionType)
-        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+$isMath = $this->rwuIsMathType($questionType)
+    || $this->rwuLooksLikeMath($uaText, (string)$correctAnswer, (string)$questionTitle)
+    || $looksNumeric;
 
-    if ($isMath) {
-        $normCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
-    } else {
-        $normCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+// 1) MCQ ONLY when the correct_answer is truly A/B/C/D AND user submitted A/B/C/D
+if ($correctIsMcq && $userLooksMcq) {
+
+    $correctArray = array_map(function($x){
+        return strtoupper(trim((string)$x));
+    }, explode(',', (string)$correctAnswer));
+    $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
+
+    $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+    $userArray = array_map(function($x){
+        return strtoupper(trim((string)$x));
+    }, $userArray);
+    $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
+
+    sort($correctArray);
+    sort($userArray);
+
+    $isCorrect = ($correctArray === $userArray);
+    $marksObtained = $isCorrect ? $questionMarks : 0;
+
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $userArray,
+        'correctAnswer'  => $correctArray,
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $marksObtained,
+        'explanation'    => '',
+    ];
+
+    // IMPORTANT: no AI fallback for MCQ
+    continue;
+}
+
+// 2) Non-MCQ grading (covers numeric/scientific answers even if UI question_type is MCQ)
+if ($isMath) {
+    // Deterministic math/numeric comparator (includes rounding tolerance)
+    $isCorrect = $this->rwuIsMathCorrect($uaText, (string)$correctAnswer);
+
+    $marksObtained = $isCorrect ? $questionMarks : 0;
+
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $uaText,
+        'correctAnswer'  => (string)$correctAnswer,
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $marksObtained,
+        'explanation'    => '',
+    ];
+    $resultsIndexByQid[$questionId] = count($results) - 1;
+
+    // IMPORTANT: do NOT AI-grade numeric rounding ever
+    continue;
+}
+
+// 3) Open-ended text grading (normalizer, then optional AI fallback)
+// Keep your existing "story/short/text" behavior, BUT: AI only for non-math text.
+$isCorrect = $this->rwuIsTextCorrect($uaText, (string)$correctAnswer, true);
+$marksObtained = $isCorrect ? $questionMarks : 0;
+
+$results[] = [
+    'questionId'     => $questionId,
+    'userAnswer'     => $uaText,
+    'correctAnswer'  => (string)$correctAnswer,
+    'isCorrect'      => $isCorrect,
+    'marksObtained'  => $marksObtained,
+    'explanation'    => '',
+];
+$resultsIndexByQid[$questionId] = count($results) - 1;
+
+// AI fallback: ONLY for open-ended text (NOT for numeric/math)
+if (!$isCorrect) {
+    // optionally restrict further: only story/short/text types
+    if ($qt === 'story-based' || strpos($qt, 'story') !== false
+        || strpos($qt, 'short') !== false
+        || strpos($qt, 'text') !== false
+        || strpos($qt, 'blank') !== false
+        || strpos($qt, 'fill') !== false
+    ) {
+        $aiCandidates[] = [
+            'id' => (int)$questionId,
+            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+            'answer'   => $this->rwuTruncate((string)$uaText, 220),
+        ];
     }
 }
 
 
-    $isCorrect = $normCorrect;
-if (!$isCorrect) {
-    $aiCandidates[] = [
-        'id' => (int)$questionId,
-        'q'  => $this->rwuTruncate((string)$questionTitle, 180),
-        'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
-        'answer'   => $this->rwuTruncate((string)$ua, 220),
-    ];
-}
+//     $isCorrect = $normCorrect;
+// if (!$isCorrect) {
+//     $aiCandidates[] = [
+//         'id' => (int)$questionId,
+//         'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+//         'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+//         'answer'   => $this->rwuTruncate((string)$ua, 220),
+//     ];
+// }
 
   
 
-    $obtainedMarks = $isCorrect ? $questionMarks : 0;
+//     $obtainedMarks = $isCorrect ? $questionMarks : 0;
 
-    $results[] = [
-        'questionId'     => $questionId,
-        'userAnswer'     => $ua,
-        'correctAnswer'  => (string)$correctAnswer, // keep for records
-        'isCorrect'      => $isCorrect,
-        'marksObtained'  => $obtainedMarks,
-        'explanation'    => '', // ✅ you said: no explanation
-    ];
-$resultsIndexByQid[$questionId] = count($results) - 1;
+//     $results[] = [
+//         'questionId'     => $questionId,
+//         'userAnswer'     => $ua,
+//         'correctAnswer'  => (string)$correctAnswer, // keep for records
+//         'isCorrect'      => $isCorrect,
+//         'marksObtained'  => $obtainedMarks,
+//         'explanation'    => '', // ✅ you said: no explanation
+//     ];
+// $resultsIndexByQid[$questionId] = count($results) - 1;
 
 
                 // ... keep your existing ChatGPT grading block EXACTLY as-is ...
 
             }
-            // -------------------------
-            // 2) Text / Short answer => normalization-based compare
-            // -------------------------
-      else if (
-    strpos($qt, 'short') !== false ||
-    strpos($qt, 'text')  !== false ||
-    strpos($qt, 'blank') !== false ||
-    strpos($qt, 'fill')  !== false
-) {
-    $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
-
-    $isMath = $this->rwuIsMathType($questionType)
-        || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
-
-    if ($isMath) {
-        $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
-    } else {
-        $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
-    }
-
-    $obtainedMarks = $isCorrect ? $questionMarks : 0;
-
-    $results[] = [
-        'questionId'     => $questionId,
-        'userAnswer'     => $ua,
-        'correctAnswer'  => $correctAnswer,
-        'isCorrect'      => $isCorrect,
-        'marksObtained'  => $obtainedMarks,
-        'explanation'    => '',
-    ];
-    $resultsIndexByQid[$questionId] = count($results) - 1;
-
-    // ✅ NEW: send to AI when normalizer fails
-    if (!$isCorrect) {
-        $aiCandidates[] = [
-            'id' => (int)$questionId,
-            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
-            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
-            'answer'   => $this->rwuTruncate((string)$ua, 220),
-        ];
-    }
-}
-
-         // -------------------------
-            // 3) MCQ => your existing A/B/C/D logic
-            // -------------------------
-            else {
-                $correctArray = array_map(function($x){
-                    return strtoupper(trim((string)$x));
-                }, explode(',', $correctAnswer));
-
-                $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
-
-                $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
-                $userArray = array_map(function($x){
-                    return strtoupper(trim((string)$x));
-                }, $userArray);
-
-                $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
-
-                sort($correctArray);
-                sort($userArray);
-
-                $isCorrect = ($correctArray === $userArray);
-                $marksObtained = $isCorrect ? $questionMarks : 0;
-
-                $results[] = [
-                    'questionId'     => $questionId,
-                    'userAnswer'     => $userArray,
-                    'correctAnswer'  => $correctArray,
-                    'isCorrect'      => $isCorrect,
-                    'marksObtained'  => $marksObtained,
-                    'explanation'    => '',
-                ];
-            }
-        }
-// ---- GPT fallback budget control ----
-$BUDGET_TOTAL = 800;
+            $BUDGET_TOTAL = 800;
 $MAX_OUT = 200;                 // output cap
 $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
 
@@ -1190,6 +1227,84 @@ if (!empty($selected)) {
         // no explanation
     }
 }
+            // -------------------------
+            // 2) Text / Short answer => normalization-based compare
+            // -------------------------
+//       else if (
+//     strpos($qt, 'short') !== false ||
+//     strpos($qt, 'text')  !== false ||
+//     strpos($qt, 'blank') !== false ||
+//     strpos($qt, 'fill')  !== false
+// ) {
+//     $ua = is_array($userAnswer) ? implode(' ', $userAnswer) : (string)$userAnswer;
+
+//     $isMath = $this->rwuIsMathType($questionType)
+//         || $this->rwuLooksLikeMath($ua, (string)$correctAnswer, (string)$questionTitle);
+
+//     if ($isMath) {
+//         $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+//     } else {
+//         $isCorrect = $this->rwuIsTextCorrect($ua, (string)$correctAnswer, true);
+//     }
+
+//     $obtainedMarks = $isCorrect ? $questionMarks : 0;
+
+//     $results[] = [
+//         'questionId'     => $questionId,
+//         'userAnswer'     => $ua,
+//         'correctAnswer'  => $correctAnswer,
+//         'isCorrect'      => $isCorrect,
+//         'marksObtained'  => $obtainedMarks,
+//         'explanation'    => '',
+//     ];
+//     $resultsIndexByQid[$questionId] = count($results) - 1;
+
+//     // ✅ NEW: send to AI when normalizer fails
+//     if (!$isCorrect) {
+//         $aiCandidates[] = [
+//             'id' => (int)$questionId,
+//             'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+//             'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+//             'answer'   => $this->rwuTruncate((string)$ua, 220),
+//         ];
+//     }
+// }
+
+         // -------------------------
+            // 3) MCQ => your existing A/B/C/D logic
+            // -------------------------
+        //     else {
+        //         $correctArray = array_map(function($x){
+        //             return strtoupper(trim((string)$x));
+        //         }, explode(',', $correctAnswer));
+
+        //         $correctArray = array_values(array_filter($correctArray, fn($x) => $x !== ''));
+
+        //         $userArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+        //         $userArray = array_map(function($x){
+        //             return strtoupper(trim((string)$x));
+        //         }, $userArray);
+
+        //         $userArray = array_values(array_filter($userArray, fn($x) => $x !== ''));
+
+        //         sort($correctArray);
+        //         sort($userArray);
+
+        //         $isCorrect = ($correctArray === $userArray);
+        //         $marksObtained = $isCorrect ? $questionMarks : 0;
+
+        //         $results[] = [
+        //             'questionId'     => $questionId,
+        //             'userAnswer'     => $userArray,
+        //             'correctAnswer'  => $correctArray,
+        //             'isCorrect'      => $isCorrect,
+        //             'marksObtained'  => $marksObtained,
+        //             'explanation'    => '',
+        //         ];
+        //     }
+        // }
+// ---- GPT fallback budget control ----
+
 
 
 
