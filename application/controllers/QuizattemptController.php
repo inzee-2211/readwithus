@@ -371,7 +371,7 @@ PROMPT . json_encode($payloadItems, JSON_UNESCAPED_UNICODE);
 
     if ($response === false || $curlErr || $httpCode < 200 || $httpCode >= 300) {
         error_log("AI_FAIL http=$httpCode curlErr=$curlErr resp=" . substr((string)$response, 0, 800));
-        // die;
+        die;
         return []; // fallback silently
     }
 
@@ -1365,35 +1365,19 @@ foreach ($aiCandidates as $it) {
 
 $aiDebugInfo['selectedCount'] = count($selected);
 $aiDebugInfo['budget']['used'] = $used;
-if (!empty($selected)) {
-    if ($aiDebug) {
-        header('X-AI-Selected-Ids: ' . implode(',', $aiDebugInfo['selectedIds']));
-    }
 
+if (!empty($selected)) {
     $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
 
-    // apply AI results...
+    // apply AI results to $results
     foreach ($aiMarks as $qid => $aiCorrect) {
         if (!isset($resultsIndexByQid[$qid])) continue;
 
         $idx = $resultsIndexByQid[$qid];
         $results[$idx]['isCorrect'] = (bool)$aiCorrect;
         $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
+        // no explanation
     }
-}
-
-// if (!empty($selected)) {
-//     $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
-
-//     // apply AI results to $results
-//     foreach ($aiMarks as $qid => $aiCorrect) {
-//         if (!isset($resultsIndexByQid[$qid])) continue;
-
-//         $idx = $resultsIndexByQid[$qid];
-//         $results[$idx]['isCorrect'] = (bool)$aiCorrect;
-//         $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
-//         // no explanation
-//     }
     
 }
 
@@ -1470,7 +1454,6 @@ $percentage = ($tm > 0) ? (($totalMarks / $tm) * 100) : 0;
             'status' => $resultStatus,
             'marksObtained' => $totalMarks,
             'totalMarks' => $totalQuestions * $questionMarks,
-            'ai_debug' => ($aiDebug ? $aiDebugInfo : null),
         ]);
     }
     public function getQuestions()
