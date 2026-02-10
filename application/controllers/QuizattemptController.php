@@ -1124,6 +1124,7 @@ private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr):
         if (json_last_error() !== JSON_ERROR_NONE) {
             FatUtility::dieJsonError("Invalid answer data.");
         }
+FatUtility::dieJsonError('TEMP STOP: debugging');
 
 
 
