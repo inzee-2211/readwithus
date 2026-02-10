@@ -1127,7 +1127,6 @@ private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr):
 
 
 
-
         $api_key = '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';
 $questionMarksDefault = 2;
 
@@ -1304,68 +1303,24 @@ $aiDebugInfo = [
 ];
 
 // ---- GPT fallback budget control ----
-// $BUDGET_TOTAL = 800;
-// $MAX_OUT = 200;                 // output cap
-// $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
-
-// $selected = [];
-// $used = 0;
-
-// // Always keep prompt small: only send what fits budget
-// foreach ($aiCandidates as $it) {
-//     $piece = json_encode($it, JSON_UNESCAPED_UNICODE);
-//     $cost = $this->rwuTokApprox($piece);
-
-//     if (($used + $cost) > $BUDGET_IN) {
-//         continue; // skip, keep normalizer result
-//     }
-//     $selected[] = $it;
-//     $used += $cost;
-// }
-// ---- GPT fallback budget control ----
 $BUDGET_TOTAL = 800;
-$MAX_OUT = 200;
+$MAX_OUT = 200;                 // output cap
 $BUDGET_IN = $BUDGET_TOTAL - $MAX_OUT;
 
 $selected = [];
 $used = 0;
 
-$aiDebugInfo['budget'] = [
-    'total' => $BUDGET_TOTAL,
-    'in'    => $BUDGET_IN,
-    'out'   => $MAX_OUT,
-    'used'  => 0,
-];
-
+// Always keep prompt small: only send what fits budget
 foreach ($aiCandidates as $it) {
     $piece = json_encode($it, JSON_UNESCAPED_UNICODE);
-    $cost  = $this->rwuTokApprox($piece);
+    $cost = $this->rwuTokApprox($piece);
 
     if (($used + $cost) > $BUDGET_IN) {
-        if ($aiDebug) {
-            $aiDebugInfo['skippedIds'][] = (int)$it['id'];
-        }
-        continue;
+        continue; // skip, keep normalizer result
     }
-
     $selected[] = $it;
     $used += $cost;
-
-    if ($aiDebug) {
-        $aiDebugInfo['selectedIds'][] = (int)$it['id'];
-
-        // store a small preview so you can see WHAT was sent
-        $aiDebugInfo['payloadPreview'][] = [
-            'id' => (int)$it['id'],
-            'q' => $it['q'],
-            'expected' => $it['expected'],
-            'answer' => $it['answer'],
-        ];
-    }
 }
-
-$aiDebugInfo['selectedCount'] = count($selected);
-$aiDebugInfo['budget']['used'] = $used;
 
 if (!empty($selected)) {
     $aiMarks = $this->rwuAiBatchGrade($selected, $api_key, $MAX_OUT);
@@ -1379,7 +1334,6 @@ if (!empty($selected)) {
         $results[$idx]['marksObtained'] = $aiCorrect ? $questionMarksDefault : 0;
         // no explanation
     }
-    
 }
 
 
@@ -1448,28 +1402,14 @@ $percentage = ($tm > 0) ? (($totalMarks / $tm) * 100) : 0;
         }
 
 
-        // FatUtility::dieJsonSuccess([
-        //     'message' => 'Quiz submitted successfully!',
-        //     'success' => 123, // if you have results to show
-        //     'attemptid' => $attemptId,
-        //     'status' => $resultStatus,
-        //     'marksObtained' => $totalMarks,
-        //     'totalMarks' => $totalQuestions * $questionMarks,
-        // ]);
-        $response = [
-    'message' => 'Quiz submitted successfully!',
-    'attemptid' => $attemptId,
-    'status' => $resultStatus,
-    'marksObtained' => $totalMarks,
-    'totalMarks' => $totalQuestions * $questionMarks,
-];
-
-if ($aiDebug) {
-    $response['ai_debug'] = $aiDebugInfo;  // <-- THIS
-}
-
-FatUtility::dieJsonSuccess($response);
-FatUtility::dieJsonError('TEMP STOP: debugging');
+        FatUtility::dieJsonSuccess([
+            'message' => 'Quiz submitted successfully!',
+            'success' => 123, // if you have results to show
+            'attemptid' => $attemptId,
+            'status' => $resultStatus,
+            'marksObtained' => $totalMarks,
+            'totalMarks' => $totalQuestions * $questionMarks,
+        ]);
     }
     public function getQuestions()
 {
