@@ -1124,7 +1124,7 @@ private function rwuIsNumericApproxEqual(string $userExpr, string $correctExpr):
         if (json_last_error() !== JSON_ERROR_NONE) {
             FatUtility::dieJsonError("Invalid answer data.");
         }
-FatUtility::dieJsonError('TEMP STOP: debugging');
+
 
 
 
@@ -1448,14 +1448,28 @@ $percentage = ($tm > 0) ? (($totalMarks / $tm) * 100) : 0;
         }
 
 
-        FatUtility::dieJsonSuccess([
-            'message' => 'Quiz submitted successfully!',
-            'success' => 123, // if you have results to show
-            'attemptid' => $attemptId,
-            'status' => $resultStatus,
-            'marksObtained' => $totalMarks,
-            'totalMarks' => $totalQuestions * $questionMarks,
-        ]);
+        // FatUtility::dieJsonSuccess([
+        //     'message' => 'Quiz submitted successfully!',
+        //     'success' => 123, // if you have results to show
+        //     'attemptid' => $attemptId,
+        //     'status' => $resultStatus,
+        //     'marksObtained' => $totalMarks,
+        //     'totalMarks' => $totalQuestions * $questionMarks,
+        // ]);
+        $response = [
+    'message' => 'Quiz submitted successfully!',
+    'attemptid' => $attemptId,
+    'status' => $resultStatus,
+    'marksObtained' => $totalMarks,
+    'totalMarks' => $totalQuestions * $questionMarks,
+];
+
+if ($aiDebug) {
+    $response['ai_debug'] = $aiDebugInfo;  // <-- THIS
+}
+
+FatUtility::dieJsonSuccess($response);
+FatUtility::dieJsonError('TEMP STOP: debugging');
     }
     public function getQuestions()
 {
