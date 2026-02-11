@@ -47,6 +47,8 @@ private function rwuNormalizeMath(string $text): string
     $text = (string)$text;
     $text = trim($text);
     if ($text === '') return '';
+// ✅ Decode HTML entities like &times; &divide; &minus; etc.
+$text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
     // 0) normalize case + strip invisible unicode
     $text = mb_strtolower($text, 'UTF-8');
@@ -411,53 +413,40 @@ private function rwuTruncate(string $s, int $maxChars): string
  */
 private function rwuSmartNumericCompare(string $userExpr, string $correctExpr): bool
 {
-    // First normalize both
     $uNorm = $this->rwuNormalizeMath($userExpr);
     $cNorm = $this->rwuNormalizeMath($correctExpr);
-    
-    // Try exact match first
+
     if ($uNorm === $cNorm) return true;
-    
-    // Parse both as numbers
+
     $uParsed = $this->rwuParseNumericWithTolerance($uNorm);
     $cParsed = $this->rwuParseNumericWithTolerance($cNorm);
-    
-    if (!$uParsed || !$cParsed) {
-        // Not numeric, can't compare
-        return false;
-    }
-    
+
+    if (!$uParsed || !$cParsed) return false;
+
     $uVal = (float)$uParsed['value'];
     $cVal = (float)$cParsed['value'];
-    
-    // Handle very small numbers near zero
-    if (abs($cVal) < 1e-15 && abs($uVal) < 1e-15) {
-        return true; // Both effectively zero
-    }
-    
-    // Calculate relative error
+
+    // both essentially zero
+    if (abs($cVal) < 1e-15 && abs($uVal) < 1e-15) return true;
+
     $absDiff = abs($uVal - $cVal);
     $magnitude = max(abs($cVal), abs($uVal), 1e-12);
-    $relError = $absDiff / $magnitude;
-    
-    // Determine expected precision from the expressions
-    $uPrecision = $this->rwuEstimatePrecision($uNorm);
-    $cPrecision = $this->rwuEstimatePrecision($cNorm);
-    $expectedPrecision = min($uPrecision, $cPrecision);
-    
-    // Adaptive tolerance: more lenient for small numbers
-    $adaptiveTol = max(1e-9, $expectedPrecision * $magnitude, $absDiff * 0.1);
-    
-    // Also check if difference is within last digit tolerance
-    $lastDigitTol = $this->rwuLastDigitTolerance($uNorm, $cNorm);
-    
-    $tol = max($adaptiveTol, $lastDigitTol, 1e-12);
-    
+
+    // Tolerance based on the LESS precise side (bigger tol wins)
+    $uTol = (float)($uParsed['tol'] ?? 0.0);
+    $cTol = (float)($cParsed['tol'] ?? 0.0);
+    $tol = max($uTol, $cTol, 1e-12);
+
+    // Optional safety: tiny relative allowance (helps extreme small numbers)
+    $relTol = $magnitude * 1e-12;
+    $tol = max($tol, $relTol);
+
     return $absDiff <= $tol;
 }
 
+
 /**
- * Estimate precision from number format (decimal places, sig figs)
+ * Estimate precision from number format (decimal places, Qsig figs)
  */
 private function rwuEstimatePrecision(string $expr): float
 {
@@ -1252,6 +1241,39 @@ $resultsIndexByQid[$questionId] = count($results) - 1;
         ];
     }
 }
+else if (
+    // if answer is NOT an array (i.e. not multi-select) AND looks like math/numeric
+    !is_array($userAnswer) &&
+    (
+        $this->rwuIsMathType($questionType) ||
+        $this->rwuLooksLikeMath((string)$userAnswer, (string)$correctAnswer, (string)$questionTitle)
+    )
+) {
+    $ua = (string)$userAnswer;
+
+    $isCorrect = $this->rwuIsMathCorrect($ua, (string)$correctAnswer);
+
+    $obtainedMarks = $isCorrect ? $questionMarks : 0;
+
+    $results[] = [
+        'questionId'     => $questionId,
+        'userAnswer'     => $ua,
+        'correctAnswer'  => (string)$correctAnswer,
+        'isCorrect'      => $isCorrect,
+        'marksObtained'  => $obtainedMarks,
+        'explanation'    => '',
+    ];
+    $resultsIndexByQid[$questionId] = count($results) - 1;
+
+    if (!$isCorrect) {
+        $aiCandidates[] = [
+            'id' => (int)$questionId,
+            'q'  => $this->rwuTruncate((string)$questionTitle, 180),
+            'expected' => $this->rwuTruncate((string)$correctAnswer, 180),
+            'answer'   => $this->rwuTruncate((string)$ua, 220),
+        ];
+    }
+}
 
          // -------------------------
             // 3) MCQ => your existing A/B/C/D logic
@@ -1285,6 +1307,7 @@ $resultsIndexByQid[$questionId] = count($results) - 1;
                     'explanation'    => '',
                 ];
             }
+            
         }
         // ✅ Collect debug info to show in Network tab response
 $aiDebugInfo = [
