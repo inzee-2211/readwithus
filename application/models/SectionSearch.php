@@ -103,42 +103,43 @@ class SectionSearch extends YocoachSearch
      $srch->addDirectCondition('lecture_section_id IN (' . implode(',', $sectionIds) . ')');
 // --- Robust numeric sorting for lecture titles like: 1.1, 1.2, ... 1.10, 1.11 ---
 // Fixes cases where a single item (e.g. 2.6) has leading spaces / hidden chars / dash variants.
-
-$titleExpr = 'mysql_func_TRIM(lecture.lecture_title)';
-
-// Get the first token and clean dash variants, then cut before '-' if present
-$tokenExpr = "
-    SUBSTRING_INDEX(
-        REPLACE(REPLACE(REPLACE(SUBSTRING_INDEX($titleExpr, ' ', 1), '–', '-'), '—', '-'), '-', '-'),
-        '-', 1
-    )
-";
+// Sort by numeric prefix like: 1.1, 1.2, ... 1.9, 1.10, 1.11
+// Also supports: 1.2.5 if you ever use it.
 
 $srch->addFld("
     CASE 
-        WHEN $titleExpr REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN 0
+        WHEN TRIM(lecture.lecture_title) REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN 0
         ELSE 1
     END AS lecture_sort_bucket
 ");
 
+/*
+  token = first word (before first space), and also cut off any trailing "-..."
+  Example: '2.6 - Applying...' -> token '2.6'
+*/
 $srch->addFld("
     CASE 
-        WHEN $titleExpr REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN
+        WHEN TRIM(lecture.lecture_title) REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN
         (
-            CAST(SUBSTRING_INDEX($tokenExpr, '.', 1) AS UNSIGNED) * 1000000
+            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1), '.', 1) AS UNSIGNED) * 1000000
             +
             CAST(
                 IF(
-                    (LENGTH($tokenExpr) - LENGTH(REPLACE($tokenExpr, '.', ''))) >= 1,
-                    SUBSTRING_INDEX(SUBSTRING_INDEX($tokenExpr, '.', 2), '.', -1),
+                    (LENGTH(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1)) 
+                     - LENGTH(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1), '.', ''))) >= 1,
+                    SUBSTRING_INDEX(
+                        SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1), '.', 2),
+                        '.', -1
+                    ),
                     '0'
                 ) AS UNSIGNED
             ) * 1000
             +
             CAST(
                 IF(
-                    (LENGTH($tokenExpr) - LENGTH(REPLACE($tokenExpr, '.', ''))) >= 2,
-                    SUBSTRING_INDEX($tokenExpr, '.', -1),
+                    (LENGTH(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1)) 
+                     - LENGTH(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '-', 1), '.', ''))) >= 2,
+                    SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(lecture.lecture_title), ' ', 1), '.', -1),
                     '0'
                 ) AS UNSIGNED
             )
@@ -150,7 +151,6 @@ $srch->addFld("
 $srch->addOrder('lecture_sort_bucket', 'ASC');
 $srch->addOrder('lecture_sort_key', 'ASC');
 $srch->addOrder('lecture_order', 'ASC');
-
 
             // $srch->addOrder('lecture_order', 'ASC');
             $srch->doNotCalculateRecords();
