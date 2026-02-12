@@ -100,34 +100,54 @@ class SectionSearch extends YocoachSearch
             $srch->applyPrimaryConditions();
             $srch->addSearchListingFields();
             $srch->addFld('0 AS total_resources');
-            $srch->addDirectCondition('lecture_section_id IN (' . implode(',', $sectionIds) . ')');
-            $srch->addFld("CASE 
-    WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+)?' THEN 0 
-    ELSE 1 
-END AS lecture_sort_bucket");
+     $srch->addDirectCondition('lecture_section_id IN (' . implode(',', $sectionIds) . ')');
 
-$srch->addFld("CASE 
-    WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+)?' THEN
+/**
+ * Sort lectures by numeric prefix like:
+ * 1.1, 1.2, ... 1.9, 1.10, 1.11
+ * Also supports 1.2.5 (third segment) if you ever use it.
+ */
+$srch->addFld("
+    CASE 
+        WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN 0
+        ELSE 1
+    END AS lecture_sort_bucket
+");
+
+/**
+ * Build a numeric sort key from the first token (before first space):
+ * key = major*1000000 + minor*1000 + subminor
+ */
+$srch->addFld("
+    CASE 
+        WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+){1,2}' THEN
         (
-            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', 1) AS UNSIGNED) * 1000
+            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', 1) AS UNSIGNED) * 1000000
             +
             CAST(
-                RPAD(
-                    IF(
-                        INSTR(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.') > 0,
-                        SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', -1),
-                        '0'
-                    ),
-                3, '0')
-            AS UNSIGNED)
+                IF(
+                    (LENGTH(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1)) - LENGTH(REPLACE(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', ''))) >= 1,
+                    SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', 2), '.', -1),
+                    '0'
+                ) AS UNSIGNED
+            ) * 1000
+            +
+            CAST(
+                IF(
+                    (LENGTH(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1)) - LENGTH(REPLACE(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', ''))) >= 2,
+                    SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', -1),
+                    '0'
+                ) AS UNSIGNED
+            )
         )
-    ELSE 999999999
-END AS lecture_sort_key");
+        ELSE 999999999
+    END AS lecture_sort_key
+");
 
-// Order: numbered titles first → numeric key → fallback to DB order
 $srch->addOrder('lecture_sort_bucket', 'ASC');
 $srch->addOrder('lecture_sort_key', 'ASC');
 $srch->addOrder('lecture_order', 'ASC');
+
             // $srch->addOrder('lecture_order', 'ASC');
             $srch->doNotCalculateRecords();
             $lectures = $srch->fetchAndFormat();
