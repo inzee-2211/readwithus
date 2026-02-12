@@ -23,7 +23,7 @@ class SectionSearch extends YocoachSearch
         parent::__construct($langId, $userId, $userType);
     }
 
-    /**
+    /**F
      * Add Search Listing Fields
      *
      * @return void
@@ -101,7 +101,34 @@ class SectionSearch extends YocoachSearch
             $srch->addSearchListingFields();
             $srch->addFld('0 AS total_resources');
             $srch->addDirectCondition('lecture_section_id IN (' . implode(',', $sectionIds) . ')');
-            $srch->addOrder('lecture_order', 'ASC');
+            $srch->addFld("CASE 
+    WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+)?' THEN 0 
+    ELSE 1 
+END AS lecture_sort_bucket");
+
+$srch->addFld("CASE 
+    WHEN lecture.lecture_title REGEXP '^[0-9]+(\\.[0-9]+)?' THEN
+        (
+            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', 1) AS UNSIGNED) * 1000
+            +
+            CAST(
+                RPAD(
+                    IF(
+                        INSTR(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.') > 0,
+                        SUBSTRING_INDEX(SUBSTRING_INDEX(lecture.lecture_title, ' ', 1), '.', -1),
+                        '0'
+                    ),
+                3, '0')
+            AS UNSIGNED)
+        )
+    ELSE 999999999
+END AS lecture_sort_key");
+
+// Order: numbered titles first → numeric key → fallback to DB order
+$srch->addOrder('lecture_sort_bucket', 'ASC');
+$srch->addOrder('lecture_sort_key', 'ASC');
+$srch->addOrder('lecture_order', 'ASC');
+            // $srch->addOrder('lecture_order', 'ASC');
             $srch->doNotCalculateRecords();
             $lectures = $srch->fetchAndFormat();
             $lectureIds = array_keys($lectures);
