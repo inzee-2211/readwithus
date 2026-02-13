@@ -2272,24 +2272,21 @@ public function getAIIntro()
 
     $isCompleted = in_array($lectureId, $covered);
 
-    // Build human-friendly intro
     if ($quizStats['has_passed']) {
-        $quizLine = "You’ve <strong>passed</strong> the quiz for this lecture.";
-    } elseif ($quizStats['total_attempts'] === 0) {
-        $quizLine = "You haven't attempted the quiz yet.";
-    } else {
-        $quizLine = "You attempted the quiz <strong>{$quizStats['failed_attempts']} time(s)</strong> but have not passed yet.";
-    }
-
-    $completionLine = $isCompleted 
-        ? "This lecture is <strong>marked as completed</strong>."
-        : "This lecture is <strong>not completed</strong> yet.";
-
-    $final = $quizLine . " " . $completionLine . " Ask me anything about this lecture.";
-
-    FatUtility::dieJsonSuccess(['intro' => $final]);
+    $quizLine = "You’ve **passed** the quiz for this lecture.";
+} elseif ($quizStats['total_attempts'] === 0) {
+    $quizLine = "You haven't attempted the quiz yet.";
+} else {
+    $quizLine = "You attempted the quiz **{$quizStats['failed_attempts']} time(s)** but have not passed yet.";
 }
 
+$completionLine = $isCompleted
+    ? "This lecture is **marked as completed**."
+    : "This lecture is **not completed** yet.";
+
+$final = $quizLine . " " . $completionLine . " Ask me anything about this lecture.";
+FatUtility::dieJsonSuccess(['intro' => $final]);
+}
 public function aiChat()
 {
     if (!FatUtility::isAjaxCall()) {
