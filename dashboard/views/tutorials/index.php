@@ -258,9 +258,13 @@ echo $this->includeTemplate('tutorials/head-section.php', [
                                                           <?php }else{ ?> 
                                                             <div class="lecture__content" onclick="loadLecture('<?php echo $lesson['lecture_id']; ?>');">
                                                                 <?php } ?>
-                                                                <p class="lectureName">
+                                                                <!-- <p class="lectureName">
                                                                     <?php echo $lesson['lecture_order'] . '. ' . $lesson['lecture_title'] ?>
-                                                                </p>
+                                                                </p> -->
+                                                                <p class="lectureName">
+  <?php echo $lesson['lecture_title']; ?>
+</p>
+
                                                                 <div class="lecture-meta">
                                                                     <div class="lecture-meta__item d-flex align-items-center">
                                                                         <svg class="icon icon--play icon--xsmall margin-right-1">
