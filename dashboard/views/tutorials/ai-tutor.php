@@ -294,5 +294,51 @@
 .ai-md li { margin: 4px 0; }
 .ai-md code { padding: 2px 5px; border-radius: 6px; background: #eef2ff; }
 .ai-md pre { padding: 10px; border-radius: 10px; overflow: auto; background: #0b1020; color: #fff; }
+/* =========================
+   Responsive: give more space to messages on smaller screens
+   ========================= */
+@media (max-width: 1024px), (max-height: 720px) {
+  .aiTutor {
+    height: calc(100vh - 120px); /* more room overall */
+  }
+
+  .aiTutor__header {
+    padding: 10px 12px;         /* shrink header */
+  }
+
+  .aiTutor__subtitle {
+    display: none;              /* optional: hides long subtitle on small screens */
+  }
+
+  .aiTutor__suggestions {
+    padding: 6px 10px;          /* shrink pills area */
+  }
+
+  .ai-pill {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .aiTutor__messages {
+    padding: 12px;              /* less padding, more usable space */
+  }
+
+  .aiTutor__composer {
+    padding: 8px 10px;          /* smaller composer */
+    gap: 8px;
+  }
+
+  .aiTutor__composer textarea {
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.35;
+    max-height: 44px;           /* prevents composer from growing too tall */
+  }
+
+  .aiSendBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
 
 </style>
