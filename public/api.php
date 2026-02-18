@@ -454,63 +454,47 @@ if ($url === 'getSubtopics') {
 
 
 
-// Get Quizzes - FIXED VERSION
+// Get Quizzes (by subtopicId – uses new quiz tables)
 if ($url === 'getQuizzes') {
     try {
-        $subjectId   = (int)($_GET['subjectId']   ?? 0);
-        $examboardId = (int)($_GET['examboardId'] ?? 0);
-        $tierId      = (int)($_GET['tierId']      ?? 0);
-        $yearId      = (int)($_GET['yearId']      ?? 0);
-
-        error_log("getQuizzes called with subjectId: $subjectId, examboardId: $examboardId, tierId: $tierId, yearId: $yearId");
-
-        if ($subjectId < 1) {
-            echo json_encode(['status' => 0, 'msg' => 'Missing subjectId']);
+        $subtopicId = (int)($_GET['subtopicId'] ?? 0);
+        if ($subtopicId < 1) {
+            echo json_encode(['status' => 0, 'error' => 'Missing subtopicId']);
             exit;
         }
 
-        // 1) Get topics for this subject
-        $stmt = $pdo->prepare("SELECT id FROM course_topics WHERE subject_id = ?");
-        $stmt->execute([$subjectId]);
-        $topicRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Look up the subtopic name from tbl_quiz_management
+        $txt = $pdo->prepare("SELECT subtopic_name FROM tbl_quiz_management WHERE id = ?");
+        $txt->execute([$subtopicId]);
+        $subtopicName = $txt->fetchColumn();
 
-        error_log("Found " . count($topicRows) . " topics for subject $subjectId");
-
-        if (empty($topicRows)) {
+        if (!$subtopicName) {
+            // No such subtopic – return empty list, not an error
             echo json_encode(['status' => 1, 'data' => []]);
             exit;
         }
 
-        // 2) Get subtopics under those topics (these are your "quizzes")
-        $topicIds = array_map(fn($r) => (int)$r['id'], $topicRows);
-        $placeholders = implode(',', array_fill(0, count($topicIds), '?'));
-        
-        $sql = "SELECT id, topic AS name 
-                FROM course_topics 
-                WHERE parent_id IN ($placeholders) 
-                ORDER BY topic ASC";
-        
-        error_log("Subtopic SQL: $sql with topicIds: " . json_encode($topicIds));
-        
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($topicIds);
-        $subs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Fetch quizzes from question bank using that subtopic name
+        $stmt = $pdo->prepare("
+            SELECT id, question_title AS name
+            FROM tbl_quaestion_bank
+            WHERE subtopic = ?
+            ORDER BY id ASC
+        ");
+        $stmt->execute([$subtopicName]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        error_log("Found " . count($subs) . " subtopics");
+        echo json_encode([
+            'status' => 1,
+            'data'   => $rows ?: [],
+        ]);
 
-        // Format the output
-        $out = array_map(function($r) {
-            return ['id' => (int)$r['id'], 'name' => $r['name']];
-        }, $subs);
-
-        echo json_encode(['status' => 1, 'data' => $out]);
-        
     } catch (Exception $e) {
-        error_log("Error in getQuizzes: " . $e->getMessage());
         echo json_encode(['status' => 0, 'msg' => $e->getMessage()]);
     }
     exit;
 }
+
 
 // Unknown endpoint
 echo json_encode(['status' => 0, 'msg' => 'Unknown URL: ' . $url]);
