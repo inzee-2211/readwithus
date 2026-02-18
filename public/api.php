@@ -292,30 +292,65 @@ if ($url === 'resolveSetup') {
 
 
 
+// if ($url === 'getQuizzesBySubtopic') {
+//     try {
+//         $subtopicId = (int)($_GET['subtopicId'] ?? 0);
+//         if ($subtopicId < 1) { echo json_encode(['status'=>0,'error'=>'Missing subtopicId']); exit; }
+
+//         // fetch subtopic text
+//         $txt = $pdo->prepare("SELECT topic FROM course_topics WHERE id = ?");
+//         $txt->execute([$subtopicId]);
+//         $subtopicRow = $txt->fetch(PDO::FETCH_ASSOC);
+//         if (!$subtopicRow) { echo json_encode(['status'=>1,'data'=>[]]); exit; }
+
+//         $stmt = $pdo->prepare("
+//             SELECT id, question_title AS name
+//             FROM tbl_quaestion_bank
+//             WHERE subtopic = ?
+//             ORDER BY id ASC
+//         ");
+//         $stmt->execute([$subtopicRow['topic']]);
+//         echo json_encode(['status'=>1,'data'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+//     } catch (Exception $e) {
+//         echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
+//     }
+//     exit;
+// }
 if ($url === 'getQuizzesBySubtopic') {
     try {
         $subtopicId = (int)($_GET['subtopicId'] ?? 0);
-        if ($subtopicId < 1) { echo json_encode(['status'=>0,'error'=>'Missing subtopicId']); exit; }
+        if ($subtopicId < 1) {
+            echo json_encode(['status'=>0,'error'=>'Missing subtopicId']);
+            exit;
+        }
 
-        // fetch subtopic text
-        $txt = $pdo->prepare("SELECT topic FROM course_topics WHERE id = ?");
+        // ✅ NEW: get subtopic_name from tbl_quiz_management (NOT course_topics)
+        $txt = $pdo->prepare("SELECT subtopic_name FROM tbl_quiz_management WHERE id = ?");
         $txt->execute([$subtopicId]);
-        $subtopicRow = $txt->fetch(PDO::FETCH_ASSOC);
-        if (!$subtopicRow) { echo json_encode(['status'=>1,'data'=>[]]); exit; }
+        $subtopicName = $txt->fetchColumn();
 
+        if (!$subtopicName) {
+            echo json_encode(['status'=>1,'data'=>[]]);
+            exit;
+        }
+
+        // ✅ Fetch question-bank quizzes using the subtopic name
+        // NOTE: confirm your table name: tbl_quaestion_bank looks misspelled
         $stmt = $pdo->prepare("
             SELECT id, question_title AS name
             FROM tbl_quaestion_bank
             WHERE subtopic = ?
             ORDER BY id ASC
         ");
-        $stmt->execute([$subtopicRow['topic']]);
+        $stmt->execute([$subtopicName]);
+
         echo json_encode(['status'=>1,'data'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
     } catch (Exception $e) {
         echo json_encode(['status'=>0,'msg'=>$e->getMessage()]);
     }
     exit;
 }
+
 // NEW: Get Topics for a Subject (top level topics only)
 // TOPICS (actually the "setup" rows filtered by the chosen path)
 if ($url === 'getTopics') {
