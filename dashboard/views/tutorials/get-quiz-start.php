@@ -81,7 +81,7 @@ $webroot = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : '/';
 }
 
 /* Actions */
-.qz-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:22px;z-index: 2; }
+.qz-actions { display:flex; position: relative; flex-wrap:wrap; gap:12px; margin-top:22px;z-index: 2; }
 .qz-btn-primary {
   background:#14A0A3; color:#fff; border:none; padding:12px 18px;
   border-radius:10px; cursor:pointer; font-weight:700; letter-spacing:.2px;
