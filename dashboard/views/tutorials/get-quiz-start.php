@@ -25,6 +25,7 @@ $webroot = defined('CONF_WEBROOT_FRONT_URL') ? CONF_WEBROOT_FRONT_URL : '/';
   padding: 28px;
   overflow: hidden;
   box-shadow: 0 10px 24px rgba(17,24,39,.05), 0 2px 6px rgba(17,24,39,.06);
+   z-index: 1;
 }
 
 /* Decorative ribbons */
