@@ -5,7 +5,7 @@ class BulkQuestionImporter
     private int $userId;
     private int $userType;
     private int $langId;
-    private array $stats = ['total'=>0,'success'=>0,'failed'=>0,'errors'=>[]];
+  private array $stats = ['total'=>0,'success'=>0,'failed'=>0,'errors'=>[], 'question_ids'=>[]];
 
     public function __construct(int $userId, int $userType, int $langId)
     {
@@ -148,6 +148,7 @@ if ((int)$post['course_cate_id'] <= 0) { throw new Exception('category_id/questi
             throw new Exception($q->getError());
         }
         $qid = $q->getMainTableRecordId();
+        $this->stats['question_ids'][] = (int)$qid;
 
         if ($imagePath) {
             $fileData = [

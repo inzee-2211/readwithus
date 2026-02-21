@@ -36,7 +36,7 @@ $btnReset->addFieldTagAttribute('onclick', 'clearSearch()');
                         <?php echo Label::getLabel('LBL_SEARCH'); ?>
                     </a> -->
                     <?php if ($siteUserType == User::TEACHER) { ?>
-                        <a href="<?php echo MyUtility::makeUrl('Quizzes', 'form') ?>" class="btn color-secondary btn--bordered margin-left-3">
+                        <a href="<?php echo MyUtility::makeUrl('Quizzes', 'create') ?>" class="btn color-secondary btn--bordered margin-left-3">
                             <svg class="icon icon--uploader margin-right-2">
                                 <use xlink:href="<?php echo CONF_WEBROOT_URL ?>images/sprite.svg#uploader"></use>
                             </svg>

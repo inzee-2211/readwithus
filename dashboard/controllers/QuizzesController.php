@@ -35,7 +35,149 @@ class QuizzesController extends DashboardController
         $this->_template->addJs('js/jquery.barrating.min.js');
         $this->_template->render();
     }
+public function create()
+{
+    if ($this->siteUserType == User::LEARNER) {
+        FatUtility::exitWithErrorCode(404);
+    }
+    $this->_template->render(true, true, 'quizzes/create.php');
+}
+public function bulkForm()
+{
+    if ($this->siteUserType == User::LEARNER) {
+        FatUtility::exitWithErrorCode(404);
+    }   
+    $this->_template->render(true, true, 'quizzes/bulk-form.php');
+}
+public function bulkSetup()
+{
+    if ($this->siteUserType == User::LEARNER) {
+        FatUtility::exitWithErrorCode(404);
+    }
 
+    $db = FatApp::getDb();
+    $db->startTransaction();
+
+    try {
+        if (empty($_FILES['bulk_csv']['tmp_name'])) {
+            FatUtility::dieJsonError('Please upload a CSV file.');
+        }
+
+        // 1) derive quiz title from CSV filename (without extension)
+        $originalName = $_FILES['bulk_csv']['name'] ?? 'Exam';
+        $quizTitle = pathinfo($originalName, PATHINFO_FILENAME);
+        $quizTitle = trim($quizTitle) ?: 'Exam';
+
+        // 2) Create quiz row (title from filename, description NULL)
+        $quiz = new Quizzes(0, $this->siteUserId, $this->siteUserType, $this->siteLangId);
+
+     $generalPayload = [
+    'quiz_id' => 0,
+
+    // REQUIRED / core
+    'quiz_title' => $quizTitle,
+    'quiz_description' => '', // must be string (NOT null)
+
+    // IMPORTANT: make sure ownership is correct
+    'quiz_user_id' => $this->siteUserId,
+
+    // Safe defaults for YoCoach flow
+    'quiz_status' => 0,      // drafted (adjust if your system uses 0/1/2)
+    'quiz_active' => 0,      // inactive by default
+    'quiz_steps'  => 1,      // marks "general" step done (adjust if your app uses bitmask)
+];
+        if (!$quiz->setupGeneralData($generalPayload)) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError($quiz->getError());
+        }
+
+        $quizId = (int)$quiz->getMainTableRecordId();
+        if ($quizId < 1) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError('Could not create quiz.');
+        }
+
+        // 3) Import questions using existing importer
+        // IMPORTANT: we will slightly modify BulkQuestionImporter to return inserted question IDs
+        $importer = new BulkQuestionImporter($this->siteUserId, $this->siteUserType, $this->siteLangId);
+        $stats = $importer->import($_FILES['bulk_csv'], $_FILES['bulk_images'] ?? null);
+
+        $questionIds = $stats['question_ids'] ?? [];
+        $questionIds = array_unique(array_filter(array_map('intval', $questionIds)));
+
+        if (empty($questionIds)) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError('No questions were imported from CSV.');
+        }
+
+        // 4) Link questions to quiz in tbl_quiz_questions
+      // 4) Link questions to quiz in tbl_quiz_questions
+foreach ($questionIds as $qid) {
+    $qid = (int)$qid;
+    if ($qid < 1) { continue; }
+
+    $row = [
+        'quiz_id'     => $quizId,
+        'question_id' => $qid,
+        'status'      => 1,
+        'created'     => date('Y-m-d H:i:s'),
+    ];
+
+    if (!$db->insertFromArray('tbl_quiz_questions', $row)) {
+        // If unique key triggers duplicate, ignore it
+        $err = $db->getError();
+      // ignore only duplicate quiz_id+question_id unique key (NOT primary key duplicates)
+if (stripos($err, 'uq_quiz_question') !== false) { 
+    continue; 
+}
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($err);
+    }
+}
+
+        // 5) Apply default settings (as you requested)
+        $defaultPassMsg = "Congratulations! You have passed the exam.";
+        $defaultFailMsg = "Unfortunately, you did not reach the passing score. Please review and try again.";
+
+      $settingsPayload = [
+    'quiz_id' => $quizId,
+
+    'quiz_duration' => 60,
+    'quiz_pass_percentage' => 70,
+    'quiz_validity' => 30,
+
+    'quiz_fail_message' => $defaultFailMsg,
+    'quiz_pass_message' => $defaultPassMsg,
+
+    'quiz_offer_certificate' => AppConstant::NO,
+
+    // Optional but helpful if your UI reads these:
+    'quiz_no_of_attempt' => 1,
+];
+
+        if (!$quiz->setupSettings($settingsPayload)) {
+            $db->rollbackTransaction();
+            FatUtility::dieJsonError($quiz->getError());
+        }
+
+        $db->commitTransaction();
+
+        $msg = "Exam created: {$quizTitle}. Imported " . count($questionIds) . " question(s).";
+        if (!empty($stats['errors'])) {
+            $msg .= "\n\nIssues:\n- " . implode("\n- ", $stats['errors']);
+        }
+
+        FatUtility::dieJsonSuccess([
+            'msg' => nl2br($msg),
+            'quizId' => $quizId,
+            'data' => ['quizId' => $quizId]
+        ]);
+
+    } catch (Exception $e) {
+        $db->rollbackTransaction();
+        FatUtility::dieJsonError($e->getMessage());
+    }
+}
     /**
      * Search & List Plans
      */
