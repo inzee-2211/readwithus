@@ -17,7 +17,7 @@ class TutorRequestsController extends AdminBaseController
      */
     public function index()
     {
-        $page     = FatApp::getPostedData('page', FatUtility::VAR_INT, 1);
+        $page = FatApp::getQueryStringData('page', FatUtility::VAR_INT, 1);
         $pageSize = 20;
 
         $db = FatApp::getDb();
@@ -226,46 +226,42 @@ class TutorRequestsController extends AdminBaseController
      * Delete request (simple POST)
      */
     public function delete()
-    {
-        $requestId = FatApp::getPostedData('requestId', FatUtility::VAR_INT, 0);
+{
+    $requestId = FatApp::getPostedData('requestId', FatUtility::VAR_INT, 0);
 
-        if ($requestId < 1) {
-            Message::addErrorMessage(Label::getLabel('LBL_INVALID_REQUEST'));
-            FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
-        }
-
-        $db = FatApp::getDb();
-        $db->startTransaction();
-
-        try {
-            // Delete associated courses first (legacy mapping table)
-            if (!$db->deleteRecords('tbl_tutor_request_courses', [
-                'smt'  => 'trc_trutreq_id = ?', // adjust column name if different
-                'vals' => [$requestId],
-            ])) {
-                // If table/column doesn't exist, you can relax this check
-                // but for now we treat failure as an error.
-                throw new Exception($db->getError());
-            }
-
-            // Delete main request
-            if (!$db->deleteRecords('tbl_tutor_requests', [
-                'smt'  => 'tutreq_id = ?',
-                'vals' => [$requestId],
-            ])) {
-                throw new Exception($db->getError());
-            }
-
-            $db->commitTransaction();
-            Message::addMessage(Label::getLabel('LBL_REQUEST_DELETED_SUCCESSFULLY'));
-            FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
-        } catch (Exception $e) {
-            $db->rollbackTransaction();
-            Message::addErrorMessage($e->getMessage());
-            FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
-        }
+    if ($requestId < 1) {
+        Message::addErrorMessage(Label::getLabel('LBL_INVALID_REQUEST'));
+        FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
     }
 
+    $db = FatApp::getDb();
+    $db->startTransaction();
+
+    try {
+        // Delete associated courses first (legacy mapping table)
+        // FIX: correct column name is trc_tutreq_id (based on your JOIN)
+        $db->deleteRecords('tbl_tutor_request_courses', [
+            'smt'  => 'trc_tutreq_id = ?',
+            'vals' => [$requestId],
+        ]);
+
+        // Delete main request
+        if (!$db->deleteRecords('tbl_tutor_requests', [
+            'smt'  => 'tutreq_id = ?',
+            'vals' => [$requestId],
+        ])) {
+            throw new Exception($db->getError());
+        }
+
+        $db->commitTransaction();
+        Message::addMessage(Label::getLabel('LBL_REQUEST_DELETED_SUCCESSFULLY'));
+        FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
+    } catch (Exception $e) {
+        $db->rollbackTransaction();
+        Message::addErrorMessage($e->getMessage());
+        FatApp::redirectUser(MyUtility::makeUrl('TutorRequests'));
+    }
+}
     /**
      * Status labels
      */
