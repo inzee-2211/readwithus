@@ -59,7 +59,7 @@ class CourseProgress extends MyAppModel
         $this->assignValues([
             'crspro_ordcrs_id' => $ordcrsId,
             'crspro_status' => static::PENDING,
-             'crspro_lecture_id' => 0,
+            'crspro_lecture_id' => 0,
             'crspro_progress' => 0,
         ]);
         if (!$this->save()) {
@@ -72,73 +72,73 @@ class CourseProgress extends MyAppModel
         }
         return true;
     }
-/**
- * Get or create course progress by (user, course)
- * Works for subscription model (no order dependency)
- */
-/**
- * Get or create course progress by (user, course)
- * Works for subscription model (no order dependency)
- */
-public static function getOrCreateProgressByUserAndCourse(int $userId, int $courseId): ?CourseProgress
-{
-    $db = FatApp::getDb();
+    /**
+     * Get or create course progress by (user, course)
+     * Works for subscription model (no order dependency)
+     */
+    /**
+     * Get or create course progress by (user, course)
+     * Works for subscription model (no order dependency)
+     */
+    public static function getOrCreateProgressByUserAndCourse(int $userId, int $courseId): ?CourseProgress
+    {
+        $db = FatApp::getDb();
 
-    // Sanity check to avoid inserting empties
-    if ($userId <= 0 || $courseId <= 0) {
-        trigger_error("CourseProgress:getOrCreate called with invalid ids (u:$userId, c:$courseId)", E_USER_WARNING);
-        return null;
-    }
-
-    // 1) Find existing record
-    $srch = new SearchBase(static::DB_TBL, 'cp');
-    $srch->addCondition('cp.crspro_user_id', '=', $userId);
-    $srch->addCondition('cp.crspro_course_id', '=', $courseId);
-    $srch->addMultipleFields(['cp.crspro_id']);
-    $srch->doNotCalculateRecords();
-    $srch->setPageSize(1);
-
-    if ($row = $db->fetch($srch->getResultSet())) {
-        return new static((int)$row['crspro_id']);
-    }
-
-    // 2) Create new progress record - FIXED VERSION
-    $data = [
-        'crspro_user_id'    => (int)$userId,
-        'crspro_course_id'  => (int)$courseId,
-        'crspro_status'     => static::PENDING,
-         'crspro_ordcrs_id'  => null,
-        'crspro_lecture_id' => 0,
-        'crspro_progress'   => 0,
-        'crspro_covered'    => json_encode([]),
-        'crspro_completed'  => null,
-        // leave crspro_ordcrs_id NULL for subscription path
-    ];
-
-    // Use regular insert instead of insertFromArray with special parameters
-    $record = new CourseProgress();
-    $record->assignValues($data);
-    
-    if (!$record->save()) {
-        trigger_error('CourseProgress insert failed: ' . $record->getError(), E_USER_WARNING);
-        
-        // Try to fetch again in case of race condition
-        $srch2 = new SearchBase(static::DB_TBL, 'cp2');
-        $srch2->addCondition('cp2.crspro_user_id', '=', $userId);
-        $srch2->addCondition('cp2.crspro_course_id', '=', $courseId);
-        $srch2->addMultipleFields(['cp2.crspro_id']);
-        $srch2->doNotCalculateRecords();
-        $srch2->setPageSize(1);
-        
-        if ($row2 = $db->fetch($srch2->getResultSet())) {
-            return new static((int)$row2['crspro_id']);
+        // Sanity check to avoid inserting empties
+        if ($userId <= 0 || $courseId <= 0) {
+            trigger_error("CourseProgress:getOrCreate called with invalid ids (u:$userId, c:$courseId)", E_USER_WARNING);
+            return null;
         }
-        return null;
-    }
 
-    $id = $record->getMainTableRecordId();
-    return new static($id);
-}
+        // 1) Find existing record
+        $srch = new SearchBase(static::DB_TBL, 'cp');
+        $srch->addCondition('cp.crspro_user_id', '=', $userId);
+        $srch->addCondition('cp.crspro_course_id', '=', $courseId);
+        $srch->addMultipleFields(['cp.crspro_id']);
+        $srch->doNotCalculateRecords();
+        $srch->setPageSize(1);
+
+        if ($row = $db->fetch($srch->getResultSet())) {
+            return new static((int) $row['crspro_id']);
+        }
+
+        // 2) Create new progress record - FIXED VERSION
+        $data = [
+            'crspro_user_id' => (int) $userId,
+            'crspro_course_id' => (int) $courseId,
+            'crspro_status' => static::PENDING,
+            'crspro_ordcrs_id' => null,
+            'crspro_lecture_id' => 0,
+            'crspro_progress' => 0,
+            'crspro_covered' => json_encode([]),
+            'crspro_completed' => null,
+            // leave crspro_ordcrs_id NULL for subscription path
+        ];
+
+        // Use regular insert instead of insertFromArray with special parameters
+        $record = new CourseProgress();
+        $record->assignValues($data);
+
+        if (!$record->save()) {
+            trigger_error('CourseProgress insert failed: ' . $record->getError(), E_USER_WARNING);
+
+            // Try to fetch again in case of race condition
+            $srch2 = new SearchBase(static::DB_TBL, 'cp2');
+            $srch2->addCondition('cp2.crspro_user_id', '=', $userId);
+            $srch2->addCondition('cp2.crspro_course_id', '=', $courseId);
+            $srch2->addMultipleFields(['cp2.crspro_id']);
+            $srch2->doNotCalculateRecords();
+            $srch2->setPageSize(1);
+
+            if ($row2 = $db->fetch($srch2->getResultSet())) {
+                return new static((int) $row2['crspro_id']);
+            }
+            return null;
+        }
+
+        $id = $record->getMainTableRecordId();
+        return new static($id);
+    }
 
 
     /**
@@ -166,8 +166,8 @@ public static function getOrCreateProgressByUserAndCourse(int $userId, int $cour
      */
     public function setCompletedLectures(int $lectureId, int $markCovered = AppConstant::YES)
     {
-        $lectures = static::getAttributesById($this->getMainTableRecordId(), 'crspro_covered');
-        $lectures = ($lectures) ? json_decode($lectures) : [];
+        $data = static::getAttributesById($this->getMainTableRecordId(), ['crspro_covered', 'crspro_course_id']);
+        $lectures = ($data['crspro_covered']) ? json_decode($data['crspro_covered']) : [];
         if ($markCovered == AppConstant::YES) {
             $lectures = array_unique(array_merge($lectures, [$lectureId]));
         } else {
@@ -182,7 +182,7 @@ public static function getOrCreateProgressByUserAndCourse(int $userId, int $cour
             $this->error = $this->getError();
             return false;
         }
-        return true;
+        return $this->updateProgress((int) $data['crspro_course_id']);
     }
 
     /**
@@ -224,15 +224,47 @@ public static function getOrCreateProgressByUserAndCourse(int $userId, int $cour
             'crspro_completed',
             'crspro_ordcrs_id',
         ]);
-        $course = (new Course($courseId, 0, 0, MyUtility::getSiteLangId()))->get();
-        $lecturesCovered = ($progress['crspro_covered']) ? count(json_decode($progress['crspro_covered'])) : 0;
-        $percent = round(($lecturesCovered * 100) / $course['course_lectures'], 2);
+
+        $coveredIds = ($progress['crspro_covered']) ? json_decode($progress['crspro_covered'], true) : [];
+        if (!is_array($coveredIds)) {
+            $coveredIds = [];
+        }
+
+        /* Get active lectures for this course */
+        $srch = new SearchBase(Lecture::DB_TBL);
+        $srch->addCondition('lecture_course_id', '=', $courseId);
+        $srch->addCondition('lecture_deleted', 'IS', 'mysql_func_NULL', 'AND', true);
+        $srch->addFld('lecture_id');
+        $srch->doNotCalculateRecords();
+        $rs = $srch->getResultSet();
+        $activeLectureIds = [];
+        while ($row = FatApp::getDb()->fetch($rs)) {
+            $activeLectureIds[] = (int) $row['lecture_id'];
+        }
+
+        $courseLecturesCount = count($activeLectureIds);
+
+        // Filter covered IDs to only include those that still exist and belong to this course
+        $validCoveredIds = array_intersect($coveredIds, $activeLectureIds);
+        $lecturesCoveredCount = count($validCoveredIds);
+
+        // Update crspro_covered if needed (clean up ghost lectures)
+        if (count($coveredIds) !== $lecturesCoveredCount) {
+            $this->setFldValue('crspro_covered', json_encode(array_values($validCoveredIds)));
+        }
+
+        $percent = 0;
+        if ($courseLecturesCount > 0) {
+            $percent = round(($lecturesCoveredCount * 100) / $courseLecturesCount, 2);
+        }
         $this->setFldValue('crspro_progress', $percent);
+
         /* completed date will be updated only once(first time completed) */
         if (!$progress['crspro_completed'] && $percent == 100.00) {
             $this->setFldValue('crspro_completed', date('Y-m-d'));
             $this->setFldValue('crspro_status', CourseProgress::COMPLETED);
         }
+
         if (!$this->save()) {
             $this->error = $this->getError();
             return false;
@@ -317,47 +349,47 @@ public static function getOrCreateProgressByUserAndCourse(int $userId, int $cour
     // }
 
     public function getNextPrevLectures()
-{
-    $data = static::getAttributesById(
-        $this->getMainTableRecordId(),
-        ['crspro_lecture_id', 'crspro_course_id', 'crspro_progress']
-    );
+    {
+        $data = static::getAttributesById(
+            $this->getMainTableRecordId(),
+            ['crspro_lecture_id', 'crspro_course_id', 'crspro_progress']
+        );
 
-    if (!$data) {
-        FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
-        return false;
+        if (!$data) {
+            FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
+            return false;
+        }
+
+        // Use crspro_course_id directly (no OrderCourse join)
+        return [
+            'next' => $this->getLecture($data),
+            'previous' => $this->getLecture($data, AppConstant::NO),
+        ];
     }
+    public function isLectureValid(int $lectureId)
+    {
+        if ($lectureId < 1) {
+            return true;
+        }
 
-    // Use crspro_course_id directly (no OrderCourse join)
-    return [
-        'next'     => $this->getLecture($data),
-        'previous' => $this->getLecture($data, AppConstant::NO),
-    ];
-}
-public function isLectureValid(int $lectureId)
-{
-    if ($lectureId < 1) {
+        $db = FatApp::getDb();
+        $srch = new SearchBase(static::DB_TBL, 'cp');
+
+        // no more OrderCourse join
+        $srch->joinTable(Lecture::DB_TBL, 'INNER JOIN', 'lecture_course_id = cp.crspro_course_id', 'lecture');
+
+        $srch->addCondition('cp.crspro_id', '=', $this->getMainTableRecordId());
+        $srch->addCondition('lecture.lecture_id', '=', $lectureId);
+        $srch->addFld('cp.crspro_id');
+        $srch->doNotCalculateRecords();
+        $srch->setPageSize(1);
+
+        if (!$db->fetch($srch->getResultSet())) {
+            return false;
+        }
+
         return true;
     }
-
-    $db   = FatApp::getDb();
-    $srch = new SearchBase(static::DB_TBL, 'cp');
-
-    // no more OrderCourse join
-    $srch->joinTable(Lecture::DB_TBL, 'INNER JOIN', 'lecture_course_id = cp.crspro_course_id', 'lecture');
-
-    $srch->addCondition('cp.crspro_id', '=', $this->getMainTableRecordId());
-    $srch->addCondition('lecture.lecture_id', '=', $lectureId);
-    $srch->addFld('cp.crspro_id');
-    $srch->doNotCalculateRecords();
-    $srch->setPageSize(1);
-
-    if (!$db->fetch($srch->getResultSet())) {
-        return false;
-    }
-
-    return true;
-}
 
     // public function isLectureValid(int $lectureId)
     // {
