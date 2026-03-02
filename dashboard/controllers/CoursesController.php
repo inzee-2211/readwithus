@@ -10,13 +10,15 @@ if (!function_exists('app_require')) {
 
         // Figure out project root and common bases
         $dashboardDir = realpath(__DIR__ . '/..');          // .../dashboard
-        $projectRoot  = $dashboardDir ? realpath($dashboardDir . '/..') : null; // repo root
-        $application  = $projectRoot ? $projectRoot . '/application' : null;
+        $projectRoot = $dashboardDir ? realpath($dashboardDir . '/..') : null; // repo root
+        $application = $projectRoot ? $projectRoot . '/application' : null;
 
         // Build candidate bases to try (in order)
         $bases = [];
-        if ($application && is_dir($application)) $bases[] = $application;
-        if ($projectRoot && is_dir($projectRoot)) $bases[] = $projectRoot;
+        if ($application && is_dir($application))
+            $bases[] = $application;
+        if ($projectRoot && is_dir($projectRoot))
+            $bases[] = $projectRoot;
 
         // Consider CONF_APPLICATION_PATH only if it’s a dir
         if (defined('CONF_APPLICATION_PATH') && is_dir(CONF_APPLICATION_PATH)) {
@@ -62,7 +64,7 @@ if (!function_exists('app_require')) {
             "Required file not found. Tried:\n- " . implode("\n- ", $attempted)
         );
     }
-    
+
 }
 // if (!function_exists('app_debug_log')) {
 //     /**
@@ -150,195 +152,195 @@ class CoursesController extends DashboardController
     /**
      * Search & List Plans
      */
-   /**
- * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
- */
-/**
- * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
- */
-/**
- * Search & List Courses - SUBSCRIPTION-AWARE (subjects → courses)
- */
-/**
- * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
- */
-public function search()
-{
-    $frm = $this->getSearchForm();
-    if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid'])) {
-        FatUtility::dieJsonError(current($frm->getValidationErrors()));
-    }
+    /**
+     * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+     */
+    /**
+     * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+     */
+    /**
+     * Search & List Courses - SUBSCRIPTION-AWARE (subjects → courses)
+     */
+    /**
+     * Search & List Courses - UPDATED FOR SUBSCRIPTION MODEL
+     */
+    public function search()
+    {
+        $frm = $this->getSearchForm();
+        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData(), ['course_subcateid'])) {
+            FatUtility::dieJsonError(current($frm->getValidationErrors()));
+        }
 
-    if ($this->siteUserType == User::LEARNER) {
+        if ($this->siteUserType == User::LEARNER) {
 
-        $db = FatApp::getDb();
+            $db = FatApp::getDb();
 
-        // 1) Get active user subscriptions with subject IDs (CSV)
-        $subscriptionSrch = new SearchBase('tbl_user_subscriptions', 'usubs');
-        $subscriptionSrch->addCondition('usubs_user_id', '=', $this->siteUserId);
-        // $subscriptionSrch->addCondition('usubs_status', '=', 'active');
-$subscriptionSrch->addCondition('usubs_status', 'IN', ['active', 'trialing']);
-$subscriptionSrch->addCondition('usubs_end_date', '>=', date('Y-m-d H:i:s'));
+            // 1) Get active user subscriptions with subject IDs (CSV)
+            $subscriptionSrch = new SearchBase('tbl_user_subscriptions', 'usubs');
+            $subscriptionSrch->addCondition('usubs_user_id', '=', $this->siteUserId);
+            // $subscriptionSrch->addCondition('usubs_status', '=', 'active');
+            $subscriptionSrch->addCondition('usubs_status', 'IN', ['active', 'trialing']);
+            $subscriptionSrch->addCondition('usubs_end_date', '>=', date('Y-m-d H:i:s'));
 
 
-        $subscriptionSrch->addMultipleFields(['usubs_subject_ids']);
-        $subscriptionRs = $subscriptionSrch->getResultSet();
-        $subscriptions = $db->fetchAll($subscriptionRs);
+            $subscriptionSrch->addMultipleFields(['usubs_subject_ids']);
+            $subscriptionRs = $subscriptionSrch->getResultSet();
+            $subscriptions = $db->fetchAll($subscriptionRs);
 
-        // Collect all subject IDs from all active subscriptions
-        $allSubjectIds = [];
-        foreach ($subscriptions as $subscription) {
-            if (!empty($subscription['usubs_subject_ids'])) {
-                $subjectIds = array_filter(
-                    array_map('intval', explode(',', $subscription['usubs_subject_ids']))
-                );
-                $allSubjectIds = array_merge($allSubjectIds, $subjectIds);
+            // Collect all subject IDs from all active subscriptions
+            $allSubjectIds = [];
+            foreach ($subscriptions as $subscription) {
+                if (!empty($subscription['usubs_subject_ids'])) {
+                    $subjectIds = array_filter(
+                        array_map('intval', explode(',', $subscription['usubs_subject_ids']))
+                    );
+                    $allSubjectIds = array_merge($allSubjectIds, $subjectIds);
+                }
             }
-        }
 
-        // Remove duplicates and ensure we have valid IDs
-       // Remove duplicates and ensure we have valid IDs
-$allSubjectIds = array_unique(array_filter($allSubjectIds));
+            // Remove duplicates and ensure we have valid IDs
+            // Remove duplicates and ensure we have valid IDs
+            $allSubjectIds = array_unique(array_filter($allSubjectIds));
 
-/**
- * ✅ Determine if learner has NO active subscription
- * We treat it as "no subscription" if:
- * - no subscription rows returned OR
- * - subscription rows exist but subject_ids empty
- */
-$noActiveSubscription = (empty($subscriptions) || empty($allSubjectIds));
+            /**
+             * ✅ Determine if learner has NO active subscription
+             * We treat it as "no subscription" if:
+             * - no subscription rows returned OR
+             * - subscription rows exist but subject_ids empty
+             */
+            $noActiveSubscription = (empty($subscriptions) || empty($allSubjectIds));
 
-if (empty($allSubjectIds)) {
-    // No subjects in subscriptions - return empty results
-    $this->sets([
-        'courses'               => [],
-        'post'                  => $post,
-        'recordCount'           => 0,
-        'noActiveSubscription'  => $noActiveSubscription, // ✅ added
-        'courseStatuses'        => Course::getStatuses(),
-        'courseTypes'           => Course::getTypes(),
-        'orderStatuses'         => CourseProgress::getStatuses(),
-    ]);
-    $this->_template->render(false, false);
-    return;
-}
-
-
-        // 2) Derive allowed level_ids from these subjects
-        $allowedLevels = [];
-        $subjSrch = new SearchBase('course_subjects', 'sub');
-        $subjSrch->addCondition('sub.id', 'IN', $allSubjectIds);
-        $subjSrch->addMultipleFields(['sub.id', 'sub.level_id']);
-        $subjRs = $subjSrch->getResultSet();
-        $subjRows = $db->fetchAll($subjRs) ?: [];
-
-        foreach ($subjRows as $row) {
-            if (!empty($row['level_id'])) {
-                $allowedLevels[] = (int)$row['level_id'];
+            if (empty($allSubjectIds)) {
+                // No subjects in subscriptions - return empty results
+                $this->sets([
+                    'courses' => [],
+                    'post' => $post,
+                    'recordCount' => 0,
+                    'noActiveSubscription' => $noActiveSubscription, // ✅ added
+                    'courseStatuses' => Course::getStatuses(),
+                    'courseTypes' => Course::getTypes(),
+                    'orderStatuses' => CourseProgress::getStatuses(),
+                ]);
+                $this->_template->render(false, false);
+                return;
             }
+
+
+            // 2) Derive allowed level_ids from these subjects
+            $allowedLevels = [];
+            $subjSrch = new SearchBase('course_subjects', 'sub');
+            $subjSrch->addCondition('sub.id', 'IN', $allSubjectIds);
+            $subjSrch->addMultipleFields(['sub.id', 'sub.level_id']);
+            $subjRs = $subjSrch->getResultSet();
+            $subjRows = $db->fetchAll($subjRs) ?: [];
+
+            foreach ($subjRows as $row) {
+                if (!empty($row['level_id'])) {
+                    $allowedLevels[] = (int) $row['level_id'];
+                }
+            }
+            $allowedLevels = array_unique(array_filter($allowedLevels));
+
+            // 3) Build course search (subject + level filtered)
+            $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+            $srch->applyPrimaryConditions();
+
+            // Filter by subjects from subscription
+            $srch->addCondition('course.course_subject_id', 'IN', $allSubjectIds);
+
+            // Join course_subjects to enforce level consistency
+            $srch->joinTable('course_subjects', 'LEFT JOIN', 'sub.id = course.course_subject_id', 'sub');
+
+            if (!empty($allowedLevels)) {
+                // Filter by level as well (KCSE vs GCSE etc.)
+                $srch->addCondition('sub.level_id', 'IN', $allowedLevels);
+            }
+
+            // Apply existing search filters (keyword, status, etc.)
+            $srch->applySearchConditions($post);
+            $srch->addSearchListingFields();
+
+            // Legacy progress joins (if you still need them – kept as-is)
+            $srch->joinTable(
+                OrderCourse::DB_TBL,
+                'LEFT JOIN',
+                'ordcrs.ordcrs_course_id = course.course_id AND ordcrs.ordcrs_user_id = ' . $this->siteUserId,
+                'ordcrs'
+            );
+            $srch->joinTable(
+                CourseProgress::DB_TBL,
+                'LEFT JOIN',
+                'crspro.crspro_ordcrs_id = ordcrs.ordcrs_id OR (crspro.crspro_user_id = ' . $this->siteUserId . ' AND crspro.crspro_course_id = course.course_id)',
+                'crspro'
+            );
+
+            $srch->addMultipleFields([
+                'ordcrs.ordcrs_id',
+                'ordcrs.ordcrs_status',
+                'crspro.crspro_progress',
+                'crspro.crspro_status',
+                'crspro.crspro_completed',
+                'crspro.crspro_id'
+            ]);
+
+            $srch->addOrder('crspro_status', 'ASC');
+            $srch->addOrder('course.course_id', 'DESC');
+
+        } else {
+            // Existing logic for teachers/admins
+            $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
+            $srch->addOrder('course_id', 'DESC');
+            $srch->applyPrimaryConditions();
+            $srch->addSearchListingFields();
+            $srch->applySearchConditions($post);
         }
-        $allowedLevels = array_unique(array_filter($allowedLevels));
 
-        // 3) Build course search (subject + level filtered)
-        $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-        $srch->applyPrimaryConditions();
+        $srch->setPageSize($post['pagesize']);
+        $srch->setPageNumber($post['page']);
 
-        // Filter by subjects from subscription
-        $srch->addCondition('course.course_subject_id', 'IN', $allSubjectIds);
+        $courses = $srch->fetchAndFormat();
+        // ✅ Ensure action permissions are always available for the view (teacher side)
+        if ($this->siteUserType == User::TEACHER && !empty($courses)) {
+            foreach ($courses as &$course) {
+                $courseId = (int) ($course['course_id'] ?? 0);
+                if ($courseId < 1) {
+                    $course['can_edit_course'] = false;
+                    $course['can_delete_course'] = false;
+                    continue;
+                }
 
-        // Join course_subjects to enforce level consistency
-        $srch->joinTable('course_subjects', 'LEFT JOIN', 'sub.id = course.course_subject_id', 'sub');
+                // Use existing backend authorization rules (owner + active + valid)
+                $courseObj = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
 
-        if (!empty($allowedLevels)) {
-            // Filter by level as well (KCSE vs GCSE etc.)
-            $srch->addCondition('sub.level_id', 'IN', $allowedLevels);
+                $canEdit = $courseObj->canEditCourse();
+
+                // Show Edit regardless of status, as long as user has access
+                $course['can_edit_course'] = $canEdit;
+
+                // Optional: keep delete restricted if you want (safer default)
+                // If you want delete only for drafted (recommended):
+                $status = (int) ($course['course_status'] ?? 0);
+                $course['can_delete_course'] = ($canEdit && $status == Course::DRAFTED);
+
+                // If your UI expects cancel etc. you can set them too (safe defaults)
+                $course['can_cancel_course'] = $course['can_cancel_course'] ?? false;
+            }
+            unset($course);
         }
 
-        // Apply existing search filters (keyword, status, etc.)
-        $srch->applySearchConditions($post);
-        $srch->addSearchListingFields();
+        $this->sets([
+            'courses' => $courses,
+            'post' => $post,
+            'noActiveSubscription' => false,
 
-        // Legacy progress joins (if you still need them – kept as-is)
-        $srch->joinTable(
-            OrderCourse::DB_TBL,
-            'LEFT JOIN',
-            'ordcrs.ordcrs_course_id = course.course_id AND ordcrs.ordcrs_user_id = ' . $this->siteUserId,
-            'ordcrs'
-        );
-        $srch->joinTable(
-            CourseProgress::DB_TBL,
-            'LEFT JOIN',
-            'crspro.crspro_ordcrs_id = ordcrs.ordcrs_id',
-            'crspro'
-        );
-
-        $srch->addMultipleFields([
-            'ordcrs.ordcrs_id',
-            'ordcrs.ordcrs_status',
-            'crspro.crspro_progress',
-            'crspro.crspro_status',
-            'crspro.crspro_completed',
-            'crspro.crspro_id'
+            'recordCount' => $srch->recordCount(),
+            'courseStatuses' => Course::getStatuses(),
+            'courseTypes' => Course::getTypes(),
+            'orderStatuses' => CourseProgress::getStatuses(),
         ]);
 
-        $srch->addOrder('crspro_status', 'ASC');
-        $srch->addOrder('course.course_id', 'DESC');
-
-    } else {
-        // Existing logic for teachers/admins
-        $srch = new CourseSearch($this->siteLangId, $this->siteUserId, $this->siteUserType);
-        $srch->addOrder('course_id', 'DESC');
-        $srch->applyPrimaryConditions();
-        $srch->addSearchListingFields();
-        $srch->applySearchConditions($post);
+        $this->_template->render(false, false);
     }
-
-    $srch->setPageSize($post['pagesize']);
-    $srch->setPageNumber($post['page']);
-
-    $courses = $srch->fetchAndFormat();
-// ✅ Ensure action permissions are always available for the view (teacher side)
-if ($this->siteUserType == User::TEACHER && !empty($courses)) {
-    foreach ($courses as &$course) {
-        $courseId = (int)($course['course_id'] ?? 0);
-        if ($courseId < 1) {
-            $course['can_edit_course'] = false;
-            $course['can_delete_course'] = false;
-            continue;
-        }
-
-        // Use existing backend authorization rules (owner + active + valid)
-        $courseObj = new Course($courseId, $this->siteUserId, $this->siteUserType, $this->siteLangId);
-
-        $canEdit = $courseObj->canEditCourse();
-
-        // Show Edit regardless of status, as long as user has access
-        $course['can_edit_course'] = $canEdit;
-
-        // Optional: keep delete restricted if you want (safer default)
-        // If you want delete only for drafted (recommended):
-        $status = (int)($course['course_status'] ?? 0);
-        $course['can_delete_course'] = ($canEdit && $status == Course::DRAFTED);
-
-        // If your UI expects cancel etc. you can set them too (safe defaults)
-        $course['can_cancel_course'] = $course['can_cancel_course'] ?? false;
-    }
-    unset($course);
-}
-
-    $this->sets([
-        'courses'        => $courses,
-        'post'           => $post,
-        'noActiveSubscription' => false,
-
-        'recordCount'    => $srch->recordCount(),
-        'courseStatuses' => Course::getStatuses(),
-        'courseTypes'    => Course::getTypes(),
-        'orderStatuses'  => CourseProgress::getStatuses(),
-    ]);
-
-    $this->_template->render(false, false);
-}
 
 
     /**
@@ -402,7 +404,7 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
                 'course_clang_id',
                 'course_level',
                 'course_details',
-                  'course_subject_id',
+                'course_subject_id',
                 'course.course_id',
             ]);
             $srch->addCondition('course.course_id', '=', $courseId);
@@ -445,9 +447,13 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
     public function setup()
     {
         $frm = $this->getGeneralForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData(), [
-            'course_cate_id', 'course_subcate_id', 'course_clang_id'
-        ])) {
+        if (
+            !$post = $frm->getFormDataFromArray(FatApp::getPostedData(), [
+                'course_cate_id',
+                'course_subcate_id',
+                'course_clang_id'
+            ])
+        ) {
             FatUtility::dieJsonError(Label::getLabel('LBL_INVALID_REQUEST'));
         }
         $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
@@ -514,8 +520,8 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
             FatUtility::dieWithError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         if (empty($_FILES['course_image']['name']) && empty($_FILES['course_preview_video']['name'])) {
             FatUtility::dieJsonError(Label::getLabel('LBL_NO_MEDIA_SELECTED'));
@@ -549,8 +555,8 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
             FatUtility::dieWithError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         $type = FatApp::getPostedData('type');
         $file = new Afile($type);
@@ -578,8 +584,8 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
             FatUtility::dieJsonError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         /* get form and fill */
         $frm = $this->getIntendedLearnersForm();
@@ -600,114 +606,114 @@ if ($this->siteUserType == User::TEACHER && !empty($courses)) {
      *
      */
     /**
- * Setup Intended Learners Data with enhanced error handling
- *
- */
-public function setupIntendedLearners()
-{
-    try {
-        $frm = $this->getIntendedLearnersForm();
-        if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
-            FatUtility::dieJsonError(current($frm->getValidationErrors()));
-        }
+     * Setup Intended Learners Data with enhanced error handling
+     *
+     */
+    public function setupIntendedLearners()
+    {
+        try {
+            $frm = $this->getIntendedLearnersForm();
+            if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
+                FatUtility::dieJsonError(current($frm->getValidationErrors()));
+            }
 
-        // Validate course ownership and existence
-        $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
-        if (!$course->canEditCourse()) {
-            FatUtility::dieJsonError($course->getError());
-        }
-        if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            // Validate course ownership and existence
+            $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
+            if (!$course->canEditCourse()) {
+                FatUtility::dieJsonError($course->getError());
+            }
+            if (!$course->resetToDraftForReapprovalIfNeeded()) {
+                FatUtility::dieJsonError($course->getError());
+            }
 
 
-        // Clean and validate the data before processing
-        $cleanedData = $this->cleanIntendedLearnersData($post);
-        
-        $intended = new IntendedLearner();
-        if (!$intended->setup($cleanedData)) {
-            FatUtility::dieJsonError($intended->getError());
+            // Clean and validate the data before processing
+            $cleanedData = $this->cleanIntendedLearnersData($post);
+
+            $intended = new IntendedLearner();
+            if (!$intended->setup($cleanedData)) {
+                FatUtility::dieJsonError($intended->getError());
+            }
+
+            FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
+
+        } catch (Exception $e) {
+            error_log("CoursesController::setupIntendedLearners error: " . $e->getMessage());
+            FatUtility::dieJsonError(Label::getLabel('LBL_SYSTEM_ERROR_OCCURRED'));
         }
-        
-        FatUtility::dieJsonSuccess(Label::getLabel('MSG_SETUP_SUCCESSFUL'));
-        
-    } catch (Exception $e) {
-        error_log("CoursesController::setupIntendedLearners error: " . $e->getMessage());
-        FatUtility::dieJsonError(Label::getLabel('LBL_SYSTEM_ERROR_OCCURRED'));
     }
-}
 
-/**
- * Clean and validate intended learners data
- *
- * @param array $post
- * @return array
- */
-private function cleanIntendedLearnersData(array $post): array
-{
-    $cleaned = [
-        'course_id' => (int)$post['course_id'],
-        'type_learnings' => [],
-        'type_requirements' => [],
-        'type_learners' => [],
-        'type_learnings_ids' => [],
-        'type_requirements_ids' => [],
-        'type_learners_ids' => []
-    ];
+    /**
+     * Clean and validate intended learners data
+     *
+     * @param array $post
+     * @return array
+     */
+    private function cleanIntendedLearnersData(array $post): array
+    {
+        $cleaned = [
+            'course_id' => (int) $post['course_id'],
+            'type_learnings' => [],
+            'type_requirements' => [],
+            'type_learners' => [],
+            'type_learnings_ids' => [],
+            'type_requirements_ids' => [],
+            'type_learners_ids' => []
+        ];
 
-    // Clean learning data
-    if (isset($post['type_learnings']) && is_array($post['type_learnings'])) {
-        foreach ($post['type_learnings'] as $index => $learning) {
-            $cleanedLearning = trim(strip_tags($learning));
-            if (!empty($cleanedLearning)) {
-                $cleaned['type_learnings'][] = $cleanedLearning;
-                // Handle corresponding ID
-                if (isset($post['type_learnings_ids'][$index])) {
-                    $id = trim($post['type_learnings_ids'][$index]);
-                    $cleaned['type_learnings_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
-                } else {
-                    $cleaned['type_learnings_ids'][] = '';
+        // Clean learning data
+        if (isset($post['type_learnings']) && is_array($post['type_learnings'])) {
+            foreach ($post['type_learnings'] as $index => $learning) {
+                $cleanedLearning = trim(strip_tags($learning));
+                if (!empty($cleanedLearning)) {
+                    $cleaned['type_learnings'][] = $cleanedLearning;
+                    // Handle corresponding ID
+                    if (isset($post['type_learnings_ids'][$index])) {
+                        $id = trim($post['type_learnings_ids'][$index]);
+                        $cleaned['type_learnings_ids'][] = (is_numeric($id) && $id > 0) ? (int) $id : '';
+                    } else {
+                        $cleaned['type_learnings_ids'][] = '';
+                    }
                 }
             }
         }
-    }
 
-    // Clean requirements data
-    if (isset($post['type_requirements']) && is_array($post['type_requirements'])) {
-        foreach ($post['type_requirements'] as $index => $requirement) {
-            $cleanedRequirement = trim(strip_tags($requirement));
-            if (!empty($cleanedRequirement)) {
-                $cleaned['type_requirements'][] = $cleanedRequirement;
-                // Handle corresponding ID
-                if (isset($post['type_requirements_ids'][$index])) {
-                    $id = trim($post['type_requirements_ids'][$index]);
-                    $cleaned['type_requirements_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
-                } else {
-                    $cleaned['type_requirements_ids'][] = '';
+        // Clean requirements data
+        if (isset($post['type_requirements']) && is_array($post['type_requirements'])) {
+            foreach ($post['type_requirements'] as $index => $requirement) {
+                $cleanedRequirement = trim(strip_tags($requirement));
+                if (!empty($cleanedRequirement)) {
+                    $cleaned['type_requirements'][] = $cleanedRequirement;
+                    // Handle corresponding ID
+                    if (isset($post['type_requirements_ids'][$index])) {
+                        $id = trim($post['type_requirements_ids'][$index]);
+                        $cleaned['type_requirements_ids'][] = (is_numeric($id) && $id > 0) ? (int) $id : '';
+                    } else {
+                        $cleaned['type_requirements_ids'][] = '';
+                    }
                 }
             }
         }
-    }
 
-    // Clean learners data
-    if (isset($post['type_learners']) && is_array($post['type_learners'])) {
-        foreach ($post['type_learners'] as $index => $learner) {
-            $cleanedLearner = trim(strip_tags($learner));
-            if (!empty($cleanedLearner)) {
-                $cleaned['type_learners'][] = $cleanedLearner;
-                // Handle corresponding ID
-                if (isset($post['type_learners_ids'][$index])) {
-                    $id = trim($post['type_learners_ids'][$index]);
-                    $cleaned['type_learners_ids'][] = (is_numeric($id) && $id > 0) ? (int)$id : '';
-                } else {
-                    $cleaned['type_learners_ids'][] = '';
+        // Clean learners data
+        if (isset($post['type_learners']) && is_array($post['type_learners'])) {
+            foreach ($post['type_learners'] as $index => $learner) {
+                $cleanedLearner = trim(strip_tags($learner));
+                if (!empty($cleanedLearner)) {
+                    $cleaned['type_learners'][] = $cleanedLearner;
+                    // Handle corresponding ID
+                    if (isset($post['type_learners_ids'][$index])) {
+                        $id = trim($post['type_learners_ids'][$index]);
+                        $cleaned['type_learners_ids'][] = (is_numeric($id) && $id > 0) ? (int) $id : '';
+                    } else {
+                        $cleaned['type_learners_ids'][] = '';
+                    }
                 }
             }
         }
-    }
 
-    return $cleaned;
-}
+        return $cleaned;
+    }
     /**
      * Updating Intended Learner Records sort order
      *
@@ -743,8 +749,8 @@ private function cleanIntendedLearnersData(array $post): array
             FatUtility::dieJsonError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         $intended = new IntendedLearner($indLearnerId);
         if (!$intended->delete()) {
@@ -773,9 +779,9 @@ private function cleanIntendedLearnersData(array $post): array
             FatUtility::dieJsonError($courseObj->getError());
         }
         $data = array_merge($data, $course);
-if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($courseObj->getError());
-}
+        if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
+            FatUtility::dieJsonError($courseObj->getError());
+        }
 
         /* get form and fill */
         $frm = $this->getPriceForm();
@@ -848,8 +854,8 @@ if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
             FatUtility::dieJsonError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         /* get form and fill */
         $frm = $this->getCurriculumForm();
@@ -878,8 +884,8 @@ if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
             FatUtility::dieJsonError($course->getError());
         }
         if (!$course->resetToDraftForReapprovalIfNeeded()) {
-    FatUtility::dieJsonError($course->getError());
-}
+            FatUtility::dieJsonError($course->getError());
+        }
 
         /* create form data */
         $data = [
@@ -924,12 +930,12 @@ if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
      */
     public function setupSettings()
     {
- 
+
         $frm = $this->getSettingForm();
         if (!$post = $frm->getFormDataFromArray(FatApp::getPostedData())) {
             FatUtility::dieJsonError(current($frm->getValidationErrors()));
         }
-        
+
         $course = new Course($post['course_id'], $this->siteUserId, $this->siteUserType, $this->siteLangId);
         if (!$course->setupSettings($post)) {
             FatUtility::dieJsonError($course->getError());
@@ -1110,31 +1116,31 @@ if (!$courseObj->resetToDraftForReapprovalIfNeeded()) {
         $frm->addResetButton('', 'btn_reset', Label::getLabel('LBL_RESET'));
         return $frm;
     }
-/**
- * Get list of subjects for course subject dropdown
- *
- * @return array [id => label]
- */
-private function getSubjectOptions(): array
-{
-    $db = FatApp::getDb();
+    /**
+     * Get list of subjects for course subject dropdown
+     *
+     * @return array [id => label]
+     */
+    private function getSubjectOptions(): array
+    {
+        $db = FatApp::getDb();
 
-    // Adjust table name if needed (e.g. 'course_subjecs' or 'tbl_subjects')
-    $srch = new SearchBase('course_subjects', 's');
-    $srch->addMultipleFields(['s.id', 's.subject']);
-    $srch->addOrder('s.subject', 'ASC');
-    $srch->doNotCalculateRecords();
-    $srch->setPageSize(1000);
+        // Adjust table name if needed (e.g. 'course_subjecs' or 'tbl_subjects')
+        $srch = new SearchBase('course_subjects', 's');
+        $srch->addMultipleFields(['s.id', 's.subject']);
+        $srch->addOrder('s.subject', 'ASC');
+        $srch->doNotCalculateRecords();
+        $srch->setPageSize(1000);
 
-    $rs = $srch->getResultSet();
-    $rows = $db->fetchAll($rs) ?: [];
+        $rs = $srch->getResultSet();
+        $rows = $db->fetchAll($rs) ?: [];
 
-    $out = [];
-    foreach ($rows as $row) {
-        $out[(int)$row['id']] = $row['subject'];
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row['id']] = $row['subject'];
+        }
+        return $out;
     }
-    return $out;
-}
 
     /**
      * Basic Details Form
@@ -1155,16 +1161,16 @@ private function getSubjectOptions(): array
         $fld->requirements()->setRequired();
         $fld = $frm->addSelectBox(Label::getLabel('LBL_LEVEL'), 'course_level', Course::getCourseLevels(), '', [], Label::getLabel('LBL_SELECT'));
         $fld->requirements()->setRequired();
-         $subjectOptions = $this->getSubjectOptions();
-    $fld = $frm->addSelectBox(
-        Label::getLabel('LBL_SUBJECT'),
-        'course_subject_id',
-        $subjectOptions,
-        '',
-        [],
-        Label::getLabel('LBL_SELECT')
-    );
-    $fld->requirements()->setRequired();
+        $subjectOptions = $this->getSubjectOptions();
+        $fld = $frm->addSelectBox(
+            Label::getLabel('LBL_SUBJECT'),
+            'course_subject_id',
+            $subjectOptions,
+            '',
+            [],
+            Label::getLabel('LBL_SELECT')
+        );
+        $fld->requirements()->setRequired();
 
         $frm->addHtmlEditor(Label::getLabel('LBL_DESCRIPTION'), 'course_details')->requirements()->setRequired();
         $frm->addHiddenField('', 'course_id')->requirements()->setInt();
@@ -1216,9 +1222,9 @@ private function getSubjectOptions(): array
         $frm->addSelectBox(
             Label::getLabel('LBL_CURRENCY'),
             'course_currency_id',
-            Currency::getCurrencyNameWithCode($this->siteLangId), 
-            '', 
-            [], 
+            Currency::getCurrencyNameWithCode($this->siteLangId),
+            '',
+            [],
             Label::getLabel('LBL_SELECT')
         );
         $frm->addTextBox(Label::getLabel('LBL_PRICE'), 'course_price')->requirements()->setFloat();
