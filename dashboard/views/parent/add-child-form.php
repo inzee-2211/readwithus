@@ -391,6 +391,6 @@
     }
 
     function redirectToSignup() {
-        window.location.href = '<?php echo MyUtility::makeUrl('GuestUser', 'registrationForm', [], CONF_WEBROOT_URL); ?>';
+        window.location.href = '<?php echo MyUtility::makeUrl('GuestUser', 'registrationForm', [], CONF_WEBROOT_URL_TRADITIONAL); ?>';
     }
 </script>
