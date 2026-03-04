@@ -1,89 +1,17 @@
 <style>
-    .form-container {
-        max-width: 800px;
-        margin: 40px auto;
+    :root {
+        --primary-gradient: linear-gradient(135deg, #2dadff 0%, #1a9fff 100%);
+        --surface-glass: rgba(255, 255, 255, 0.7);
+        --border-glass: rgba(255, 255, 255, 0.3);
+        --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.05);
+        --text-main: #1e293b;
+        --text-muted: #64748b;
     }
 
-    .page-title {
-        font-size: 2.25rem;
-        font-weight: 800;
-        color: #1a202c;
-        margin-bottom: 30px;
-        text-align: center;
-        background: linear-gradient(135deg, #2dadff 0%, #153e7d 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .option-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 24px;
-        margin-bottom: 30px;
-    }
-
-    .option-card {
-        background: #fff;
-        border-radius: 20px;
-        border: 2px solid #e2e8f0;
-        padding: 30px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .option-card:hover {
-        transform: translateY(-8px);
-        border-color: #2dadff;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-
-    .option-card.active {
-        border-color: #2dadff;
-        background: #f0f9ff;
-    }
-
-    .option-card i {
-        font-size: 3rem;
-        color: #2dadff;
-        margin-bottom: 15px;
-        display: block;
-    }
-
-    .option-card h4 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1a202c;
-        margin-bottom: 10px;
-    }
-
-    .option-card p {
-        color: #718096;
-        font-size: 0.9rem;
-        line-height: 1.5;
-        margin: 0;
-    }
-
-    .form-card {
-        background: #fff;
-        border-radius: 24px;
-        border: 1px solid #e2e8f0;
-        padding: 40px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-        display: none;
-    }
-
-    .form-card.active {
-        display: block;
-        animation: fadeIn 0.4s ease-out;
-    }
-
-    @keyframes fadeIn {
+    @keyframes fadeInUp {
         from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(20px);
         }
 
         to {
@@ -92,104 +20,216 @@
         }
     }
 
-    .form-header {
+    .form-container {
+        max-width: 900px;
+        margin: 60px auto;
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .page-title {
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--text-main);
+        margin-bottom: 40px;
         text-align: center;
-        margin-bottom: 30px;
+        letter-spacing: -0.04em;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .option-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
+        margin-bottom: 40px;
+    }
+
+    .option-card-premium {
+        background: #fff;
+        border-radius: 32px;
+        border: 2px solid #f1f5f9;
+        padding: 40px 32px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-premium);
+    }
+
+    .option-card-premium:hover {
+        transform: translateY(-12px);
+        border-color: #2dadff;
+        box-shadow: 0 30px 60px rgba(45, 173, 255, 0.15);
+    }
+
+    .option-card-premium i {
+        font-size: 3.5rem;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 24px;
+        display: block;
+    }
+
+    .option-card-premium h4 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 12px;
+        letter-spacing: -0.02em;
+    }
+
+    .option-card-premium p {
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .form-card-glass {
+        background: #fff;
+        border-radius: 40px;
+        border: 1px solid #f1f5f9;
+        padding: 60px;
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.08);
+        display: none;
+    }
+
+    .form-card-glass.active {
+        display: block;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 24px;
     }
 
     .form-header h4 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1a202c;
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--text-main);
+        letter-spacing: -0.03em;
     }
 
-    .modern-form .row {
-        margin-bottom: 20px;
+    .btn-change-option {
+        color: #ef4444;
+        font-weight: 700;
+        text-decoration: none !important;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        background: #fef2f2;
+        transition: all 0.2s;
+    }
+
+    .btn-change-option:hover {
+        background: #fee2e2;
+        transform: translateX(-4px);
     }
 
     .modern-form label {
-        font-weight: 700;
-        color: #475569;
-        margin-bottom: 8px;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 12px;
         display: block;
-        font-size: 0.85rem;
-        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.02em;
     }
 
     .modern-form input,
     .modern-form select {
         width: 100%;
-        padding: 12px 16px;
-        border-radius: 12px;
-        border: 2px solid #e2e8f0;
+        padding: 16px 20px;
+        border-radius: 18px;
+        border: 2px solid #f1f5f9;
         background: #f8fafc;
-        transition: all 0.2s;
+        transition: all 0.3s;
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--text-main);
     }
 
     .modern-form input:focus {
         border-color: #2dadff;
         background: #fff;
-        box-shadow: 0 0 0 4px rgba(45, 173, 255, 0.1);
+        box-shadow: 0 0 0 5px rgba(45, 173, 255, 0.1);
         outline: none;
     }
 
     .btn-premium {
         width: 100%;
-        padding: 14px;
-        border-radius: 12px;
+        padding: 18px;
+        border-radius: 18px;
         font-weight: 800;
-        background: linear-gradient(135deg, #2dadff 0%, #1a9fff 100%);
-        color: #fff;
+        font-size: 1.125rem;
+        background: var(--primary-gradient);
+        color: #fff !important;
         border: none;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(45, 173, 255, 0.3);
-        transition: all 0.2s;
+        box-shadow: 0 15px 30px rgba(45, 173, 255, 0.3);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .btn-premium:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(45, 173, 255, 0.4);
+        transform: scale(1.02);
+        box-shadow: 0 20px 40px rgba(45, 173, 255, 0.4);
     }
 
-    /* Typewriter Overlay */
+    .btn-premium:disabled {
+        opacity: 0.6 !important;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    /* Typewriter Overlay Modernized */
     .typewriter-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(15, 23, 42, 0.95);
         z-index: 9999;
         display: none;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(12px);
     }
 
     .typewriter-box {
-        background: #1a202c;
+        background: #0f172a;
         color: #fff;
-        padding: 40px;
-        border-radius: 24px;
-        max-width: 600px;
+        padding: 60px;
+        border-radius: 40px;
+        max-width: 700px;
         width: 90%;
-        border: 1px solid #2dadff;
-        box-shadow: 0 0 50px rgba(45, 173, 255, 0.3);
+        border: 1px solid rgba(45, 173, 255, 0.3);
+        box-shadow: 0 0 100px rgba(45, 173, 255, 0.2);
         position: relative;
     }
 
     .typewriter-text {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 1.25rem;
-        line-height: 1.6;
-        min-height: 150px;
-        color: #2dadff;
+        font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        font-size: 1.35rem;
+        line-height: 1.8;
+        min-height: 200px;
+        color: #38bdf8;
     }
 
     .typewriter-cursor {
         display: inline-block;
-        width: 10px;
-        height: 1.25rem;
-        background: #2dadff;
-        margin-left: 5px;
-        animation: blink 1s infinite;
+        width: 12px;
+        height: 1.35rem;
+        background: #38bdf8;
+        margin-left: 8px;
+        animation: blink 0.8s infinite;
         vertical-align: middle;
     }
 
@@ -205,25 +245,22 @@
         }
     }
 
-    .typewriter-btn {
-        margin-top: 30px;
-        display: none;
-    }
-
-    .back-link {
+    .back-to-family {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         width: 100%;
-        margin-top: 30px;
-        color: #64748b;
+        margin-top: 40px;
+        color: var(--text-muted);
         font-weight: 700;
         text-decoration: none;
         transition: all 0.2s;
+        gap: 10px;
     }
 
-    .back-link:hover {
-        color: #2dadff;
+    .back-to-family:hover {
+        color: var(--text-main);
+        transform: translateX(-4px);
     }
 
     /* Make sure the submit renders like a real button (input submit + button) */
@@ -259,17 +296,17 @@
 
         <!-- Option Selection -->
         <div class="option-grid" id="optionSelector">
-            <div class="option-card" onclick="showForm('signup')">
+            <div class="option-card-premium" onclick="showForm('signup')">
                 <i class="ion-person-add"></i>
                 <h4><?php echo Label::getLabel('LBL_CREATE_NEW_CHILD'); ?></h4>
                 <p><?php echo Label::getLabel('LBL_SIGNUP_YOUR_CHILD_DIRECTLY_AND_START_LEARNING'); ?></p>
             </div>
-            <div class="option-card" onclick="showForm('link')">
+            <div class="option-card-premium" onclick="showForm('link')">
                 <i class="ion-link"></i>
                 <h4><?php echo Label::getLabel('LBL_LINK_EXISTING_USER'); ?></h4>
                 <p><?php echo Label::getLabel('LBL_CONNECT_WITH_A_CHILD_WHO_ALREADY_HAS_AN_ACCOUNT'); ?></p>
             </div>
-            <div class="option-card" onclick="startManualInstructions()">
+            <div class="option-card-premium" onclick="startManualInstructions()">
                 <i class="ion-help-buoy"></i>
                 <h4><?php echo Label::getLabel('LBL_MANUAL_GUIDE'); ?></h4>
                 <p><?php echo Label::getLabel('LBL_HELP_ME_SIGNUP_MY_CHILD_MANUALLY'); ?></p>
@@ -277,11 +314,12 @@
         </div>
 
         <!-- Direct Signup Form -->
-        <div class="form-card" id="signupFormSection">
+        <div class="form-card-glass" id="signupFormSection">
             <div class="form-header">
                 <h4><?php echo Label::getLabel('LBL_SIGNUP_YOUR_CHILD'); ?></h4>
-                <button class="btn btn-link btn-sm float-end"
-                    onclick="resetView()"><?php echo Label::getLabel('LBL_CHANGE_OPTION'); ?></button>
+                <a href="javascript:void(0)" class="btn-change-option" onclick="resetView()">
+                    <i class="ion-arrow-left-c"></i> <?php echo Label::getLabel('LBL_BACK'); ?>
+                </a>
             </div>
             <div class="modern-form">
                 <?php
@@ -293,11 +331,12 @@
         </div>
 
         <!-- Link Existing Form -->
-        <div class="form-card" id="linkFormSection">
+        <div class="form-card-glass" id="linkFormSection">
             <div class="form-header">
-                <h4><?php echo Label::getLabel('LBL_SEND_CONNECTION_REQUEST'); ?></h4>
-                <button class="btn btn-link btn-sm float-end"
-                    onclick="resetView()"><?php echo Label::getLabel('LBL_CHANGE_OPTION'); ?></button>
+                <h4><?php echo Label::getLabel('LBL_LINK_PROFILE'); ?></h4>
+                <a href="javascript:void(0)" class="btn-change-option" onclick="resetView()">
+                    <i class="ion-arrow-left-c"></i> <?php echo Label::getLabel('LBL_BACK'); ?>
+                </a>
             </div>
             <div class="modern-form">
                 <?php
@@ -308,21 +347,23 @@
             </div>
         </div>
 
-        <a class="back-link" href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>">
-            <i class="ion-android-arrow-back me-2"></i> <?php echo Label::getLabel('LBL_BACK_TO_MY_FAMILY'); ?>
+        <a class="back-to-family"
+            href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>">
+            <i class="ion-android-arrow-back"></i> <?php echo Label::getLabel('LBL_BACK_TO_FAMILY'); ?>
         </a>
     </div>
 </div>
 
-<!-- Typewriter Overlay -->
+<!-- Typewriter Overlay Modernized -->
 <div class="typewriter-overlay" id="manualOverlay">
     <div class="typewriter-box">
         <div class="typewriter-text" id="typewriterTarget"></div><span class="typewriter-cursor"></span>
-        <div class="typewriter-btn text-center" id="typewriterBtn">
-            <button class="btn btn-primary btn-lg rounded-pill px-5" onclick="redirectToSignup()">
-                <?php echo Label::getLabel('LBL_OK_I_UNDERSTAND'); ?>
+        <div class="typewriter-bottom text-center mt-5" id="typewriterBtn" style="display: none;">
+            <button class="btn-premium" style="width: auto; padding: 16px 48px; border-radius: 14px;"
+                onclick="redirectToSignup()">
+                <?php echo Label::getLabel('LBL_START_MANUAL_REGISTRATION'); ?>
             </button>
-            <button class="btn btn-link text-white mt-2 d-block mx-auto" onclick="closeOverlay()">
+            <button class="btn btn-link text-white mt-4 d-block mx-auto fw-bold" onclick="closeOverlay()">
                 <?php echo Label::getLabel('LBL_CANCEL'); ?>
             </button>
         </div>
@@ -331,19 +372,18 @@
 
 <script>
     function showForm(type) {
-        $('#optionSelector').fadeOut(200, function () {
+        $('#optionSelector').fadeOut(300, function () {
             if (type === 'signup') {
                 $('#signupFormSection').addClass('active');
             } else {
-                $('#linkFormSection').active();
+                $('#linkFormSection').addClass('active');
             }
         });
-    }  // Fix for jQuery active() which doesn't exist standardly
-    $.fn.active = function () { return this.addClass('active'); };
+    }
 
     function resetView() {
-        $('.form-card').removeClass('active');
-        $('#optionSelector').fadeIn(300);
+        $('.form-card-glass').removeClass('active').hide();
+        $('#optionSelector').fadeIn(400);
     }
 
     function setupDirectSignup(frm) {
@@ -361,10 +401,10 @@
     }
 
     /* Typewriter Logic */
-    const instructions = "Hello! To register your child manually, please follow these steps:\n\n1. Go to the general signup page.\n2. Register using your child's email.\n3. You will be logged into their profile.\n4. Go to 'Parent Requests' and click ACCEPT on your name.\n\nReady to go?";
+    const instructions = "> INITIALIZING MANUAL GUIDE...\n\n1. Open the Registration Form.\n2. Create account using Child's details.\n3. Log in to Child's Profile.\n4. Go to 'Parent Requests' Section.\n5. Click 'APPROVE' on your request.\n\nSYSTEM READY.";
     let charIndex = 0;
     function startManualInstructions() {
-        $('#manualOverlay').css('display', 'flex').hide().fadeIn(300);
+        $('#manualOverlay').css('display', 'flex').hide().fadeIn(400);
         charIndex = 0;
         $('#typewriterTarget').text('');
         $('#typewriterBtn').hide();
@@ -380,9 +420,9 @@
                 $('#typewriterTarget').append(char);
             }
             charIndex++;
-            setTimeout(typeNext, 30);
+            setTimeout(typeNext, 25);
         } else {
-            $('#typewriterBtn').fadeIn(500);
+            $('#typewriterBtn').fadeIn(600);
         }
     }
 

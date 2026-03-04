@@ -6,210 +6,263 @@ $initial = CommonHelper::getFirstChar($child['user_first_name'] ?? 'C');
 ?>
 
 <style>
-    .child-dashboard {
-        padding: 30px 0;
+    :root {
+        --primary-gradient: linear-gradient(135deg, #2dadff 0%, #1a9fff 100%);
+        --surface-glass: rgba(255, 255, 255, 0.7);
+        --border-glass: rgba(255, 255, 255, 0.3);
+        --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.05);
+        --text-main: #1e293b;
+        --text-muted: #64748b;
     }
 
-    .page-header {
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulseSoft {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);
+        }
+
+        50% {
+            transform: scale(1.02);
+            box-shadow: 0 20px 30px -5px rgba(45, 173, 255, 0.2);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);
+        }
+    }
+
+    .child-dashboard {
+        padding: 40px 0;
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .premium-header {
+        background: #fff;
+        border-radius: 32px;
+        padding: 32px;
         margin-bottom: 40px;
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        border-bottom: 1px solid #e2e8f0;
-        padding-bottom: 20px;
+        align-items: center;
+        border: 1px solid #f1f5f9;
+        box-shadow: var(--shadow-premium);
+        flex-wrap: wrap;
+        gap: 24px;
     }
 
     .child-info-brief {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 24px;
+    }
+
+    .child-avatar-glow {
+        position: relative;
+    }
+
+    .child-avatar-glow::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        background: var(--primary-gradient);
+        border-radius: 24px;
+        z-index: 0;
+        opacity: 0.3;
+        filter: blur(8px);
     }
 
     .child-avatar-large {
-        width: 80px;
-        height: 80px;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #2dadff 0%, #153e7d 100%);
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        background: var(--primary-gradient);
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
+        font-size: 2.25rem;
         font-weight: 800;
         color: #fff;
-        box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);
+        box-shadow: 0 10px 20px rgba(45, 173, 255, 0.3);
     }
 
     .child-title h1 {
-        font-size: 1.875rem;
+        font-size: 2.25rem;
         font-weight: 800;
-        color: #1a202c;
+        color: var(--text-main);
         margin: 0;
+        letter-spacing: -0.02em;
     }
 
     .child-title p {
-        color: #718096;
-        margin: 0;
-        font-size: 1rem;
+        color: var(--text-muted);
+        margin: 4px 0 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 16px;
+    }
+
+    .btn-premium-outline {
+        padding: 14px 28px;
+        border-radius: 16px;
+        border: 2px solid #f1f5f9;
+        color: var(--text-main);
+        font-weight: 700;
+        text-decoration: none !important;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+    }
+
+    .btn-premium-outline:hover {
+        border-color: #2dadff;
+        color: #2dadff;
+        transform: translateY(-2px);
+    }
+
+    .btn-premium-solid {
+        padding: 14px 28px;
+        border-radius: 16px;
+        background: var(--primary-gradient);
+        color: #fff !important;
+        font-weight: 700;
+        text-decoration: none !important;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: none;
+        box-shadow: 0 10px 20px rgba(45, 173, 255, 0.2);
+    }
+
+    .btn-premium-solid:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(45, 173, 255, 0.3);
     }
 
     .stat-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 20px;
-        margin-bottom: 40px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+        margin-bottom: 60px;
     }
 
-    .stat-card {
+    .stat-card-glass {
         background: #fff;
-        padding: 20px;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
+        padding: 28px;
+        border-radius: 28px;
+        border: 1px solid #f1f5f9;
         display: flex;
-        align-items: center;
+        flex-direction: column;
         gap: 16px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
+        box-shadow: var(--shadow-premium);
+        position: relative;
+        overflow: hidden;
     }
 
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+    .stat-card-glass:hover {
+        transform: translateY(-8px);
+        border-color: #2dadff;
+    }
+
+    .stat-icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.75rem;
     }
 
     .stat-content h3 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1a202c;
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
         margin: 0;
         line-height: 1;
     }
 
     .stat-content p {
-        font-size: 0.875rem;
-        color: #718096;
-        margin: 4px 0 0;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-    }
-
-    .dashboard-section {
-        margin-bottom: 40px;
-    }
-
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .section-header h2 {
-        font-size: 1.25rem;
+        font-size: 0.813rem;
+        color: var(--text-muted);
+        margin: 8px 0 0;
         font-weight: 700;
-        color: #2d3748;
-        margin: 0;
-    }
-
-    .data-card {
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .table-modern th {
-        background: #f8fafc;
-        color: #64748b;
-        font-weight: 600;
         text-transform: uppercase;
-        font-size: 0.75rem;
         letter-spacing: 0.05em;
-        padding: 16px 24px;
-        border-bottom: 1px solid #e2e8f0;
     }
 
-    .table-modern td {
-        padding: 16px 24px;
-        vertical-align: middle;
-        color: #1e293b;
-        border-bottom: 1px solid #f1f5f9;
+    .cta-container {
+        margin-bottom: 60px;
     }
 
-    .table-modern tr:last-child td {
-        border-bottom: none;
-    }
-
-    .progress-bar-wrap {
-        width: 100%;
-        height: 8px;
-        background: #f1f5f9;
-        border-radius: 4px;
+    .cta-card-premium {
+        background: #fff;
+        border-radius: 40px;
+        padding: 80px 40px;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        box-shadow: var(--shadow-premium);
+        position: relative;
         overflow: hidden;
-        margin-top: 8px;
     }
 
-    .progress-bar-fill {
-        height: 100%;
-        transition: width 0.6s cubic-bezier(0.1, 0, 0, 1);
-    }
-
-    .badge-modern {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .badge-success {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .badge-primary {
-        background: #e0f2fe;
-        color: #0369a1;
-    }
-
-    .badge-warning {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    .teacher-pill {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .teacher-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: #e2e8f0;
+    .cta-icon-wrap {
+        width: 120px;
+        height: 120px;
+        background: #f8fafc;
+        border-radius: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 700;
+        margin: 0 auto 32px;
+        color: #2dadff;
+        font-size: 4rem;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
     }
 
-    .clickable-card {
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
+    .cta-card-premium h2 {
+        font-size: 2.25rem;
+        font-weight: 900;
+        color: var(--text-main);
+        margin-bottom: 20px;
+        letter-spacing: -0.03em;
     }
 
-    .clickable-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: #2dadff;
+    .cta-card-premium p {
+        font-size: 1.125rem;
+        color: var(--text-muted);
+        max-width: 650px;
+        margin: 0 auto 40px;
+        line-height: 1.7;
+    }
+
+    .btn-cta-pulse {
+        animation: pulseSoft 3s infinite ease-in-out;
+        padding: 20px 48px;
+        font-size: 1.125rem;
     }
 </style>
 
@@ -220,78 +273,107 @@ $initial = CommonHelper::getFirstChar($child['user_first_name'] ?? 'C');
 </script>
 
 <div class="container container--fixed child-dashboard">
-    <div class="page-header">
+    <!-- Premium Profile Header -->
+    <div class="premium-header">
         <div class="child-info-brief">
-            <div class="child-avatar-large"><?php echo $initial; ?></div>
+            <div class="child-avatar-glow">
+                <div class="child-avatar-large">
+                    <?php echo $initial; ?>
+                </div>
+            </div>
             <div class="child-title">
-                <h1><?php echo $fullName; ?></h1>
-                <p><?php echo htmlspecialchars($child['user_email'] ?? ''); ?> •
-                    <?php echo htmlspecialchars($child['parstd_relation'] ?? Label::getLabel('LBL_CHILD')); ?>
+                <h1>
+                    <?php echo $fullName; ?>
+                </h1>
+                <p>
+                    <?php echo htmlspecialchars($child['user_email'] ?? ''); ?> •
+                    <span style="color: #2dadff;">
+                        <?php echo htmlspecialchars($child['parstd_relation'] ?? Label::getLabel('LBL_CHILD')); ?>
+                    </span>
                 </p>
             </div>
         </div>
-        <div>
-            <a class="btn btn--secondary btn--large"
-                href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>"
-                style="border-radius: 12px; font-weight: 700;">
-                <i class="ion-arrow-left-c margin-right-2"></i> <?php echo Label::getLabel('LBL_BACK_TO_FAMILY'); ?>
+        <div class="header-actions">
+            <a class="btn-premium-outline"
+                href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>">
+                <i class="ion-arrow-left-c"></i>
+                <?php echo Label::getLabel('LBL_BACK'); ?>
             </a>
-            <a class="btn btn--primary btn--large margin-left-2"
-                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>"
-                style="border-radius: 12px; font-weight: 700; background: #2dadff; border: none;">
-                <i class="ion-log-in margin-right-2"></i> <?php echo Label::getLabel('LBL_LOGIN_AS_CHILD'); ?>
+            <a class="btn-premium-solid"
+                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>">
+                <i class="ion-log-in"></i>
+                <?php echo Label::getLabel('LBL_LOGIN_AS_CHILD'); ?>
             </a>
         </div>
     </div>
 
-    <!-- Stats Overview -->
+    <!-- Stats Overview Grid -->
     <div class="stat-grid">
-        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
-            <div class="stat-icon" style="background: #e0f2fe; color: #0ea5e9;"><i class="ion-university"></i></div>
+        <div class="stat-card-glass" onclick="showChildLoginMsg()">
+            <div class="stat-icon-circle" style="background: #e0f2fe; color: #0ea5e9;"><i class="ion-university"></i>
+            </div>
             <div class="stat-content">
-                <h3><?php echo (int) $unlockedCoursesCount; ?></h3>
-                <p><?php echo Label::getLabel('LBL_COURSES'); ?></p>
+                <h3>
+                    <?php echo (int) $unlockedCoursesCount; ?>
+                </h3>
+                <p>
+                    <?php echo Label::getLabel('LBL_COURSES'); ?>
+                </p>
             </div>
         </div>
-        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
-            <div class="stat-icon" style="background: #fef3c7; color: #d97706;"><i class="ion-calendar"></i></div>
+        <div class="stat-card-glass" onclick="showChildLoginMsg()">
+            <div class="stat-icon-circle" style="background: #fef3c7; color: #d97706;"><i class="ion-calendar"></i>
+            </div>
             <div class="stat-content">
-                <h3><?php echo count($upcomingLessons); ?></h3>
-                <p><?php echo Label::getLabel('LBL_UPCOMING'); ?></p>
+                <h3>
+                    <?php echo count($upcomingLessons); ?>
+                </h3>
+                <p>
+                    <?php echo Label::getLabel('LBL_UPCOMING'); ?>
+                </p>
             </div>
         </div>
-        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
-            <div class="stat-icon" style="background: #dcfce7; color: #16a34a;"><i class="ion-ribbon-b"></i></div>
+        <div class="stat-card-glass" onclick="showChildLoginMsg()">
+            <div class="stat-icon-circle" style="background: #dcfce7; color: #16a34a;"><i class="ion-ribbon-b"></i>
+            </div>
             <div class="stat-content">
-                <h3><?php echo (int) $attemptedQuizzesCount; ?></h3>
-                <p><?php echo Label::getLabel('LBL_QUIZZES'); ?></p>
+                <h3>
+                    <?php echo (int) $attemptedQuizzesCount; ?>
+                </h3>
+                <p>
+                    <?php echo Label::getLabel('LBL_QUIZZES'); ?>
+                </p>
             </div>
         </div>
-        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
-            <div class="stat-icon" style="background: #f3e8ff; color: #9333ea;"><i class="ion-person-stalker"></i></div>
+        <div class="stat-card-glass" onclick="showChildLoginMsg()">
+            <div class="stat-icon-circle" style="background: #f3e8ff; color: #9333ea;"><i
+                    class="ion-person-stalker"></i></div>
             <div class="stat-content">
-                <h3><?php echo count($tutors); ?></h3>
-                <p><?php echo Label::getLabel('LBL_TUTORS'); ?></p>
+                <h3>
+                    <?php echo count($tutors); ?>
+                </h3>
+                <p>
+                    <?php echo Label::getLabel('LBL_TUTORS'); ?>
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Profile Access Notice -->
-    <div class="dashboard-section">
-        <div class="content-card text-center"
-            style="padding: 60px 40px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 24px;">
-            <div style="margin-bottom: 24px;">
-                <i class="ion-ios-information-outline" style="font-size: 5rem; color: #2dadff;"></i>
+    <!-- High-Impact Access Notice -->
+    <div class="cta-container">
+        <div class="cta-card-premium">
+            <div class="cta-icon-wrap">
+                <i class="ion-ios-search-strong"></i>
             </div>
-            <h2 style="font-size: 1.75rem; font-weight: 800; color: #1e293b; margin-bottom: 16px;">
-                <?php echo Label::getLabel('LBL_VIEW_DETAILED_STATISTICS'); ?>
+            <h2>
+                <?php echo Label::getLabel('LBL_DIVE_DEEPER_INTO_THEIR_PROGRESS'); ?>
             </h2>
-            <p style="font-size: 1.125rem; color: #64748b; max-width: 600px; margin: 0 auto 32px; line-height: 1.6;">
-                <?php echo Label::getLabel('LBL_PLEASE_OPEN_YOUR_CHILDS_PROFILE_TO_SEE_THE_DETAILS_OF_EACH_ASPECT_INCLUDING_COURSES_LESSONS_QUIZZES_AND_TUTORS'); ?>
+            <p>
+                <?php echo Label::getLabel('LBL_TO_VIEW_FULL_TRANSCRIPTS_GRADES_AND_LESSON_DETAILS_PLEASE_STEP_INTO_YOUR_CHILDS_PERSONAL_DASHBOARD'); ?>
             </p>
-            <a class="btn btn--primary btn--large"
-                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>"
-                style="padding: 16px 40px; border-radius: 14px; font-weight: 800; font-size: 1.1rem; background: #2dadff; border: none; box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);">
+            <a class="btn-premium-solid btn-cta-pulse"
+                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>">
+                <i class="ion-happy-outline"></i>
                 <?php echo Label::getLabel('LBL_OPEN_CHILDS_PROFILE'); ?>
             </a>
         </div>
