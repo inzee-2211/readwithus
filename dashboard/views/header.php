@@ -235,6 +235,16 @@ $parentModeClass = ($isParentMode && $isUserParent && $isParentPage) ? 'is-paren
 
 <body
       class="dashboard-<?php echo (($siteUserType == User::TEACHER) ? 'teacher' : 'learner') . ' ' . $parentModeClass . ' ' . strtolower($controllerName) . ' ' . strtolower($actionName) . ' ' . $mainDashboardClass . ' ' . $isPreviewOn; ?>">
+    <?php if (isset($_SESSION['RWU_PARENT_IMPERSONATOR_ID']) && $_SESSION['RWU_PARENT_IMPERSONATOR_ID'] > 0) { ?>
+        <div class="impersonation-banner" style="background: linear-gradient(90deg, #ff416c, #ff4b2b); color: #fff; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 10000; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div class="container container--fixed d-flex justify-content-between align-items-center">
+                <span><i class="ion-android-person-add margin-right-2"></i> <?php echo Label::getLabel('LBL_LOGGED_IN_AS'); ?>: <strong><?php echo $siteUser['user_first_name'] . ' ' . $siteUser['user_last_name']; ?></strong> (<?php echo Label::getLabel('LBL_CHILD_STUDENT'); ?>)</span>
+                <a href="<?php echo MyUtility::makeUrl('Parent', 'backToParent', [], CONF_WEBROOT_DASHBOARD); ?>" class="btn btn--white btn--small" style="background: #fff; color: #ff416c; border: none; font-weight: 700;">
+                    <?php echo Label::getLabel('LBL_BACK_TO_PARENT_PROFILE'); ?>
+                </a>
+            </div>
+        </div>
+    <?php } ?>
     <?php
     if (MyUtility::isDemoUrl()) {
         include(CONF_INSTALLATION_PATH . 'restore/view/header-bar.php');
@@ -511,8 +521,8 @@ if ($siteUserType == User::TEACHER) {
     $sidebarMenuLayout = '_partial/teacher-sidebar.php';
 }
 
-// ONLY show parent sidebar when you are in Parent controller
-if (strtolower($controllerName) === 'parent' && $isUserParent) {
+// Show parent sidebar when in Parent Mode OR on Parent controller
+if (($isParentMode || strtolower($controllerName) === 'parent') && $isUserParent) {
     $sidebarMenuLayout = '_partial/parent-sidebar.php';
 }
 

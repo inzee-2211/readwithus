@@ -21,6 +21,7 @@ $fldUserPhoneCode = $frm->getField('user_phone_code');
 $fldUserPhoneCode->developerTags['col'] = 3;
 $fldUserPhoneNo = $frm->getField('user_phone_number');
 $fldUserPhoneNo->developerTags['col'] = 9;
+$frm->getField('user_is_parent')->setWrapperAttribute('class', 'set-remember');
 ?>
 <section class="section section--gray section--page">
     <div class="container container--fixed">
@@ -36,7 +37,10 @@ $fldUserPhoneNo->developerTags['col'] = 9;
                         echo $frm->getFormHtml();
                         ?>
                         <div class="-align-center">
-                            <p><?php echo Label::getLabel('LBL_ALREADY_HAVE_AN_ACCOUNT?'); ?> <a href="javascript:void(0);" onClick="signinForm()" class="-link-underline link-color"><?php echo Label::getLabel('LBL_Sign_In'); ?></a></p>
+                            <p><?php echo Label::getLabel('LBL_ALREADY_HAVE_AN_ACCOUNT?'); ?> <a
+                                    href="javascript:void(0);" onClick="signinForm()"
+                                    class="-link-underline link-color"><?php echo Label::getLabel('LBL_Sign_In'); ?></a>
+                            </p>
                         </div>
                     </div>
                 </div>

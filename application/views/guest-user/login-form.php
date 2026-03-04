@@ -5,6 +5,7 @@ $frm->developerTags['colClassPrefix'] = 'col-sm-';
 $frm->developerTags['fld_default_col'] = 12;
 $fld = $frm->getField('remember_me');
 $fld->setWrapperAttribute('class', 'set-remember');
+$frm->getField('login_as_parent')->setWrapperAttribute('class', 'set-remember');
 $fldPassword = $frm->getField('password');
 $fldPassword->changeCaption('');
 $fldPassword->captionWrapper = [
@@ -27,11 +28,15 @@ $frm->setFormTagAttribute('onsubmit', 'signinSetup(this); return(false);');
                         $this->includeTemplate('guest-user/_partial/learner-social-media-signup.php');
                         echo $frm->getFormHtml();
                         ?>
-                          <div class="-align-center">
-        <p><?php echo Label::getLabel('LBL_DO_NOT_HAVE_AN_ACCOUNT?'); ?> <a href="javascript:void(0);" onClick="signupForm()" class="-link-underline link-color"><?php echo Label::getLabel('LBL_REGISTER'); ?></a></p>
-    </div>
                         <div class="-align-center">
-                            <a href="<?php echo MyUtility::makeUrl('GuestUser', 'forgotPassword'); ?>" class="-link-underline"><?php echo Label::getLabel('LBL_Forgot_Password?'); ?></a>
+                            <p><?php echo Label::getLabel('LBL_DO_NOT_HAVE_AN_ACCOUNT?'); ?> <a
+                                    href="javascript:void(0);" onClick="signupForm()"
+                                    class="-link-underline link-color"><?php echo Label::getLabel('LBL_REGISTER'); ?></a>
+                            </p>
+                        </div>
+                        <div class="-align-center">
+                            <a href="<?php echo MyUtility::makeUrl('GuestUser', 'forgotPassword'); ?>"
+                                class="-link-underline"><?php echo Label::getLabel('LBL_Forgot_Password?'); ?></a>
                         </div>
                     </div>
                 </div>

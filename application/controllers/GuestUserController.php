@@ -52,32 +52,32 @@ use Google\Service\Oauth2;
 
 class GuestUserController extends MyAppController
 {
-    
-//  private function getDashboardUrl(): string
+
+    //  private function getDashboardUrl(): string
 //     {
 //         // /dashboard/my-subscriptions
 //         return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
 //     }
-private function getDashboardUrl(): string
-{
-    // If user is logged in and is a parent -> go to parent portal
-    if (!empty($this->siteUserId)) {
-        $isParent = !empty($this->siteUser['user_is_parent']);
+    private function getDashboardUrl(): string
+    {
+        // If user is logged in and is a parent -> go to parent portal
+        if (!empty($this->siteUserId)) {
+            $isParent = !empty($this->siteUser['user_is_parent']);
 
-        // Fallback if siteUser doesn't include it for any reason
-        if (!$isParent) {
-            $row = User::getAttributesById($this->siteUserId, ['user_is_parent']);
-            $isParent = !empty($row['user_is_parent']);
+            // Fallback if siteUser doesn't include it for any reason
+            if (!$isParent) {
+                $row = User::getAttributesById($this->siteUserId, ['user_is_parent']);
+                $isParent = !empty($row['user_is_parent']);
+            }
+
+            if ($isParent) {
+                return MyUtility::makeUrl('Parent', '', [], CONF_WEBROOT_DASHBOARD);
+            }
         }
 
-        if ($isParent) {
-            return MyUtility::makeUrl('Parent', '', [], CONF_WEBROOT_DASHBOARD);
-        }
+        // Default existing behaviour
+        return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
     }
-
-    // Default existing behaviour
-    return MyUtility::makeUrl('MySubscriptions', '', [], CONF_WEBROOT_DASHBOARD);
-}
 
     /**
      * Initialize Guest User
@@ -99,7 +99,7 @@ private function getDashboardUrl(): string
                 FatUtility::dieJsonError(Label::getLabel('LBL_USER_ALREADY_LOGGED_IN'));
             }
             // FatApp::redirectUser(MyUtility::makeUrl('Account', '', [], CONF_WEBROOT_DASHBOARD));
-             FatApp::redirectUser($this->getDashboardUrl());
+            FatApp::redirectUser($this->getDashboardUrl());
         }
     }
 
@@ -110,7 +110,7 @@ private function getDashboardUrl(): string
      */
     public function loginForm()
     {
-         
+
         $this->set('frm', UserAuth::getSigninForm());
         if (FatApp::getPostedData('isPopUp', FatUtility::VAR_INT, 0)) {
             $this->_template->render(false, false, 'guest-user/login-form-popup.php');
@@ -118,7 +118,7 @@ private function getDashboardUrl(): string
         }
         $this->_template->render();
     }
-    
+
 
     /**
      * Login|Signin Setup
@@ -133,16 +133,16 @@ private function getDashboardUrl(): string
         $auth = new UserAuth();
         ///echo 'test';die;
         if (!$auth->login($post['username'], $post['password'], MyUtility::getUserIp())) {
-            
-         FatUtility::dieJsonError($auth->getError());
+
+            FatUtility::dieJsonError($auth->getError());
         }
         if (FatUtility::int($post['remember_me']) == AppConstant::YES) {
             UserAuth::setAuthTokenUser(UserAuth::getLoggedUserId());
         }
- 
-     //   print_r($_SESSION);
+
+        //   print_r($_SESSION);
         $_SESSION[AppConstant::SEARCH_SESSION] = FatApp::getPostedData();
-     //   print_r($_SESSION);
+        //   print_r($_SESSION);
         FatUtility::dieJsonSuccess(Label::getLabel("MSG_LOGIN_SUCCESSFULL"));
         //echo 'test3311';die;
     }
@@ -216,9 +216,9 @@ private function getDashboardUrl(): string
         // $redirectUrl = MyUtility::makeUrl();
         $redirectUrl = $this->getDashboardUrl();
         if (
-                FatApp::getConfig('CONF_ADMIN_APPROVAL_REGISTRATION') == AppConstant::NO &&
-                FatApp::getConfig('CONF_EMAIL_VERIFICATION_REGISTRATION') == AppConstant::NO &&
-                FatApp::getConfig('CONF_AUTO_LOGIN_REGISTRATION') == AppConstant::YES
+            FatApp::getConfig('CONF_ADMIN_APPROVAL_REGISTRATION') == AppConstant::NO &&
+            FatApp::getConfig('CONF_EMAIL_VERIFICATION_REGISTRATION') == AppConstant::NO &&
+            FatApp::getConfig('CONF_AUTO_LOGIN_REGISTRATION') == AppConstant::YES
         ) {
             $auth = new UserAuth();
             if (!$auth->login($post['user_email'], $post['user_password'], MyUtility::getUserIp())) {
@@ -368,6 +368,7 @@ private function getDashboardUrl(): string
         $fld = $frm->addCheckBox(Label::getLabel('LBL_I_ACCEPT_TO_THE'), 'agree', AppConstant::NO);
         $fld->requirements()->setRequired();
         $fld->requirements()->setCustomErrorMessage(Label::getLabel('MSG_TERMS_AND_CONDITION_ARE_MANDATORY'));
+        $frm->addCheckbox(Label::getLabel('LBL_REGISTER_AS_PARENT'), 'user_is_parent', 1, [], false, 0);
         $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_Register'));
         return $frm;
     }

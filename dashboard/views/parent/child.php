@@ -2,218 +2,298 @@
 
 <?php
 $fullName = htmlspecialchars(($child['user_first_name'] ?? '') . ' ' . ($child['user_last_name'] ?? ''));
+$initial = CommonHelper::getFirstChar($child['user_first_name'] ?? 'C');
 ?>
 
-<div class="container container--fixed">
-    <div class="dashboard">
-        <div class="dashboard__primary">
-            <div class="page__head">
-                <h1><?php echo Label::getLabel('LBL_CHILD_DASHBOARD'); ?>: <?php echo $fullName; ?></h1>
-                <div>
-                    <a class="btn btn--secondary" href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>">
-                        <?php echo Label::getLabel('LBL_BACK'); ?>
-                    </a>
-                </div>
+<style>
+    .child-dashboard {
+        padding: 30px 0;
+    }
+
+    .page-header {
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 20px;
+    }
+
+    .child-info-brief {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .child-avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #2dadff 0%, #153e7d 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #fff;
+        box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);
+    }
+
+    .child-title h1 {
+        font-size: 1.875rem;
+        font-weight: 800;
+        color: #1a202c;
+        margin: 0;
+    }
+
+    .child-title p {
+        color: #718096;
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-content h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .stat-content p {
+        font-size: 0.875rem;
+        color: #718096;
+        margin: 4px 0 0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .dashboard-section {
+        margin-bottom: 40px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .data-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-modern th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-modern td {
+        padding: 16px 24px;
+        vertical-align: middle;
+        color: #1e293b;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table-modern tr:last-child td {
+        border-bottom: none;
+    }
+
+    .progress-bar-wrap {
+        width: 100%;
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        transition: width 0.6s cubic-bezier(0.1, 0, 0, 1);
+    }
+
+    .badge-modern {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .badge-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-primary {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .teacher-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .teacher-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .clickable-card {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .clickable-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #2dadff;
+    }
+</style>
+
+<script>
+    function showChildLoginMsg() {
+        alert("<?php echo Label::getLabel('LBL_LOGIN_TO_YOUR_CHILD_PROFILE_DIRECTLY_TO_SEE_DETAILED_STATISTICS'); ?>");
+    }
+</script>
+
+<div class="container container--fixed child-dashboard">
+    <div class="page-header">
+        <div class="child-info-brief">
+            <div class="child-avatar-large"><?php echo $initial; ?></div>
+            <div class="child-title">
+                <h1><?php echo $fullName; ?></h1>
+                <p><?php echo htmlspecialchars($child['user_email'] ?? ''); ?> •
+                    <?php echo htmlspecialchars($child['parstd_relation'] ?? Label::getLabel('LBL_CHILD')); ?>
+                </p>
             </div>
+        </div>
+        <div>
+            <a class="btn btn--secondary btn--large"
+                href="<?php echo MyUtility::makeUrl('Parent', 'children', [], CONF_WEBROOT_DASHBOARD); ?>"
+                style="border-radius: 12px; font-weight: 700;">
+                <i class="ion-arrow-left-c margin-right-2"></i> <?php echo Label::getLabel('LBL_BACK_TO_FAMILY'); ?>
+            </a>
+            <a class="btn btn--primary btn--large margin-left-2"
+                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>"
+                style="border-radius: 12px; font-weight: 700; background: #2dadff; border: none;">
+                <i class="ion-log-in margin-right-2"></i> <?php echo Label::getLabel('LBL_LOGIN_AS_CHILD'); ?>
+            </a>
+        </div>
+    </div>
 
-            <div class="page__body">
-                <!-- Basic Info -->
-                <div class="card margin-bottom-6">
-                    <div class="card__head">
-                        <h4><?php echo Label::getLabel('LBL_BASIC_INFORMATION'); ?></h4>
-                    </div>
-                    <div class="card__body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong><?php echo Label::getLabel('LBL_EMAIL'); ?>:</strong> <?php echo htmlspecialchars($child['user_email'] ?? ''); ?></p>
-                                <p><strong><?php echo Label::getLabel('LBL_RELATION'); ?>:</strong> <?php echo htmlspecialchars($child['parstd_relation'] ?? '-'); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Courses -->
-                    <div class="col-lg-6 margin-bottom-6">
-                        <div class="card">
-                            <div class="card__head">
-                                <h4><?php echo Label::getLabel('LBL_COURSES'); ?></h4>
-                            </div>
-                            <div class="card__body">
-                                <?php if (empty($courses)) { ?>
-                                    <div class="alert alert--info">
-                                        <?php echo Label::getLabel('LBL_NO_COURSES_ENROLLED'); ?>
-                                    </div>
-                                <?php } else { ?>
-                                    <div class="table-scroll">
-                                        <table class="table table--hover">
-                                            <thead>
-                                                <tr>
-                                                    <th><?php echo Label::getLabel('LBL_COURSE'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_PROGRESS'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_STATUS'); ?></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($courses as $course) { 
-                                                    $progressClass = $course['ordcrs_progress'] >= 80 ? 'text-success' : ($course['ordcrs_progress'] >= 50 ? 'text-warning' : 'text-danger');
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($course['course_title'] ?? 'N/A'); ?></td>
-                                                    <td>
-                                                        <div class="progress">
-                                                            <div class="progress-bar <?php echo $progressClass; ?>" style="width: <?php echo $course['ordcrs_progress']; ?>%">
-                                                                <?php echo $course['ordcrs_progress']; ?>%
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <?php if ($course['ordcrs_status'] == OrderCourse::STATUS_COMPLETED) { ?>
-                                                            <span class="badge badge--success"><?php echo Label::getLabel('LBL_COMPLETED'); ?></span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge--primary"><?php echo Label::getLabel('LBL_IN_PROGRESS'); ?></span>
-                                                        <?php } ?>
-                                                    </td>
-                                                </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php } ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Upcoming Lessons -->
-                    <div class="col-lg-6 margin-bottom-6">
-                        <div class="card">
-                            <div class="card__head">
-                                <h4><?php echo Label::getLabel('LBL_UPCOMING_LESSONS'); ?></h4>
-                            </div>
-                            <div class="card__body">
-                                <?php if (empty($upcomingLessons)) { ?>
-                                    <div class="alert alert--info">
-                                        <?php echo Label::getLabel('LBL_NO_UPCOMING_LESSONS'); ?>
-                                    </div>
-                                <?php } else { ?>
-                                    <div class="table-scroll">
-                                        <table class="table table--hover">
-                                            <thead>
-                                                <tr>
-                                                    <th><?php echo Label::getLabel('LBL_DATE_TIME'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_TEACHER'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_DURATION'); ?></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($upcomingLessons as $lesson) { 
-                                                    $startTime = MyDate::formatDate($lesson['ordles_lesson_starttime'], true, null, $siteUser['user_timezone']);
-                                                    $endTime = MyDate::formatDate($lesson['ordles_lesson_endtime'], true, null, $siteUser['user_timezone']);
-                                                    $duration = round((strtotime($lesson['ordles_lesson_endtime']) - strtotime($lesson['ordles_lesson_starttime'])) / 60);
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo $startTime; ?></td>
-                                                    <td><?php echo htmlspecialchars($lesson['teacher_first_name'] . ' ' . $lesson['teacher_last_name']); ?></td>
-                                                    <td><?php echo $duration; ?> <?php echo Label::getLabel('LBL_MINUTES'); ?></td>
-                                                </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php } ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Quiz Attempts -->
-                    <div class="col-lg-6 margin-bottom-6">
-                        <div class="card">
-                            <div class="card__head">
-                                <h4><?php echo Label::getLabel('LBL_RECENT_QUIZZES'); ?></h4>
-                            </div>
-                            <div class="card__body">
-                                <?php if (empty($quizAttempts)) { ?>
-                                    <div class="alert alert--info">
-                                        <?php echo Label::getLabel('LBL_NO_QUIZ_ATTEMPTS'); ?>
-                                    </div>
-                                <?php } else { ?>
-                                    <div class="table-scroll">
-                                        <table class="table table--hover">
-                                            <thead>
-                                                <tr>
-                                                    <th><?php echo Label::getLabel('LBL_QUIZ'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_SCORE'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_DATE'); ?></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($quizAttempts as $quiz) { 
-                                                    $attemptDate = MyDate::formatDate($quiz['quatt_attempted_on'], true, null, $siteUser['user_timezone']);
-                                                    $scoreClass = $quiz['quatt_score'] >= 80 ? 'text-success' : ($quiz['quatt_score'] >= 50 ? 'text-warning' : 'text-danger');
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($quiz['quiz_title'] ?? 'N/A'); ?></td>
-                                                    <td class="<?php echo $scoreClass; ?>">
-                                                        <strong><?php echo $quiz['quatt_score']; ?>%</strong>
-                                                    </td>
-                                                    <td><?php echo $attemptDate; ?></td>
-                                                </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php } ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tutors -->
-                    <div class="col-lg-6 margin-bottom-6">
-                        <div class="card">
-                            <div class="card__head">
-                                <h4><?php echo Label::getLabel('LBL_TUTORS'); ?></h4>
-                            </div>
-                            <div class="card__body">
-                                <?php if (empty($tutors)) { ?>
-                                    <div class="alert alert--info">
-                                        <?php echo Label::getLabel('LBL_NO_TUTORS'); ?>
-                                    </div>
-                                <?php } else { ?>
-                                    <div class="table-scroll">
-                                        <table class="table table--hover">
-                                            <thead>
-                                                <tr>
-                                                    <th><?php echo Label::getLabel('LBL_TUTOR'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_TOTAL_LESSONS'); ?></th>
-                                                    <th><?php echo Label::getLabel('LBL_ACTION'); ?></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($tutors as $tutor) { 
-                                                    $tutorName = htmlspecialchars($tutor['user_first_name'] . ' ' . $tutor['user_last_name']);
-                                                    $messageUrl = MyUtility::makeUrl('Messages', 'compose', ['teacher' => $tutor['user_id']], CONF_WEBROOT_DASHBOARD);
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo $tutorName; ?></td>
-                                                    <td><?php echo $tutor['total_lessons']; ?></td>
-                                                    <td>
-                                                        <a href="<?php echo $messageUrl; ?>" class="btn btn--primary btn--small">
-                                                            <?php echo Label::getLabel('LBL_MESSAGE'); ?>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php } ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Stats Overview -->
+    <div class="stat-grid">
+        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
+            <div class="stat-icon" style="background: #e0f2fe; color: #0ea5e9;"><i class="ion-university"></i></div>
+            <div class="stat-content">
+                <h3><?php echo (int) $unlockedCoursesCount; ?></h3>
+                <p><?php echo Label::getLabel('LBL_COURSES'); ?></p>
             </div>
+        </div>
+        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
+            <div class="stat-icon" style="background: #fef3c7; color: #d97706;"><i class="ion-calendar"></i></div>
+            <div class="stat-content">
+                <h3><?php echo count($upcomingLessons); ?></h3>
+                <p><?php echo Label::getLabel('LBL_UPCOMING'); ?></p>
+            </div>
+        </div>
+        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
+            <div class="stat-icon" style="background: #dcfce7; color: #16a34a;"><i class="ion-ribbon-b"></i></div>
+            <div class="stat-content">
+                <h3><?php echo (int) $attemptedQuizzesCount; ?></h3>
+                <p><?php echo Label::getLabel('LBL_QUIZZES'); ?></p>
+            </div>
+        </div>
+        <div class="stat-card clickable-card" onclick="showChildLoginMsg()">
+            <div class="stat-icon" style="background: #f3e8ff; color: #9333ea;"><i class="ion-person-stalker"></i></div>
+            <div class="stat-content">
+                <h3><?php echo count($tutors); ?></h3>
+                <p><?php echo Label::getLabel('LBL_TUTORS'); ?></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Access Notice -->
+    <div class="dashboard-section">
+        <div class="content-card text-center"
+            style="padding: 60px 40px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 24px;">
+            <div style="margin-bottom: 24px;">
+                <i class="ion-ios-information-outline" style="font-size: 5rem; color: #2dadff;"></i>
+            </div>
+            <h2 style="font-size: 1.75rem; font-weight: 800; color: #1e293b; margin-bottom: 16px;">
+                <?php echo Label::getLabel('LBL_VIEW_DETAILED_STATISTICS'); ?>
+            </h2>
+            <p style="font-size: 1.125rem; color: #64748b; max-width: 600px; margin: 0 auto 32px; line-height: 1.6;">
+                <?php echo Label::getLabel('LBL_PLEASE_OPEN_YOUR_CHILDS_PROFILE_TO_SEE_THE_DETAILS_OF_EACH_ASPECT_INCLUDING_COURSES_LESSONS_QUIZZES_AND_TUTORS'); ?>
+            </p>
+            <a class="btn btn--primary btn--large"
+                href="<?php echo MyUtility::makeUrl('Parent', 'loginAsChild', [$child['student_id']], CONF_WEBROOT_DASHBOARD); ?>"
+                style="padding: 16px 40px; border-radius: 14px; font-weight: 800; font-size: 1.1rem; background: #2dadff; border: none; box-shadow: 0 10px 15px -3px rgba(45, 173, 255, 0.4);">
+                <?php echo Label::getLabel('LBL_OPEN_CHILDS_PROFILE'); ?>
+            </a>
         </div>
     </div>
 </div>

@@ -147,8 +147,12 @@ class UserAuth extends FatModel
             'user_email' => $user['user_email'],
             'user_username' => $user['user_username'],
             'user_first_name' => $user['user_first_name'],
-            'user_last_name' => $user['user_last_name']
+            'user_last_name' => $user['user_last_name'],
+            'user_is_parent' => $user['user_is_parent'] ?? 0
         ];
+        if (!empty($user['user_is_parent']) || FatApp::getPostedData('login_as_parent', FatUtility::VAR_INT, 0)) {
+            $_SESSION['RWU_DASHBOARD_ROLE'] = 'parent';
+        }
         return true;
     }
 
@@ -243,7 +247,8 @@ class UserAuth extends FatModel
     private static function clearAuthTokenUser()
     {
         FatApp::getDb()->deleteRecords(static::DB_TBL_USER_AUTH, [
-            'smt' => 'usrtok_token = ?', 'vals' => [$_COOKIE[static::COOKIES_ELEMENT] ?? '']
+            'smt' => 'usrtok_token = ?',
+            'vals' => [$_COOKIE[static::COOKIES_ELEMENT] ?? '']
         ]);
         // MyUtility::setCookie(static::COOKIES_ELEMENT, '', time() - 3600, CONF_WEBROOT_FRONTEND);
         MyUtility::setCookie(static::COOKIES_ELEMENT, '', time() - 3600, '/');
@@ -252,9 +257,9 @@ class UserAuth extends FatModel
     public function signup(array $data): bool
     {
         if (
-                empty($data['user_email']) || empty($data['user_password']) ||
-                empty($data['user_first_name']) || !isset($data['user_last_name']) ||
-                empty($data['user_phone_code']) ||  empty($data['user_phone_number'])
+            empty($data['user_email']) || empty($data['user_password']) ||
+            empty($data['user_first_name']) || !isset($data['user_last_name']) ||
+            empty($data['user_phone_code']) || empty($data['user_phone_number'])
         ) {
             $this->error = Label::getLabel('MSG_USER_COULD_NOT_BE_SET');
             return false;
@@ -268,7 +273,10 @@ class UserAuth extends FatModel
             'user_lang_id' => MyUtility::getSiteLangId(),
             'user_timezone' => MyUtility::getSiteTimezone(),
             'user_phone_code' => $data['user_phone_code'],
-            'user_phone_number' => $data['user_phone_number']
+            'user_country_id' => '1',
+            'user_phone_number' => $data['user_phone_number'],
+            'user_wallet_balance' => '0',
+            'user_wallet_currency' => 'USD',
         ];
         $db = FatApp::getDb();
         if (!$db->startTransaction()) {
@@ -303,6 +311,20 @@ class UserAuth extends FatModel
             $this->error = Label::getLabel('MSG_USER_COULD_NOT_BE_SET');
             return false;
         }
+
+        /* [PARENT-PORTAL] Handle Parent Registration & Default Student */
+        if (!empty($data['user_is_parent'])) {
+            $userId = $user->getMainTableRecordId();
+            $userObj = new User($userId);
+            $userObj->setFldValue('user_is_parent', AppConstant::YES);
+            if (!$userObj->save()) {
+                $db->rollbackTransaction();
+                $this->error = $userObj->getError();
+                return false;
+            }
+        }
+        /* [/PARENT-PORTAL] */
+
         if (!$db->commitTransaction()) {
             $this->error = Label::getLabel('ERR_SOMETHING_WENT_WRONG');
             return false;
@@ -345,7 +367,7 @@ class UserAuth extends FatModel
         }
         if (empty($user['user_verified'])) {
             $link = '<a href="javascript:void(0)" onclick="resendSignupVerifyEmail(' . "'" .
-                    $user['user_email'] . "'" . ')">' . Label::getLabel('LBL_CLICK_HERE') . '</a>';
+                $user['user_email'] . "'" . ')">' . Label::getLabel('LBL_CLICK_HERE') . '</a>';
             $this->error = str_replace("{clickhere}", $link, Label::getLabel('MSG_VERIFICATION_PENDING_{clickhere}_TO_VERIFY'));
             return false;
         }
@@ -358,7 +380,8 @@ class UserAuth extends FatModel
         $db->startTransaction();
         $record = new TableRecord(static::DB_TBL_USER_PRR);
         $record->assignValues([
-            'uprr_token' => $token, 'uprr_user_id' => $user['user_id'],
+            'uprr_token' => $token,
+            'uprr_user_id' => $user['user_id'],
             'uprr_expiry' => date('Y-m-d H:i:s', strtotime("+1 DAY"))
         ]);
         if (!$record->addNew(['HIGH_PRIORITY'])) {
@@ -564,8 +587,18 @@ class UserAuth extends FatModel
         $srch = new SearchBase(User::DB_TBL, 'user');
         $srch->joinTable(User::DB_TBL_SETTING, 'INNER JOIN', 'uset.user_id = user.user_id', 'uset');
         $srch->addMultipleFields([
-            'user.user_id', 'user_email', 'user_username', 'user_password', 'user_is_teacher', 'user_first_name', 'user_last_name',
-            'user_dashboard', 'user_facebook_id', 'user_verified', 'user_active', 'user_deleted'
+            'user.user_id',
+            'user_email',
+            'user_username',
+            'user_password',
+            'user_is_teacher',
+            'user_first_name',
+            'user_last_name',
+            'user_dashboard',
+            'user_facebook_id',
+            'user_verified',
+            'user_active',
+            'user_deleted'
         ]);
         if (!empty($email)) {
             $srch->addCondition('user_email', '=', $email);
@@ -764,6 +797,7 @@ class UserAuth extends FatModel
         $pwd = $frm->addPasswordField(Label::getLabel('LBL_Password'), 'password', (MyUtility::isDemoUrl() ? 'John@123' : ''), ['placeholder' => Label::getLabel('LBL_PASSWORD')]);
         $pwd->requirements()->setRequired();
         $frm->addCheckbox(Label::getLabel('LBL_Remember_Me'), 'remember_me', 1, [], false, 0);
+        $frm->addCheckbox(Label::getLabel('LBL_LOGIN_AS_PARENT'), 'login_as_parent', 1, [], false, 0);
         $frm->addHtml('', 'forgot', '');
         $frm->addSubmitButton('', 'btn_submit', Label::getLabel('LBL_LOGIN'));
         return $frm;
