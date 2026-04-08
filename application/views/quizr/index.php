@@ -1,10 +1,8 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
 $priceSorting = AppConstant::getSortbyArr();
-
 $primaryColor = '#2DADFF';
 
-/** Safely extract attempt row */
 $attemptRow      = $attemptresult[0] ?? [];
 $resultText      = '';
 $subtopic_id     = null;
@@ -13,30 +11,52 @@ $correct         = 0;
 $incorrect       = 0;
 $accuracy        = 0;
 
+// Default values jo card mein nazar aayengi
+$topName = 'ARITHMETIC'; 
+$subName = 'BODMAS Rule';
+$desc    = 'Master the order of operations.';
+
 if (!empty($attemptRow)) {
     $resultText  = strtolower(trim($attemptRow['result'] ?? ''));
     $subtopic_id = $attemptRow['subtopic_id'] ?? null;
     $totalQuestions = (int)($attemptRow['total_questions'] ?? 0);
+
+    if (!empty($subtopic_id)) {
+        $db = FatApp::getDb();
+        // Database se data fetch karna
+        $sql = "SELECT * FROM course_subtopics WHERE id = " . (int)$subtopic_id;
+        $res = $db->query($sql);
+        $row = $db->fetch($res);
+
+        if ($row) {
+            $subName = $row['st_title'] ?? $row['subtopic_title'] ?? $row['title'] ?? $subName;
+            $desc    = $row['st_description'] ?? $row['description'] ?? $desc;
+            
+            $t_id = $row['st_topic_id'] ?? $row['topic_id'] ?? null;
+            if ($t_id) {
+                $tSql = "SELECT * FROM course_topics WHERE id = " . (int)$t_id;
+                $tRes = $db->query($tSql);
+                $tRow = $db->fetch($tRes);
+                if ($tRow) {
+                    $topName = $tRow['topic_title'] ?? $tRow['topic_name'] ?? $tRow['title'] ?? $topName;
+                }
+            }
+        }
+    }
 }
 
-/** Compute correct/incorrect/accuracy from $attemptquestions */
+// Aapka original logic (Inhein mat cherna)
 if (!empty($attemptquestions) && is_array($attemptquestions)) {
     $totalQuestions = count($attemptquestions);
     foreach ($attemptquestions as $q) {
-        if (!empty($q['is_correct']) && (int)$q['is_correct'] === 1) {
-            $correct++;
-        }
+        if (!empty($q['is_correct']) && (int)$q['is_correct'] === 1) { $correct++; }
     }
 }
 if ($totalQuestions > 0) {
     $incorrect = $totalQuestions - $correct;
     $accuracy  = round(($correct / $totalQuestions) * 100);
 }
-
-/** Fallback for current subtopic id (for Next / Requiz buttons) */
-$currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicId'] ?? null);
 ?>
-
 <style>
     :root {
         --rwu-primary: <?= $primaryColor ?>;
@@ -1208,7 +1228,78 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
+.rwu-glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        border-radius: 35px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 20px 50px rgba(45, 173, 255, 0.1);
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        animation: rwuAppear 0.8s ease-out;
+    }
 
+    /* 2. Background Animated Blobs (Moving Colors) */
+    .rwu-blob {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: linear-gradient(135deg, #2DADFF 0%, #B4E4FF 100%);
+        filter: blur(50px);
+        border-radius: 50%;
+        z-index: 0;
+        opacity: 0.2;
+        animation: rwuFloat 8s infinite alternate;
+    }
+
+    .rwu-blob-1 { top: -50px; right: -50px; }
+    .rwu-blob-2 { bottom: -50px; left: -50px; animation-delay: -4s; }
+
+    /* 3. Typography & Styling */
+    .rwu-pill-topic {
+        background: #2DADFF;
+        color: #fff;
+        padding: 5px 15px;
+        border-radius: 100px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        display: inline-block;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 4px 15px rgba(45, 173, 255, 0.3);
+    }
+
+    .rwu-title-text {
+        color: #0F172A;
+        font-weight: 850;
+        font-size: 1.6rem;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+        margin-bottom: 1rem;
+    }
+
+    .rwu-desc-text {
+        color: #64748B;
+        font-size: 0.95rem;
+        max-width: 280px;
+        margin: 0 auto;
+        line-height: 1.7;
+        font-weight: 500;
+    }
+
+    /* Animations */
+    @keyframes rwuAppear {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes rwuFloat {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        100% { transform: translate(30px, 30px) rotate(15deg); }
+    }
+
+    
 </style>
 
 <div class="page-listing__body quiz-results-page">
@@ -1268,7 +1359,27 @@ $currentSubtopicId = $currentSubtopicId ?? $subtopic_id ?? ($_SESSION['subtopicI
                     </div>
                 </div>
             </div>
+<div class="card rwu-glass-card mb-4 text-center p-5">
+    <div class="rwu-blob rwu-blob-1"></div>
+    <div class="rwu-blob rwu-blob-2"></div>
 
+    <div class="card-body p-0 position-relative" style="z-index: 2;">
+        <div class="rwu-pill-topic text-uppercase">
+            <i class="fas fa-sparkles me-1"></i>
+            <?php echo htmlspecialchars($topName); ?>
+        </div>
+
+        <h2 class="rwu-title-text">
+            <?php echo htmlspecialchars($subName); ?>
+        </h2>
+
+        <div class="mx-auto my-3" style="width: 40px; height: 5px; background: linear-gradient(90deg, #2DADFF, #B4E4FF); border-radius: 50px;"></div>
+
+        <p class="rwu-desc-text">
+            <?php echo htmlspecialchars($desc); ?>
+        </p>
+    </div>
+</div>
           <div class="card-body">
     <!-- QUESTIONS OVERVIEW + STATS -->
     <div class="row g-4 align-items-start">

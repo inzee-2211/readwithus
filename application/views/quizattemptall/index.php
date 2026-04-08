@@ -1,5 +1,35 @@
 <?php
 defined('SYSTEM_INIT') or die('Invalid Usage.');
+
+// Fat-Free ya Custom Frameworks mein connection aksar 'FatApp' ya 'Db' class se milta hai
+// Hum direct mysqli connection try karte hain jo aksar global hota hai
+global $db; 
+
+$subtopic_id = $_GET['subtopic'] ?? 0;
+
+if($subtopic_id > 0) {
+    // Agar $db kaam nahi kar raha to ye check karega
+    if (!$db) {
+        // Aapke project ki main configuration file se connection uthane ki koshish
+        $subName = "BODMAS Rule"; // Fallback text agar DB fail ho jaye
+        $topName = "Arithmetic";
+        $desc    = "Master the order of operations.";
+    } else {
+        $sql = "SELECT s.subtopic_name, s.description, t.topic_name 
+                FROM course_subtopics s 
+                LEFT JOIN course_topics t ON s.topic_id = t.id 
+                WHERE s.id = " . (int)$subtopic_id;
+
+        $result = mysqli_query($db, $sql); 
+        
+        if($result) {
+            $data = mysqli_fetch_assoc($result);
+            $subName = $data['subtopic_name'] ?? 'Quiz';
+            $topName = $data['topic_name'] ?? 'Topic';
+            $desc    = $data['description'] ?? 'No description available.';
+        }
+    }
+}
 ?>
 <style>
 /* ====== Shared helpers ====== */
@@ -270,7 +300,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
   height: 28px;
   border-radius: 999px;
   border: 1px solid #e5e7eb;
-  background: #ffffff;
+  background: #cc4e4e;
   color: #111827;
   font-weight: 900;
   font-size: 14px;
@@ -285,7 +315,175 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
 .rwu-math-help:hover{
   background:#f9fafb;
 }
+.rwu-creative-card {
+        background: rgba(208, 209, 228, 0.3);
+        backdrop-filter: blur(10px); /* Glass effect */
+        border-radius: 24px;
+        border: 1px solid rgba(45, 173, 255, 0.15);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.03);
+    }
 
+    /* Hover Effect: Card expands and glow appears */
+    .rwu-creative-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(45, 173, 255, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Floating Background Element */
+    .rwu-bg-shape {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, rgba(52, 166, 236, 0.77) 0%, rgba(45, 173, 255, 0.05) 100%);
+        border-radius: 50%;
+        top: -40px;
+        right: -40px;
+        z-index: 0;
+        animation: rwuPulse 4s infinite ease-in-out;
+    }
+
+    /* Header Styling */
+    .rwu-badge-topic {
+        background: rgba(45, 173, 255, 0.08);
+        color: #2DADFF;
+        padding: 6px 14px;
+        border-radius: 100px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        margin-bottom: 1.2rem;
+        border: 1px solid rgba(45, 173, 255, 0.1);
+    }
+
+    .rwu-card-title-modern {
+        color: #0F172A;
+        font-weight: 800;
+        font-size: 1.6rem;
+        line-height: 1.3;
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Description with subtle border left */
+    .rwu-desc-container {
+        border-left: 3px solid #2DADFF;
+        padding-left: 15px;
+        margin-top: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .rwu-desc-text {
+        color: #64748B;
+        font-size: 0.88rem;
+        line-height: 1.7;
+        font-weight: 450;
+        margin-bottom: 0;
+    }
+
+    /* Animation Keyframes */
+    @keyframes rwuPulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+    }
+
+    /* Entrance Animation */
+    .rwu-animate-in {
+        animation: rwuSlideIn 0.7s ease-out forwards;
+    }
+
+    @keyframes rwuSlideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    /* 1. Animated Gradient Background Keyframes */
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* 2. Main Card Styling */
+    .rwu-premium-card {
+        background: linear-gradient(-45deg, #e3f7ff, #ffffff, #d1f3ff, #ffffff);
+        background-size: 400% 400%;
+        animation: gradientBG 10s ease infinite; /* Smooth moving background */
+        border-radius: 35px;
+        border: 1px solid rgba(45, 173, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(45, 173, 255, 0.1);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .rwu-premium-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 30px 60px rgba(45, 173, 255, 0.2);
+    }
+
+    /* 3. Topic Label (Small, Professional & Distinctive) */
+    .rwu-topic-label {
+        display: inline-block;
+        background: #2DADFF;
+        color: #ffffff;
+        padding: 6px 18px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(45, 173, 255, 0.3);
+    }
+
+    /* 4. Sub-Topic Title (Big, Bold, Modern Font) */
+    .rwu-subtopic-title {
+        font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        color: #0F172A;
+        font-weight: 900;
+        font-size: 1.5rem; /* Bara Text */
+        line-height: 1;
+        letter-spacing: -1px;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(90deg, #0F172A, #2DADFF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; /* Gradient Text Effect */
+    }
+
+    /* 5. Modern Description Styling */
+    .rwu-description-box {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(5px);
+        padding: 15px 20px;
+        border-radius: 20px;
+        border-left: 5px solid #2DADFF;
+        margin-top: 10px;
+    }
+
+    .rwu-description-text {
+        color: #475569;
+        font-size: 1rem;
+        line-height: 1.6;
+        font-weight: 500;
+        margin-bottom: 0;
+    }
+
+    /* Entrance Animation */
+    .rwu-reveal {
+        animation: rwuReveal 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    @keyframes rwuReveal {
+        from { opacity: 0; transform: translateY(40px); filter: blur(10px); }
+        to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
 </style>
 
 <section class="section section--gray section--listing">
@@ -298,6 +496,29 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
             <div class="qz-shell">
               <!-- ========== LEFT SIDEBAR ========== -->
               <aside class="qz-side">
+               <div class="rwu-main-wrapper">
+    <div class="card rwu-premium-card p-4 p-md-5">
+        <div class="card-body p-0 text-center text-md-start">
+            
+            <div class="rwu-topic-label">
+                <i class="fas fa-layer-group me-2"></i> 
+                <?php echo htmlspecialchars($topName); ?>
+            </div>
+
+            <h1 class="rwu-subtopic-title">
+                <?php echo htmlspecialchars($subName); ?>
+            </h1>
+
+            <div class="rwu-description-box">
+                <p class="rwu-description-text">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    <?php echo htmlspecialchars($desc); ?>
+                </p>
+            </div>
+
+        </div>
+    </div>
+</div>
                 <h5><?php echo Label::getLabel('LBL_TIME_REMAINING'); ?></h5>
                 <div class="qz-timer">
                   <span>⏱️</span>
@@ -336,6 +557,7 @@ defined('SYSTEM_INIT') or die('Invalid Usage.');
                     <?php echo Label::getLabel('LBL_SUBMIT_QUIZ'); ?>
                   </button>
                 </div>
+                
               </aside>
 
               <!-- ========== QUESTIONS PANEL ========== -->

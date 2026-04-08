@@ -25,6 +25,17 @@ class SubscriptionController extends MyAppController
         $this->set('siteCurrency', $this->siteCurrency);
         $this->_template->render(true, true, 'pricing/index.php');
     }
+    /* -----------------------------
+ * Step 5: Cancel – User backed out of Stripe
+ * ----------------------------- */
+public function cancel()
+{
+    // Optional: Clear the intent if you want them to start fresh
+    // unset($_SESSION['subscription_intent']);
+
+    Message::addErrorMessage('Payment was cancelled. You have not been charged.');
+    FatApp::redirectUser(MyUtility::makeUrl('Subscription', 'pricing'));
+}
 public function activateFreeQuizPlan($spackageId)
 {
     // must be logged in
